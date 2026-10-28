@@ -139,7 +139,7 @@ em { font-style: normal; color: var(--acc); }
 .toast { background: rgba(18, 16, 14, .92); border: 1px solid rgba(255, 233, 196, .22); color: #f3e9d8; padding: 10px 16px; border-radius: 10px; font-size: 14px; line-height: 1.45; box-shadow: 0 10px 30px rgba(0,0,0,.45); max-width: min(560px, calc(100vw - 32px)); opacity: 0; translate: 0 8px; transition: opacity .25s ease, translate .25s ease; pointer-events: auto; }
 .toast.show { opacity: 1; translate: 0 0; }
 .toast a { color: #ffd08a; }
-#hint { position: fixed; left: 50%; bottom: max(28px, env(safe-area-inset-bottom, 0px)); translate: -50% 0; z-index: 40; color: rgba(245,236,220,.5); font: 13px/1.6 var(--f-zh); letter-spacing: .04em; text-align: center; transition: opacity .6s ease; pointer-events: none; padding-inline: 16px; }
+#hint { position: fixed; left: 16px; right: 16px; bottom: max(28px, env(safe-area-inset-bottom, 0px)); z-index: 40; color: rgba(245,236,220,.5); font: 13px/1.6 var(--f-zh); letter-spacing: .04em; text-align: center; transition: opacity .6s ease; pointer-events: none; padding-inline: 16px; }
 #hint kbd { font-family: var(--f-mono); font-size: 12px; border: 1px solid rgba(245,236,220,.28); border-radius: 4px; padding: 1px 6px; margin: 0 2px; color: rgba(245,236,220,.75); }
 #hint .hk { display: inline-block; white-space: nowrap; margin: 2px 10px; }
 #hint .hint-demo { pointer-events: auto; margin-top: 12px; appearance: none; border: 1px solid rgba(255, 208, 138, .45); background: rgba(20, 16, 12, .6); color: #ffd08a; font: 500 13px/1 var(--f-zh); padding: 9px 16px; border-radius: 999px; cursor: pointer; letter-spacing: .06em; }
@@ -390,6 +390,8 @@ body.fs #hint .hint-demo, body.started #hint .hint-demo { pointer-events: none; 
 /* nothing that is faded out may catch the pointer */
 .scene .rv:not(.on) .tilt, .scene .rv:not(.on) .hov, .scene .rv:not(.on) .int, .scene .rv:not(.on) .drag, .scene .rv:not(.on) .fg-hit,
 .scene .rv.tilt:not(.on), .scene .rv.int:not(.on), .scene .rv.drag:not(.on), .scene .rv.hov:not(.on) { pointer-events: none !important; }
+/* on a phone the stage is for watching: taps anywhere turn the page, nothing on stage swallows them */
+#stage.touch .scene .tilt, #stage.touch .scene .hov, #stage.touch .scene .int, #stage.touch .scene .drag, #stage.touch .scene .fg-hit { pointer-events: none !important; }
 .scene .int { cursor: pointer; }
 .scene .drag { cursor: grab; touch-action: none; }
 .scene .drag:active, .scene .drag.grabbing { cursor: grabbing; }
@@ -417,6 +419,17 @@ body.fs #hint .hint-demo, body.started #hint .hint-demo { pointer-events: none; 
 .itip::before { content: ''; display: inline-block; width: 8px; height: 8px; margin-right: 9px; border-radius: 50%; background: var(--acc); box-shadow: 0 0 10px var(--acc); vertical-align: 1px; animation: itipP 1.6s ease-in-out infinite; }
 @keyframes itipP { 50% { opacity: .35; } }
 #stage.pointing .scene.active .itip.on { opacity: 1; translate: -50% 0; }
+
+/* ── 10c-photos ── */
+/* ── photographs: real prints of him, pinned into the scenes ── */
+.photo { padding: 12px 12px 0; background: #f2ebdd; box-shadow: 0 26px 60px rgba(0, 0, 0, .62), 0 2px 0 rgba(255, 255, 255, .12) inset; border-radius: 2px; }
+.photo .ph-img { position: relative; overflow: hidden; background: #1b1714; }
+.photo img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: var(--pos, 50% 25%); filter: contrast(1.04) saturate(.9); }
+.photo .ph-cap { padding: 11px 4px 4px; font: 500 21px/1.25 var(--f-ko); color: #2a221a; white-space: nowrap; }
+.photo .ph-cap .zh { font-family: var(--f-zh); }
+[data-lang="bi"] .photo .ph-cap .zh { opacity: .75; }
+.photo .ph-cr { padding: 2px 4px 10px; font: 500 11px/1.3 var(--f-num); letter-spacing: .06em; color: rgba(42, 34, 26, .55); white-space: nowrap; }
+.photo-w.nophoto { display: none; }
 
 /* ── 12-scenes-prologue ── */
 /* ── prologue: cold open · trailer · title ── */
@@ -1109,8 +1122,14 @@ const ease = {
   outBack: t => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); },
 };
 const VIEW = (() => { const v = (location.hash || '').replace('#', ''); return v === 'presenter' || v === 'preview' ? v : 'stage'; })();   // stage | presenter | preview
+/* phones and tablets get a lighter stage: no per-figure SVG filters, no pointer toys, no media prefetch.
+   ?lite=1 / ?lite=0 forces it either way. */
+const TOUCH = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches && !matchMedia('(any-pointer: fine)').matches);
+const LITE = /[?&]lite=1/.test(location.search) || (!/[?&]lite=0/.test(location.search) && (TOUCH || Math.min(screen.width || 1e4, screen.height || 1e4) < 600));
 
 /* element factory: h('div.a.b', {style, html, on:{click}}, ...children) */
+/* assign styles, custom properties (--name) included: Object.assign on el.style silently drops those */
+function setStyle(el, o) { for (const [k, v] of Object.entries(o)) { if (v == null) continue; if (k.startsWith('--')) el.style.setProperty(k, v); else el.style[k] = v; } }
 function h(tag, attrs, ...kids) {
   const m = tag.match(/^([a-z0-9]+)?((?:[.#][\w-]+)*)$/i);
   const el = (m && m[1] && /^(svg|path|g|circle|line|rect|text|defs|linearGradient|radialGradient|stop|pattern|ellipse|polygon|polyline|filter|feGaussianBlur|feColorMatrix|clipPath|mask|use|tspan)$/.test(m[1]))
@@ -1119,7 +1138,7 @@ function h(tag, attrs, ...kids) {
   if (m && m[2]) m[2].replace(/([.#])([\w-]+)/g, (_, k, v) => { if (k === '.') el.classList.add(v); else el.id = v; });
   if (attrs) for (const [k, v] of Object.entries(attrs)) {
     if (v == null || v === false) continue;
-    if (k === 'style' && typeof v === 'object') Object.assign(el.style, v);
+    if (k === 'style' && typeof v === 'object') setStyle(el, v);
     else if (k === 'html') el.innerHTML = v;
     else if (k === 'text') el.textContent = v;
     else if (k === 'on') for (const [e, f] of Object.entries(v)) el.addEventListener(e, f);
@@ -1148,7 +1167,7 @@ function A(tag, x, y, opt = {}, ...kids) {
   el.style.left = x + 'px'; el.style.top = y + 'px';
   if (w != null) el.style.width = w + 'px';
   if (hgt != null) el.style.height = hgt + 'px';
-  if (style) Object.assign(el.style, typeof style === 'string' ? Object.fromEntries(style.split(';').filter(Boolean).map(p => { const i = p.indexOf(':'); return [p.slice(0, i).trim().replace(/-([a-z])/g, (_, c) => c.toUpperCase()), p.slice(i + 1).trim()]; })) : style);
+  if (style) setStyle(el, typeof style === 'string' ? Object.fromEntries(style.split(';').filter(Boolean).map(p => { const i = p.indexOf(':'); const k = p.slice(0, i).trim(); return [k.startsWith('--') ? k : k.replace(/-([a-z])/g, (_, c) => c.toUpperCase()), p.slice(i + 1).trim()]; })) : style);
   if (show != null) { el.dataset.show = show; el.classList.add('rv'); }
   if (d != null) el.style.setProperty('--d', d + 's');
   return el;
@@ -2841,7 +2860,7 @@ const Figure = (() => {
       this.castK = o.castK ?? .55; this.castS = o.castS ?? .22;
       this.reflect = !!o.reflect;
       this.vb = o.vb || [-480, -980, 960, 1060];
-      this.useFx = o.fx !== false;
+      this.useFx = o.fx !== false && !LITE;
       this.scale = 1;
       this.p = Object.assign({}, BASE, POSES[o.pose || 'stand'] || {}, o.p || {});
       this.ik = null;
@@ -2960,7 +2979,7 @@ const Figure = (() => {
         s.querySelector('defs').insertAdjacentHTML('beforeend', `<filter id="${id}-ol" x="-15%" y="-15%" width="130%" height="130%"><feMorphology class="ol-r" in="SourceAlpha" operator="dilate" radius="2" result="d"/><feComposite in="d" in2="SourceAlpha" operator="out" result="o"/><feFlood flood-color="${lc}" flood-opacity="${lo}"/><feComposite in2="o" operator="in" result="ln"/><feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="ln"/></feMerge></filter>`);
         s.querySelectorAll('.fg-parts > path').forEach(e => { if (e.getAttribute('fill') !== 'none') e.setAttribute('filter', `url(#${id}-ol)`); });
       }
-      if (this.styl === 'costume') {
+      if (this.styl === 'costume' && !LITE) {
         ['p-aoA', 'p-aoL'].forEach(k => { q[k].setAttribute('fill', '#000'); q[k].setAttribute('fill-opacity', this.c.light ? '.22' : '.42'); q[k].setAttribute('filter', `url(#${id}-aob)`); });
         q['p-aoA'].setAttribute('clip-path', `url(#${id}-clT)`); q['p-aoL'].setAttribute('clip-path', `url(#${id}-clL)`);
       } else { q['p-aoA'].style.display = q['p-aoL'].style.display = 'none'; }
@@ -3696,6 +3715,46 @@ function itip(x, y, label, show) { const t = A('div.itip', x, y, { anchor: '' },
 /* depth layer helper */
 function layer(depth, ...kids) { const l = h('div.layer', { style: { '--dp': depth } }); l.append(...kids.flat().filter(Boolean)); return l; }
 
+/* ── 10c-photos ── */
+/* ═══ PHOTOS — freely licensed photographs from Wikimedia Commons ═══
+   Each slot loads media/photos/<file> first (works offline and inside the artifact preview once uploaded),
+   then the Commons original (works on GitHub Pages and locally), and hides itself if neither loads. */
+const PHOTOS = {
+  j5_1969: { file: '1969-jackson-5.jpg', commons: 'Jackson_5_1969.jpg', pos: '50% 35%',
+    cap: L('1969 · 잭슨 5, 〈에드 설리번 쇼〉 홍보 사진', '1969 · 杰克逊五兄弟《艾德·沙利文秀》宣传照'), credit: 'Bernie Ilson, Inc. · Public domain · Wikimedia Commons' },
+  mj_1969: { file: '1969-michael.jpg', commons: 'Michael_Jackson_1969.jpg', pos: '50% 20%',
+    cap: L('1969 · 열한 살', '1969 · 十一岁'), credit: 'Bernie Ilson, Inc. · Public domain · Wikimedia Commons' },
+  mj_1983: { file: '1983-michael.jpg', commons: 'Michael_Jackson_1983.jpg', pos: '50% 22%',
+    cap: L('1983 · 〈Thriller〉의 해', '1983 · 《Thriller》那一年'), credit: 'Epic Records · Public domain · Wikimedia Commons' },
+  mj_1984: { file: '1984-white-house.jpg', commons: 'Michael_Jackson_1984.jpg', pos: '50% 22%',
+    cap: L('1984. 5. 14 · 백악관', '1984.5.14 · 白宫'), credit: 'White House Photo Office · Public domain · Wikimedia Commons' },
+  bad_1988: { file: '1988-bad-tour-vienna.jpg', commons: 'Michael_Jackson_in_1988.jpg', pos: '50% 25%',
+    cap: L('1988. 6. 2 · 빈, Bad 월드 투어', '1988.6.2 · 维也纳，Bad 世界巡演'), credit: 'Zoran Veselinović · CC BY-SA 2.0 · Wikimedia Commons' },
+  dw_1992: { file: '1992-dangerous-tour-bucharest.jpg', commons: 'Michael_Jackson_Live_in_Bucharest_1992_Toni_Salabasev.jpg', pos: '50% 30%',
+    cap: L('1992 · 부쿠레슈티, Dangerous 월드 투어', '1992 · 布加勒斯特，Dangerous 世界巡演'), credit: 'Toni Salabasev · CC BY-SA 4.0 · Wikimedia Commons' },
+};
+const photoSources = (p) => ['media/photos/' + p.file, 'https://commons.wikimedia.org/wiki/Special:FilePath/' + encodeURIComponent(p.commons) + '?width=900'];
+
+/* a print: photograph, caption, credit. o: x, y, w, h (image area), rot, show, d, cls */
+function photoPrint(slot, o) {
+  const p = PHOTOS[slot];
+  const img = h('img', { alt: '', decoding: 'async', loading: 'lazy', draggable: 'false', referrerpolicy: 'no-referrer' });
+  /* the reveal moves the outer box; the print inside leans toward the pointer */
+  const print = h('div.photo', { style: { rotate: (o.rot || 0) + 'deg', '--pos': p.pos } },
+    h('div.ph-img', { style: { width: o.w + 'px', height: o.h + 'px' } }, img),
+    h('div.ph-cap', {}, T(p.cap)), h('div.ph-cr', { text: p.credit }));
+  const el = A('div.photo-w', o.x, o.y, { show: o.show, d: o.d, cls: o.cls || 'drop' }, print);
+  const src = photoSources(p);
+  let n = 0;
+  img.addEventListener('error', () => { n++; if (n < src.length) img.src = src[n]; else el.classList.add('nophoto'); });
+  img.addEventListener('load', () => el.classList.add('loaded'));
+  img.src = src[0];
+  tiltify(print, 8);
+  return el;
+}
+/* the light that a print needs on a dark stage (none when the photo could not be loaded) */
+const photoLight = (id, el, o = {}) => (el.classList.contains('nophoto') ? [] : [textLight(id, el, { i: o.i ?? .82, pad: 26, padY: 26, soft: 60, delay: o.delay || 0 })]);
+
 /* ── 11-scenes-core ── */
 /* ═══ SCENES — registry, declarative reveals, per-beat context ═══ */
 function showState(spec, i) {
@@ -3715,13 +3774,23 @@ const Scenes = (() => {
   const defs = {}, els = {}, rects = {};
   let timers = [];
   const define = (key, def) => { defs[key] = def; };
+  /* every scene gets its (empty) section at boot; its contents are built the first time it is needed,
+     and the rest are filled in during idle time, so a phone is not asked to draw 50 figures before the first frame */
+  const built = new Set();
   function build() {
-    SCENES.forEach(sc => {
-      const el = h('section.scene', { 'data-scene': sc.key, 'data-era': sc.era });
-      root.append(el); els[sc.key] = el;
-      const d = defs[sc.key];
-      if (d && d.build) { try { d.build(el, sc); } catch (e) { console.error('build failed:', sc.key, e); } }
-    });
+    SCENES.forEach(sc => { const el = h('section.scene', { 'data-scene': sc.key, 'data-era': sc.era }); root.append(el); els[sc.key] = el; });
+  }
+  function ensure(key) {
+    if (built.has(key) || !els[key]) return;
+    built.add(key);
+    const d = defs[key], sc = SCENES.find(s => s.key === key);
+    if (d && d.build) { try { d.build(els[key], sc); } catch (e) { console.error('build failed:', key, e); } }
+  }
+  function warm(from = 0) {
+    const order = SCENES.map((s, k) => [Math.abs(k - from) + (k < from ? .5 : 0), s.key]).sort((a, b) => a[0] - b[0]).map(x => x[1]);
+    const idle = window.requestIdleCallback ? (f) => requestIdleCallback(f, { timeout: 1500 }) : (f) => setTimeout(f, 120);
+    const step = () => { const k = order.find(key => !built.has(key)); if (!k) return; ensure(k); idle(step); };
+    idle(step);
   }
   function shows(el, i) {
     $$('[data-show]', el).forEach(n => { const st = showState(n.dataset.show, i); n.classList.toggle('on', st === 'on'); n.classList.toggle('gone', st === 'gone'); });
@@ -3730,6 +3799,7 @@ const Scenes = (() => {
   function rate() { return clamp(+Settings.get().rate || 3.5, 2, 7); }
   function run(sc, i, opt = {}) {
     clearTimers();
+    ensure(sc.key);
     const el = els[sc.key];
     shows(el, i);
     const d = defs[sc.key];
@@ -3759,7 +3829,7 @@ const Scenes = (() => {
   }
   function leave(sc) { const d = defs[sc.key]; if (d && d.leave) { try { d.leave(els[sc.key]); } catch (e) { console.error(e); } } }
   const key = (sceneKey, k) => { const d = defs[sceneKey]; return !!(d && d.key && d.key(k)); };
-  return { define, build, run, leave, key, el: k => els[k], rect: n => rects[n], setRect: (n, r) => { rects[n] = r; }, clearTimers, rate };
+  return { define, build, ensure, warm, run, leave, key, el: k => (ensure(k), els[k]), rect: n => rects[n], setRect: (n, r) => { rects[n] = r; }, clearTimers, rate };
 })();
 
 /* the chapter opener used by every chapter: [act card + roadmap] → chapter card → dock */
@@ -4184,6 +4254,9 @@ Scenes.define('gary', {
     const back = layer(-.25), mid = layer(.08), stg = layer(.32);
     el.append(back, mid, stg);
     this.op = opener(mid, sc, { act: 1, card: { num: 'I', title: L('게리, 인디애나', '加里，印第安纳'), en: 'GARY, INDIANA', years: L('1958 — 1975') } });
+    /* photographs: the five brothers on TV (beat 1), Michael at eleven (beat 3) */
+    mid.append(this.ph1 = photoPrint('j5_1969', { x: 1520, y: 330, w: 450, h: 300, rot: 3, show: '1-1', d: 1.1 }),
+      this.ph3 = photoPrint('mj_1969', { x: 1460, y: 530, w: 300, h: 380, rot: 4, show: '3', d: .9 }));
     this.mill = A('div.mill', 960, 1080, { anchor: 'ab', cls: 'rv up slow' }, h('div', { html: millSVG(), style: { width: '100%', height: '100%' } }));
     back.append(this.mill);
     /* 0 · born here */
@@ -4263,6 +4336,7 @@ Scenes.define('gary', {
         { id: 'w', x: 660, y: 600, rx: 470, ry: 440, soft: .3 },
         { id: 'd', x: 1520, y: 760, rx: 520, ry: 260, soft: .9, i: .55, cone: false, halo: false, col: '#9fb4d8' },
         { id: 'h', x: 300, y: 260, rx: 330, ry: 200, soft: .9, i: .85, cone: false, halo: false },
+        ...photoLight('ph', this.ph1, { delay: ctx.fwd ? 1.1 : 0 }),
       ] });
       if (ctx.fwd) ctx.after(1200, () => { this.bros.forEach((f, k) => ctx.after(k * 90, () => f.seq([[k === 1 ? 'snap' : 'groove', 420, 120], [['snap', 'bad', 'snap', 'groove'][k], 420]]))); });
     }
@@ -4274,7 +4348,7 @@ Scenes.define('gary', {
     this.sleeves.forEach(s => s.wrap.style.opacity = i === 3 ? .34 : '');
     if (i === 2) ctx.light({ ambient: .6, lights: [{ id: 'w', x: 1290, y: 500, rx: 700, ry: 330, soft: .42 }, { id: 'm', x: 660, y: 640, rx: 300, ry: 380, soft: .35 }, { id: 'h', x: 1300, y: 880, rx: 600, ry: 110, soft: .9, i: .8, cone: false, halo: false }] });
     if (i === 3) {
-      ctx.light({ ambient: .72, lights: [{ id: 'm', x: 660, y: 560, rx: 440, ry: 470, soft: .3 }, { id: 'h', x: 980, y: 280, rx: 300, ry: 90, soft: .9, i: .8, cone: false, halo: false }] });
+      ctx.light({ ambient: .72, lights: [{ id: 'm', x: 660, y: 560, rx: 440, ry: 470, soft: .3 }, { id: 'h', x: 980, y: 280, rx: 300, ry: 90, soft: .9, i: .8, cone: false, halo: false }, ...photoLight('ph', this.ph3, { delay: ctx.fwd ? .9 : 0 })] });
       if (ctx.fwd) ctx.after(600, () => this.mike.seq([['sing', 420, 600], ['j5', 500]]));
     }
   },
@@ -4466,6 +4540,9 @@ Scenes.define('thriller', {
     const back = layer(-.22), mid = layer(.08), stg = layer(.3);
     el.append(back, mid, stg);
     this.op = opener(mid, sc, { card: { num: 'III', title: L('스릴러', '《Thriller》'), en: 'Thriller', years: L('1982 — 1984') }, cardX: 640 });
+    /* photographs: 1983 (Motown 25 beat), 1984 at the White House (Grammy beat) */
+    mid.append(this.ph3 = photoPrint('mj_1983', { x: 890, y: 330, w: 270, h: 330, rot: -4, show: '3-3', d: 1.4 }),
+      this.ph5 = photoPrint('mj_1984', { x: 360, y: 725, w: 280, h: 320, rot: -3, show: '5-5', d: 1.6 }));
     $('.cc', this.op.card).classList.add('endup');
     this.zom = stageFig(stg, { costume: 'thriller', pose: 'zombie', style: 'costume', x: 1460, y: 1010, h: 880, show: '0-0', d: .5, rim: '#ff6b7d', glow: 'rgba(255, 40, 70, .45)', glowPx: 12 });
     /* 1 · seventy million, as a vortex of platinum */
@@ -4595,14 +4672,14 @@ Scenes.define('thriller', {
     if (i === 3) {
       if (ctx.fwd) { this.slate2.open(); this.slate2.clap(); this.mw2.reset(); ctx.after(900, () => this.mw2.go()); ctx.after(400, () => this.chrono(true)); this.bj.pose('stand', { x: 0 }); }
       else { this.slate2.classList.add('clap'); this.mw2.go(true); this.chrono(false); }
-      ctx.light({ lights: [{ id: 'a', x: 380, y: 300, rx: 300, ry: 260, soft: .03 }, { id: 'b', x: 560, y: 760, rx: 560, ry: 250, soft: .6, i: .95, cone: false }, { id: 's', x: 1380, y: 620, rx: 520, ry: 420, soft: .2, rim: .4, col: red }] });
+      ctx.light({ lights: [{ id: 'a', x: 380, y: 300, rx: 300, ry: 260, soft: .03 }, { id: 'b', x: 560, y: 760, rx: 560, ry: 250, soft: .6, i: .95, cone: false }, { id: 's', x: 1380, y: 620, rx: 520, ry: 420, soft: .2, rim: .4, col: red }, ...photoLight('ph', this.ph3, { delay: ctx.fwd ? 1.4 : 0 })] });
     } else this.bj.clearGhosts();
     if (i === 5) {
       const V = { turn: .55, neck: -14, nSh: 156, nEl: 14, nHand: Figure.HI('open'), fSh: 148, fEl: 14, fHand: Figure.HI('open'), nHip: 6, fHip: -6 };
       if (ctx.fwd) { this.gm.pose('stand'); ctx.after(500, () => this.gm.to(Object.assign(this.gm.poseOf('stand'), V), 900, ease.outBack)); } else this.gm.pose('stand', V);
       this.grams.forEach((g, k) => { g.classList.remove('on'); if (ctx.fwd) ctx.after(800 + k * 170, () => g.classList.add('on')); else g.classList.add('on'); });
       ctx.light({ lights: [{ id: 'a', x: 640, y: 520, rx: 620, ry: 540, soft: .3, rim: .3, col: '#ffd27a' }, { id: 'e', x: 1420, y: 620, rx: 420, ry: 420, soft: .5, i: .9, cone: false }, { id: 'h', x: 1560, y: 150, rx: 360, ry: 70, soft: .9, i: .85, cone: false, halo: false },
-        textLight('g8', this.g8, { i: .8, delay: ctx.fwd ? 2 : 0 })] });
+        textLight('g8', this.g8, { i: .8, delay: ctx.fwd ? 2 : 0 }), ...photoLight('ph', this.ph5, { delay: ctx.fwd ? 1.6 : 0 })] });
     } else this.grams.forEach(g => g.classList.remove('on'));
     if (i === 6) {
       this.zfigs.forEach((f, n) => f.pose('stand', this.Z[Object.keys(this.Z)[n]]));
@@ -4659,6 +4736,8 @@ Scenes.define('bad', {
     el.append(back, mid, stg);
     back.append(A('div.deco', 960, 540, { cls: 'rv slow', show: '0-1', html: decoSVG() }));
     this.op = opener(mid, sc, { card: { num: 'IV', title: L('배드', '《Bad》'), en: "CLUB 30's", years: L('1987 — 1988') }, cardX: 640 });
+    /* photograph: the Bad tour, Vienna 1988 (beside the five number ones) */
+    mid.append(this.ph1 = photoPrint('bad_1988', { x: 330, y: 700, w: 280, h: 320, rot: -4, show: '1-1', d: 3.2 }));
     /* 0 · the door of Club 30's, and the man in it */
     back.append(A('div.door', 1450, 560, { show: '0-0', cls: 'slow', d: .6 }, h('i.d-glow'), h('i.d-frame')),
       A('div.door-spill', 1450, 930, { show: '0-0', cls: 'slow', d: .9 }));
@@ -4751,7 +4830,7 @@ Scenes.define('bad', {
     } else this.op.hide();
     if (i === 1) {
       this.sleeves.forEach((s, k) => { vis(s, 'on'); if (ctx.fwd) { s.stamp(false); ctx.after(1200 + k * 420, () => s.stamp(true)); } else s.stamp(true, true); });
-      ctx.light({ lights: [{ id: 'a', x: 1100, y: 560, rx: 820, ry: 430, soft: .35 }, { id: 'h', x: 1560, y: 210, rx: 440, ry: 110, soft: .9, i: .85, cone: false, halo: false }, { id: 'L', type: 'beam', x: 260, y: 1220, ang: -64, spread: 5, len: 1500, i: .55 }, { id: 'R', type: 'beam', x: 1660, y: 1220, ang: -116, spread: 5, len: 1500, i: .55 }] });
+      ctx.light({ lights: [{ id: 'a', x: 1100, y: 560, rx: 820, ry: 430, soft: .35 }, { id: 'h', x: 1560, y: 210, rx: 440, ry: 110, soft: .9, i: .85, cone: false, halo: false }, { id: 'L', type: 'beam', x: 260, y: 1220, ang: -64, spread: 5, len: 1500, i: .55 }, { id: 'R', type: 'beam', x: 1660, y: 1220, ang: -116, spread: 5, len: 1500, i: .55 }, ...photoLight('ph', this.ph1, { delay: ctx.fwd ? 3.2 : 0 })] });
     } else this.sleeves.forEach(s => { vis(s, 'off'); s.stamp(false); });
     $$('.ct-cue', this.cues).forEach((c, k) => c.classList.toggle('lit', (i === 3 && k === 0) || (i === 4 && k === 1)));
     if (i >= 2 && i <= 4) ctx.light({ warm: .45, lights: [{ id: 'f', type: 'rect', x: 960, y: 487, w: 1200, h: 710, r: 6, soft: 60, i: .95 }, { id: 'c', x: 960, y: 900, rx: 640, ry: 100, soft: .5, i: .8, cone: false }, textLight('k', this.k88, { i: .72 }), ...(i === 2 ? [{ id: 's', x: 1730, y: 640, rx: 220, ry: 420, soft: .3 }] : [])] });
@@ -4823,6 +4902,8 @@ Scenes.define('dangerous', {
     const back = layer(-.22), mid = layer(.08), stg = layer(.3);
     el.append(back, mid, stg);
     this.op = opener(mid, sc, { act: 2, card: { num: 'V', title: L('데인저러스', '《Dangerous》'), en: 'Dangerous', years: L('1991 — 1993') } });
+    /* photograph: the Dangerous tour, Bucharest 1992 (with the audience number) */
+    mid.append(this.ph3 = photoPrint('dw_1992', { x: 330, y: 560, w: 300, h: 380, rot: 3, show: '3-3', d: 1.2 }));
     $('.cc', this.op.card).classList.add('endup');
     /* 0 · black or white: one figure, inverted across a line */
     this.morph = h('div.morph.left', {}, h('span.m1', { text: 'BLACK' }), h('span.m2', { text: 'WHITE' }));
@@ -4924,7 +5005,7 @@ Scenes.define('dangerous', {
     if (i === 3) {
       ctx.fx({ gold: 1, crowd: 1 });
       countUp(this.count, 133400000, { dur: 2600, instant: !ctx.fwd });
-      ctx.light({ ambient: .72, lights: [...beams(1.1), { id: 'a', x: 1240, y: 420, rx: 640, ry: 360, soft: .45 }, { id: 'f', x: 760, y: 640, rx: 300, ry: 380, soft: .3, i: .7 }] });
+      ctx.light({ ambient: .72, lights: [...beams(1.1), { id: 'a', x: 1240, y: 420, rx: 640, ry: 360, soft: .45 }, { id: 'f', x: 760, y: 640, rx: 300, ry: 380, soft: .3, i: .7 }, ...photoLight('ph', this.ph3, { delay: ctx.fwd ? 1.2 : 0 })] });
     }
   },
   leave() { this.swStop(); this.morphRun(false); [this.st, ...this.bw].forEach(f => f.stop()); },
@@ -6176,7 +6257,7 @@ const App = (() => {
     vp.addEventListener('pointerdown', (e) => { if (e.pointerType !== 'touch') return; sx = e.clientX; sy = e.clientY; st = now(); }, { passive: true });
     vp.addEventListener('pointerup', (e) => {
       if (e.pointerType !== 'touch') return;
-      if (Panel.isOpen() || Overview.open || e.target.closest('a, button, .ov-card, .int, .drag, .tilt')) return;
+      if (Panel.isOpen() || Overview.open || e.target.closest(TOUCH ? 'a, button, .ov-card' : 'a, button, .ov-card, .int, .drag, .tilt')) return;
       if (Demo.on) { Demo.stop(); return; }
       const dx = e.clientX - sx, dy = e.clientY - sy;
       if (now() - st > 900 || Math.abs(dy) > 80) return;
@@ -6187,6 +6268,7 @@ const App = (() => {
 
   function bootStage() {
     computePlan(Scenes.rate());
+    stage.classList.toggle('touch', TOUCH); stage.classList.toggle('lite', LITE);
     Scenes.build();
     Director.setReduced();
     Director.setLang(Settings.get().lang, { rerun: false });
@@ -6204,7 +6286,7 @@ const App = (() => {
       Director.setReduced(); computePlan(Scenes.rate()); Music.refreshVolumes(); Overview.rebuild(); Director.publish();
     });
     YTAPI.load();
-    setTimeout(() => MediaCache.warmAll(), 2500);
+    if (!LITE) setTimeout(() => MediaCache.warmAll(), 2500);
     Bus.on((m) => {
       if (!m) return;
       if (m.type === 'hello') { window.__pvSeen = Date.now(); Director.publish(); }
@@ -6218,6 +6300,7 @@ const App = (() => {
       const b = BEATS[Session.beat];
       toast(`已回到刚才的节拍：${SCENES[b.scene].short.zh} ${b.tag}${Session.timer.start != null ? ' · 计时继续' : ''}<br><span style="opacity:.7">从头开始：设置 → 演讲 → 回到开场前</span>`, 6000);
     } else Director.go(-1);
+    Scenes.warm(Math.max(0, Director.beat >= 0 ? BEATS[Director.beat].scene : 0));
     document.fonts && document.fonts.ready.then(() => { if (Director.beat >= 0) Director.setLang(stage.dataset.lang); });
   }
 

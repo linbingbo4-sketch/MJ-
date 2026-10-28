@@ -8,6 +8,8 @@
 - 演讲者视图、下一拍预览、节奏偏差、课前预检、排练记录，全部在同一个 `index.html` 里
 - 迈克尔的插画是一具「骨骼人偶」：同一个人按年代换装（杰克逊五兄弟的爆炸头、Off the Wall 的燕尾服、Thriller 红夹克、Smooth Criminal 白西装、超级碗军装、This Is It 排练线稿），会走、会太空步、会 45° 前倾、会鞠躬
 - 鼠标可以探索（全部可选，不影响翻页）：移动是手电筒和视差，卡片、唱片、票根、胶片会随指针倾斜，人物可以点、可以拖
+- 六张迈克尔本人的照片（1969、1983、1984、1988、1992），来自 Wikimedia Commons 的公有领域 / CC 图片，署名印在相纸上，见 [media/README.md](media/README.md)
+- 手机和平板自动进入轻量模式：关掉人物的 SVG 滤镜、鼠标互动和媒体预加载，场景按需构建；点画面右侧前进、左侧后退。`?lite=1` / `?lite=0` 可以强制开关
 
 ## 打开方式
 
@@ -16,6 +18,7 @@
 | GitHub Pages（推荐） | 仓库 Settings → Pages → Deploy from a branch，选这个分支和 `/ (root)`，保存后打开 Pages 给出的 https 地址 |
 | 本机 | 在仓库文件夹里运行 `python3 -m http.server 8000`，打开 http://localhost:8000 |
 | 不要 | 直接双击 `index.html`：`file://` 下 YouTube 嵌入会报错（本地音乐不受影响） |
+| claude.ai 预览链接 | 只适合看排版：预览环境不允许嵌入 YouTube、也不能加载外部图片，视频页显示说明卡，照片只有放进 `media/photos/` 并一起发布时才出现 |
 
 ## 演讲当天
 
