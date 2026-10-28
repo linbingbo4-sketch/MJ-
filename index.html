@@ -141,7 +141,11 @@ em { font-style: normal; color: var(--acc); }
 .toast a { color: #ffd08a; }
 #hint { position: fixed; left: 50%; bottom: max(28px, env(safe-area-inset-bottom, 0px)); translate: -50% 0; z-index: 40; color: rgba(245,236,220,.5); font: 13px/1.6 var(--f-zh); letter-spacing: .04em; text-align: center; transition: opacity .6s ease; pointer-events: none; padding-inline: 16px; }
 #hint kbd { font-family: var(--f-mono); font-size: 12px; border: 1px solid rgba(245,236,220,.28); border-radius: 4px; padding: 1px 6px; margin: 0 2px; color: rgba(245,236,220,.75); }
-#vp.idle ~ #hint, body.started #hint { opacity: 0; }
+#hint .hk { display: inline-block; white-space: nowrap; margin: 2px 10px; }
+#hint .hint-demo { pointer-events: auto; margin-top: 12px; appearance: none; border: 1px solid rgba(255, 208, 138, .45); background: rgba(20, 16, 12, .6); color: #ffd08a; font: 500 13px/1 var(--f-zh); padding: 9px 16px; border-radius: 999px; cursor: pointer; letter-spacing: .06em; }
+#hint .hint-demo:hover, #hint .hint-demo:focus-visible { background: rgba(255, 208, 138, .12); outline: none; border-color: #ffd08a; }
+body.fs #hint, body.started #hint { opacity: 0; }
+body.fs #hint .hint-demo, body.started #hint .hint-demo { pointer-events: none; }
 
 @media (prefers-reduced-motion: reduce) {
   #grain { animation: none; }
@@ -916,7 +920,7 @@ const ease = {
   in: t => t * t * t,
   outBack: t => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); },
 };
-const VIEW = (location.hash || '').replace('#', '') || 'stage';   // stage | presenter | preview
+const VIEW = (() => { const v = (location.hash || '').replace('#', ''); return v === 'presenter' || v === 'preview' ? v : 'stage'; })();   // stage | presenter | preview
 
 /* element factory: h('div.a.b', {style, html, on:{click}}, ...children) */
 function h(tag, attrs, ...kids) {
@@ -1847,6 +1851,29 @@ const ytId = (src) => {
 };
 const isFileSrc = (src) => !!src && !ytId(src) && /\.(mp3|m4a|aac|ogg|oga|wav|flac|mp4|webm|mov|m4v)(\?.*)?$/i.test(String(src).trim());
 
+/* Local media is pulled into memory once. Blob URLs are always seekable (python's http.server has no
+   Range support, so start points and cue points would otherwise be ignored) and nothing buffers mid-talk. */
+const MediaCache = (() => {
+  const urls = new Map(), pending = new Map();
+  function url(src) {
+    if (!src || /^(blob:|data:)/.test(src) || location.protocol === 'file:') return Promise.resolve(src);
+    if (urls.has(src)) return Promise.resolve(urls.get(src));
+    if (pending.has(src)) return pending.get(src);
+    const p = fetch(src).then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.blob(); })
+      .then(b => { const u = URL.createObjectURL(b); urls.set(src, u); pending.delete(src); return u; })
+      .catch(err => { pending.delete(src); throw err; });
+    pending.set(src, p);
+    return p;
+  }
+  /* warm every configured local file in the background, one at a time */
+  async function warmAll() {
+    const s = Settings.get();
+    const list = [...Object.values(s.tracks).map(t => (t.src || '').trim()), ...Object.values(s.videos).map(v => (v.src || '').trim())].filter(isFileSrc);
+    for (const src of list) { try { await url(src); } catch (e) { /* reported by the pre-flight */ } }
+  }
+  return { url, warmAll, ready: (src) => urls.has(src) };
+})();
+
 const Music = (() => {
   const decks = {};            /* key → deck */
   let active = null, mode = 'off', muted = false, ducked = false;
@@ -1883,22 +1910,26 @@ const Music = (() => {
       d.show = (v) => d.slot.showBg(v);
     } else if (src) {
       d.kind = 'file';
-      const a = new Audio(); a.preload = 'auto'; a.loop = true; a.src = src; a.volume = 0;
-      a.addEventListener('error', () => { d.state = 'error'; d.error = '文件无法加载'; emit(); });
+      const a = new Audio(); a.preload = 'auto'; a.loop = true; a.volume = 0;
+      a.addEventListener('error', () => { if (!a.getAttribute('src')) return; d.state = 'error'; d.error = '文件无法加载'; emit(); });
       a.addEventListener('playing', () => { d.state = 'playing'; emit(); NowPlaying.show(key); });
       d.el = a;
       d.setVol = (g) => { a.volume = clamp(g, 0, 1); };
       d.play = () => {
-        d.state = 'loading';
-        try { a.currentTime = d.start; } catch (e) { /* not seekable yet */ }
-        const go = () => { try { if (Math.abs(a.currentTime - d.start) > .5) a.currentTime = d.start; } catch (e) { /* ignore */ } };
-        if (a.readyState < 1) a.addEventListener('loadedmetadata', go, { once: true });
-        const p = a.play();
-        return (p && p.then ? p : Promise.resolve()).then(() => true).catch(err => {
-          if (err && err.name === 'NotAllowedError') { d.state = 'blocked'; Music.pendingGesture = true; }
-          else { d.state = 'error'; d.error = d.error || String(err && err.message || err); }
-          emit(); return false;
-        });
+        d.state = 'loading'; emit();
+        return MediaCache.url(src).then(u => new Promise((res) => {
+          if (a.getAttribute('src') !== u) a.src = u;
+          const seekThenPlay = () => {
+            try { a.currentTime = d.start; } catch (e) { /* ignore */ }
+            const p = a.play();
+            (p && p.then ? p : Promise.resolve()).then(() => res(true)).catch(err => {
+              if (err && err.name === 'NotAllowedError') { d.state = 'blocked'; Music.pendingGesture = true; }
+              else { d.state = 'error'; d.error = d.error || String(err && err.message || err); }
+              emit(); res(false);
+            });
+          };
+          if (a.readyState >= 1) seekThenPlay(); else a.addEventListener('loadedmetadata', seekThenPlay, { once: true });
+        })).catch(err => { d.state = 'error'; d.error = '文件无法加载：' + src + '（' + (err && err.message || err) + '）'; emit(); return false; });
       };
       d.pause = () => { try { a.pause(); } catch (e) { /* ignore */ } };
       d.show = () => {};
@@ -1936,16 +1967,22 @@ const Music = (() => {
     const d = deck(track);
     const isNew = active !== track || d.state === 'idle' || d.state === 'blocked';
     active = track;
+    const settle = (afterMs) => { clearTimeout(decayTimer); decayTimer = setTimeout(() => { if (active === track && (mode === 'card' || mode === 'rise')) { mode = 'speech'; ramp(d, levelOf('speech'), 1.6); emit(); } }, afterMs); };
     if (isNew) {
       d.gain = 0; d.setVol(0); d.show(true);
       if (mode === 'off' || mode === 'cut' || mode === 'cut6' || mode === 'video') { emit(); return; }
-      d.play().then(ok => { if (ok && active === track) { ramp(d, target, mode === 'rise' ? 3 : (instant ? .4 : 2)); NowPlaying.show(track); } });
+      const rampIn = mode === 'rise' ? 3 : (instant ? .4 : (mode === 'card' ? 1.2 : 2));
+      d.play().then(ok => {
+        if (!(ok && active === track)) return;
+        ramp(d, target, rampIn); NowPlaying.show(track);
+        if (mode === 'card' || mode === 'rise') settle(rampIn * 1000 + 2000);
+      });
     } else {
       const dur = { cut: .15, cut6: .6, off: 1, video: .9, card: .8, max: 2.2, rise: 3, fadeout: 1.2, low: 1.5 }[mode] || 1.2;
       ramp(d, target, instant ? .3 : dur);
       if (mode === 'cut' || mode === 'cut6') setTimeout(() => { if (active === track && (mode === 'cut' || mode === 'cut6')) { d.pause(); d.state = 'idle'; emit(); } }, (dur + .1) * 1000);
     }
-    if (mode === 'card' || mode === 'rise') decayTimer = setTimeout(() => { if (active === track && (mode === 'card' || mode === 'rise')) { mode = 'speech'; ramp(d, levelOf('speech'), 1.6); emit(); } }, mode === 'rise' ? 4200 : 2000);
+    if (!isNew && (mode === 'card' || mode === 'rise')) settle(mode === 'rise' ? 5000 : 2800);
     if (mode === 'fadeout') fadeTimer = setTimeout(() => { if (active === track && mode === 'fadeout') ramp(d, 0, 14); }, 9000);
     emit();
   }
@@ -1974,15 +2011,16 @@ const Music = (() => {
     const cfg = Settings.get().tracks[key] || {}; const src = (cfg.src || '').trim();
     if (!src) return Promise.resolve({ ok: false, why: '未设置' });
     if (ytId(src)) return Video.probe(ytId(src)).then(r => r);
-    return new Promise(res => {
+    return MediaCache.url(src).then(u => new Promise(res => {
       const a = new Audio(); let done = false;
-      const fin = (ok, why) => { if (done) return; done = true; a.src = ''; res({ ok, why }); };
-      a.preload = 'auto'; a.addEventListener('canplay', () => fin(true, '可播放'), { once: true });
-      a.addEventListener('error', () => fin(false, '文件无法加载：' + src), { once: true });
-      setTimeout(() => fin(false, '超时'), 8000); a.src = src;
-    });
+      const fin = (ok, why) => { if (done) return; done = true; res({ ok, why }); };
+      a.preload = 'auto'; a.addEventListener('loadedmetadata', () => fin(true, '可播放 · ' + fmt(a.duration) + ' · 已载入内存'), { once: true });
+      a.addEventListener('error', () => fin(false, '文件格式无法播放：' + src), { once: true });
+      setTimeout(() => fin(false, '超时'), 10000); a.src = u;
+    })).catch(err => ({ ok: false, why: '文件无法加载：' + src + '（' + (err && err.message || err) + '）' }));
   }
-  return { apply, duck, setMuted, refreshVolumes, retry, stopAll, status, preview, position, probe, on: f => (listeners.add(f), () => listeners.delete(f)), get muted() { return muted; }, pendingGesture: false };
+  const debug = () => Object.values(decks).map(d => ({ key: d.key, kind: d.kind, gain: Math.round(d.gain * 100) / 100, state: d.state, paused: d.el ? d.el.paused : null, t: d.el ? Math.round(d.el.currentTime * 10) / 10 : null, vol: d.el ? Math.round(d.el.volume * 100) / 100 : null }));
+  return { debug, apply, duck, setMuted, refreshVolumes, retry, stopAll, status, preview, position, probe, on: f => (listeners.add(f), () => listeners.delete(f)), get muted() { return muted; }, pendingGesture: false };
 })();
 
 /* synthesized effects: projector clatter for the countdown, a burst of TV static */
@@ -2111,7 +2149,7 @@ function makeSlot(name, host, opt = {}) {
   }
 
   s.load = (o) => {
-    s.want = o; s.error = null; s.loop = o.loop ? [o.loopA ?? o.start ?? 0, o.loopB ?? null] : null; s.endAt = o.end ?? null; s.onEnd = o.onEnd || null;
+    s.want = o; s.error = null; s.loop = o.loop ? [o.loopA ?? o.start ?? 0, o.loopB ?? null] : null; s.endAt = o.loop ? null : (o.end ?? null); s.onEnd = o.onEnd || null;
     el.classList.remove('fallback', 'playing'); s.playing = false;
     if (o.file) {
       s.kind = 'file'; el.classList.add('file');
@@ -2120,9 +2158,12 @@ function makeSlot(name, host, opt = {}) {
         const fail = () => { s.error = '视频文件无法加载'; showFallback(); res(false); Video.emit(); };
         vid.onerror = fail;
         vid.onended = () => { if (s.onEnd) { const f = s.onEnd; s.onEnd = null; f(); } };
-        if (vid.getAttribute('src') !== o.file) vid.src = o.file;
-        const go = () => { try { vid.currentTime = o.start || 0; } catch (e) { /* ignore */ } if (o.autoplay) vid.play().then(() => { s.playing = true; el.classList.add('playing'); res(true); Video.emit(); }).catch(() => { vid.muted = true; vid.play().then(() => { s.playing = true; res(true); }).catch(fail); }); else res(true); };
-        if (vid.readyState >= 1) go(); else vid.addEventListener('loadedmetadata', go, { once: true });
+        MediaCache.url(o.file).then(u => {
+          if (s.want !== o) { res(false); return; }
+          if (vid.getAttribute('src') !== u) vid.src = u;
+          const go = () => { try { vid.currentTime = o.start || 0; } catch (e) { /* ignore */ } if (o.autoplay) vid.play().then(() => { s.playing = true; el.classList.add('playing'); res(true); Video.emit(); }).catch(() => { vid.muted = true; vid.play().then(() => { s.playing = true; res(true); }).catch(fail); }); else res(true); };
+          if (vid.readyState >= 1) go(); else vid.addEventListener('loadedmetadata', go, { once: true });
+        }).catch(fail);
       });
     }
     el.classList.remove('file'); s.kind = 'yt'; s.id = o.id;
@@ -3829,6 +3870,7 @@ Scenes.define('finale', {
 const Director = (() => {
   const stage = $('#stage'), black = $('#black'), flashEl = $('#flash');
   let beat = -1, token = 0, lastFlash = 0, blackout = false, reduced = false, enteredAt = 0, sceneEnteredAt = 0;
+  let shown = null;                 /* the scene actually on stage — a cancelled blackout may not have swapped yet */
   const timers = [];
   const later = (ms, fn) => { const t = setTimeout(fn, ms); timers.push(t); return t; };
   const clearLater = () => { while (timers.length) clearTimeout(timers.pop()); };
@@ -3884,6 +3926,7 @@ const Director = (() => {
     });
     el.getAnimations().forEach(a => a.cancel());
     el.classList.remove('leaving'); el.classList.add('active');
+    shown = sc;
     if (ms > 0 && mode !== 'cut') el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: ms, easing: 'linear' });
   }
 
@@ -3904,6 +3947,7 @@ const Director = (() => {
 
   function standby(instant) {
     $$('.scene', stage).forEach(s => s.classList.remove('active', 'leaving'));
+    shown = null;
     HUD.visible(false); HUD.setAct(null); HUD.setYear(null, { show: false }); HUD.hideNP();
     Era.apply('cold', { instant: true });
     Light.set({ ambient: 1, wash: 0, bloom: 0, haze: 0, dust: 0, lights: [] }, { instant: true });
@@ -3919,12 +3963,13 @@ const Director = (() => {
     const my = ++token;
     clearLater(); Scenes.clearTimers();
     if (Video.cancelLeader) { Video.cancelLeader(); Video.cancelLeader = null; }
+    if (+getComputedStyle(black).opacity > .01) fadeBlack(0, 260);   /* a cancelled blackout never leaves the stage dark */
     beat = target;
     if (VIEW === 'stage') { Session.beat = target; Session.save(); }
     if (target < 0) { standby(); fadeBlack(0, 0); publish(); return; }
     document.body.classList.add('started');
     const b = BEATS[target], sc = SCENES[b.scene];
-    const prevSc = from >= 0 ? SCENES[BEATS[from].scene] : null;
+    const prevSc = shown;
     const dir = mode === 'next' ? 1 : mode === 'prev' ? -1 : 0;
 
     if (VIEW === 'stage' && dir > 0) {
@@ -4425,6 +4470,33 @@ const Wake = {
 };
 document.addEventListener('visibilitychange', () => { if (!document.hidden && VIEW === 'stage') Wake.req(); });
 
+/* self-running demo: the whole show plays by itself (any key or tap stops it) */
+const Demo = (() => {
+  let on = false, t = 0;
+  function dur(b) {
+    if (!b) return 4000;
+    if (b.video) return b.video.key === 'trailer' ? 5200 : 3800;
+    const base = (b.syl / 6.2 + 2.4) * 1000;
+    const first = b.local === 0 ? 2600 : 0;
+    const long = (SCENES[b.scene].key === 'finale' && b.local === 1) || (SCENES[b.scene].key === 'legacy' && b.local === 1) ? 3000 : 0;
+    return clamp(base + first + long, 3600, 13000);
+  }
+  function step() {
+    if (!on) return;
+    if (Director.beat >= BEATS.length - 1) { t = setTimeout(stop, 9000); return; }
+    Director.next();
+    t = setTimeout(step, dur(BEATS[Director.beat]));
+  }
+  function start() {
+    if (on) return; on = true;
+    document.body.classList.add('demo');
+    toast('自动演示中 · 按任意键或点一下画面就停在当前这一拍', 4200, { local: true });
+    if (Director.beat < 0) { Director.next(); t = setTimeout(step, dur(BEATS[0])); } else t = setTimeout(step, 400);
+  }
+  function stop() { if (!on) return; on = false; clearTimeout(t); document.body.classList.remove('demo'); toast('已停止自动演示 · → 继续手动翻页', 2600, { local: true }); }
+  return { start, stop, get on() { return on; } };
+})();
+
 const App = (() => {
   const stage = $('#stage'), vp = $('#vp');
   const SID = Math.random().toString(36).slice(2, 8);
@@ -4482,6 +4554,7 @@ const App = (() => {
   }
 
   function onKey(e) {
+    if (Demo.on && !['Shift', 'Control', 'Alt', 'Meta'].includes(e.key)) { Demo.stop(); e.preventDefault(); return; }
     if (e.key === 'F5' || (e.key === 'r' && (e.ctrlKey || e.metaKey) && document.body.classList.contains('started'))) { e.preventDefault(); toast('已屏蔽刷新（F5），防止翻页器误触', 1600); return; }
     const t = e.target;
     if (t && t.closest && t.closest('input, textarea, select, [contenteditable]')) { if (e.key === 'Escape') t.blur(); return; }
@@ -4521,8 +4594,28 @@ const App = (() => {
 
   function hint() {
     const el = $('#hint');
-    el.innerHTML = `<kbd>→</kbd> 开始　<kbd>P</kbd> 演讲者视图　<kbd>S</kbd> 设置与课前预检　<kbd>F</kbd> 全屏　<kbd>G</kbd> 总览　<kbd>L</kbd> 语言` +
-      (window.self !== window.top ? '<br>（先点一下画面，让键盘生效）' : '');
+    const touch = window.matchMedia && matchMedia('(pointer: coarse)').matches;
+    const k = (key, t) => `<span class="hk"><kbd>${key}</kbd> ${t}</span>`;
+    el.innerHTML = (touch
+      ? '<span class="hk">点右侧 · 下一页</span><span class="hk">点左侧 · 上一页</span><span class="hk">横屏观看更好</span>'
+      : k('→', '开始') + k('P', '演讲者视图') + k('S', '设置与课前预检') + k('F', '全屏') + k('G', '总览') + k('L', '语言') +
+        (window.self !== window.top ? '<br><span class="hk">先点一下画面，让键盘生效</span>' : '')) +
+      '<br><button type="button" class="hint-demo">▶ 自动演示整场</button>';
+    $('.hint-demo', el).addEventListener('click', (e) => { e.stopPropagation(); SFX.ensure(); Demo.start(); });
+  }
+  /* touch: tap the right side for next, the left third for previous (mouse clicks never advance) */
+  function touchNav() {
+    let sx = 0, sy = 0, st = 0;
+    vp.addEventListener('pointerdown', (e) => { if (e.pointerType !== 'touch') return; sx = e.clientX; sy = e.clientY; st = now(); }, { passive: true });
+    vp.addEventListener('pointerup', (e) => {
+      if (e.pointerType !== 'touch') return;
+      if (Panel.isOpen() || Overview.open || e.target.closest('a, button, .ov-card')) return;
+      if (Demo.on) { Demo.stop(); return; }
+      const dx = e.clientX - sx, dy = e.clientY - sy;
+      if (now() - st > 900 || Math.abs(dy) > 80) return;
+      if (dx < -50) cmd('next'); else if (dx > 50) cmd('prev');
+      else if (e.clientX > window.innerWidth * .34) cmd('next'); else cmd('prev');
+    }, { passive: true });
   }
 
   function bootStage() {
@@ -4534,13 +4627,17 @@ const App = (() => {
     Session.load(); Runs.load();
     hint(); idle();
     document.addEventListener('keydown', onKey);
-    vp.addEventListener('click', () => { SFX.ensure(); if (Music.pendingGesture) { Music.pendingGesture = false; Music.retry(); } });
+    vp.addEventListener('click', () => { if (Demo.on) Demo.stop(); SFX.ensure(); if (Music.pendingGesture) { Music.pendingGesture = false; Music.retry(); } });
+    touchNav();
+    document.addEventListener('fullscreenchange', () => document.body.classList.toggle('fs', !!document.fullscreenElement));
+    if (/^#?demo$/.test(location.hash)) setTimeout(() => Demo.start(), 1800);
     if (window.matchMedia) matchMedia('(prefers-reduced-motion: reduce)').addEventListener?.('change', () => Director.setReduced());
     Settings.on((s) => {
       if (stage.dataset.lang !== s.lang) Director.setLang(s.lang);
       Director.setReduced(); computePlan(Scenes.rate()); Music.refreshVolumes(); Overview.rebuild(); Director.publish();
     });
     YTAPI.load();
+    setTimeout(() => MediaCache.warmAll(), 2500);
     Bus.on((m) => {
       if (!m) return;
       if (m.type === 'hello') { window.__pvSeen = Date.now(); Director.publish(); }
