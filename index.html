@@ -3847,7 +3847,7 @@ Scenes.define('finale', {
         this.words.forEach(w => { w.classList.remove('lit'); w.classList.add('seen'); });
         lines.forEach(l => l.classList.add('on'));
         this.king.style.opacity = '0'; vis(this.person, 'on');
-        ctx.light({ ambient: .88, lights: [{ id: 's', x: 960, y: 560, rx: 520, ry: 300, soft: hard }] }, { dur: 1.1 });
+        ctx.light({ ambient: .9, lights: [{ id: 's', x: 960, y: 560, rx: 520, ry: 300, soft: hard }, { id: 'c', x: 960, y: 550, rx: 1150, ry: 560, soft: 1, i: .38, cone: false, halo: false }] }, { dur: 1.1 });
       };
       if (!ctx.fwd) { end(); return; }
       ctx.light({ ambient: .955, lights: [{ id: 's', x: 960, y: 560, rx: 560, ry: 330, soft: hard, i: .5 }] });
