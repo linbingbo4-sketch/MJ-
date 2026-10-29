@@ -150,6 +150,11 @@ body.fs #hint .hint-demo, body.started #hint .hint-demo { pointer-events: none; 
 @media (prefers-reduced-motion: reduce) {
   #grain { animation: none; }
 }
+/* phone mode: iOS kills a page whose layers need too many backing stores, so on phones there are no filters,
+   no blend modes and no full-screen animated layers (the light itself still works: it is two small canvases) */
+#stage.lite #grain, #stage.lite .ov, #stage.lite #ytbg { display: none !important; }
+#stage.lite *, #stage.lite *::before, #stage.lite *::after { filter: none !important; backdrop-filter: none !important; mix-blend-mode: normal !important; }
+#stage.lite #glow { opacity: .8; }
 #stage.reduced .rv { transition-duration: .2s !important; transition-delay: 0s !important; transform: none !important; filter: none !important; }
 #stage.reduced #grain { animation: none; }
 
@@ -1595,7 +1600,7 @@ const Light = (() => {
   };
 
   function setScale(s) {
-    const nk = clamp(Math.round(s * 20) / 20, .5, 1);
+    const nk = clamp(Math.round(s * 20) / 20, .5, LITE ? .6 : 1);
     if (nk === k && mask.width === Math.round(W * nk)) return;
     k = nk;
     for (const c of [mask, glow]) { c.width = Math.round(W * k); c.height = Math.round(H * k); }
@@ -2277,6 +2282,7 @@ const YTAPI = (() => {
   function load() {
     if (state !== 'idle') return;
     if (VIEW === 'preview') { state = 'failed'; reason = 'preview'; return flush(); }
+    if (LITE) { state = 'failed'; reason = '手机上不嵌入视频：点卡片上的链接去 YouTube 看'; return flush(); }
     state = 'loading';
     window.onYouTubeIframeAPIReady = () => { state = 'ready'; flush(); };
     const s = document.createElement('script'); s.src = 'https://www.youtube.com/iframe_api'; s.async = true;
@@ -3800,6 +3806,8 @@ const Scenes = (() => {
   function run(sc, i, opt = {}) {
     clearTimers();
     ensure(sc.key);
+    /* phones build only what comes next */
+    if (LITE) { const n = SCENES[SCENES.indexOf(sc) + 1]; if (n && !built.has(n.key)) setTimeout(() => ensure(n.key), 400); }
     const el = els[sc.key];
     shows(el, i);
     const d = defs[sc.key];
@@ -6300,7 +6308,8 @@ const App = (() => {
       const b = BEATS[Session.beat];
       toast(`已回到刚才的节拍：${SCENES[b.scene].short.zh} ${b.tag}${Session.timer.start != null ? ' · 计时继续' : ''}<br><span style="opacity:.7">从头开始：设置 → 演讲 → 回到开场前</span>`, 6000);
     } else Director.go(-1);
-    Scenes.warm(Math.max(0, Director.beat >= 0 ? BEATS[Director.beat].scene : 0));
+    if (!LITE) Scenes.warm(Math.max(0, Director.beat >= 0 ? BEATS[Director.beat].scene : 0));
+    else Scenes.ensure(SCENES[0].key);
     document.fonts && document.fonts.ready.then(() => { if (Director.beat >= 0) Director.setLang(stage.dataset.lang); });
   }
 
