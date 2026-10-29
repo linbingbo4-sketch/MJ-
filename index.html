@@ -277,6 +277,31 @@ body.fs #hint .hint-demo, body.started #hint .hint-demo { pointer-events: none; 
 #stage.touch .mvs { opacity: .95; }
 #stage.q-low .mvs { background: rgba(0, 0, 0, .35); }
 
+/* the question in the corner when this page has something to play */
+#mvask { position: absolute; right: 96px; top: 170px; width: 380px; padding: 13px 15px 12px; border-radius: 10px; pointer-events: auto;
+  background: linear-gradient(100deg, rgba(14, 12, 10, .84), rgba(14, 12, 10, .66)); box-shadow: 0 14px 40px rgba(0, 0, 0, .45), inset 0 0 0 1px rgba(255, 255, 255, .08);
+  border-left: 3px solid var(--acc); opacity: 0; visibility: hidden; transform: translateY(-10px); transition: opacity .6s var(--e-stage), transform .6s var(--e-stage), visibility 0s linear .6s; }
+#mvask.on { opacity: 1; visibility: visible; transform: none; transition: opacity .6s var(--e-stage), transform .6s var(--e-stage), visibility 0s; }
+#mvask .mq-k { display: flex; align-items: center; justify-content: space-between; font: 600 13px/1 var(--f-num); letter-spacing: .3em; color: var(--acc); }
+#mvask .mq-x { width: 24px; height: 24px; border: 0; border-radius: 50%; background: rgba(255,255,255,.08); color: rgba(239,232,218,.7); font-size: 15px; line-height: 1; cursor: pointer; }
+#mvask .mq-q { margin-top: 8px; font: 600 21px/1.3 var(--f-ko); color: var(--ink); }
+#mvask .mq-z { margin-top: 1px; font: 400 16px/1.35 var(--f-zh); color: rgba(239, 232, 218, .78); }
+#mvask .mq-list { margin-top: 10px; display: flex; flex-direction: column; gap: 5px; }
+#mvask .mq-b { display: flex; align-items: center; gap: 10px; width: 100%; padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, .12); background: rgba(255, 255, 255, .04);
+  color: var(--ink); text-align: left; cursor: pointer; transition: background .2s ease, border-color .2s ease; }
+#mvask .mq-b:hover, #mvask .mq-b:focus-visible { background: color-mix(in srgb, var(--acc) 18%, transparent); border-color: var(--acc); outline: none; }
+#mvask .mq-b::before { content: ''; flex: none; border-left: 10px solid var(--acc); border-top: 6.5px solid transparent; border-bottom: 6.5px solid transparent; }
+#mvask .mq-b b { font: italic 500 18px/1.1 var(--f-en); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#mvask .mq-b span { margin-left: auto; flex: none; font: 600 13px/1 var(--f-num); letter-spacing: .14em; color: rgba(239, 232, 218, .55); }
+#mvask .mq-h { margin-top: 10px; font: 500 12px/1 var(--f-num); letter-spacing: .2em; color: rgba(239, 232, 218, .45); }
+/* folded: one pill under the corner card, opens on click (or when the pointer comes over it) */
+#mvask.mini { width: auto; padding: 8px 12px 8px 14px; cursor: pointer; }
+#mvask.mini .mq-q, #mvask.mini .mq-z, #mvask.mini .mq-list, #mvask.mini .mq-h { display: none; }
+#mvask.mini .mq-k { gap: 14px; }
+#mvask .mq-mini { display: none; font: 500 15px/1 var(--f-ko); letter-spacing: 0; color: var(--ink); }
+#mvask .mq-mini .zh { font-family: var(--f-zh); color: rgba(239, 232, 218, .7); margin-left: 6px; }
+#mvask.mini .mq-mini { display: inline; }
+#stage.mv-open #mvask, #stage.film #mvask { opacity: 0 !important; visibility: hidden !important; }
 /* the MV window: grows out of its switch, plays above a dimmed stage, goes back into the switch */
 #mvdim { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 46%, rgba(0, 0, 0, .78), rgba(0, 0, 0, .94) 75%); opacity: 0; visibility: hidden; pointer-events: none;
   transition: opacity .7s ease, visibility 0s linear .7s; }
@@ -3347,7 +3372,55 @@ const MV = (() => {
     const sc = $('.scene.active'); if (!sc) return null;
     return $$('.mvs', sc).find(b => { const r = b.getBoundingClientRect(); if (r.width < 4) return false; for (let e = b; e && e !== sc; e = e.parentElement) { const cs = getComputedStyle(e); if (cs.visibility === 'hidden' || +cs.opacity < .3 || cs.display === 'none') return false; } return true; }) || null;
   }
-  return { open, close, toggle, direct, visible, get cur() { return cur; }, get isOpen() { return !!cur; } };
+  /* every work with a switch you can see right now (one per work, in stage order) */
+  function visibleAll() {
+    const sc = $('.scene.active'); if (!sc) return [];
+    const seen = new Set();
+    return $$('.mvs', sc).filter(b => {
+      const r = b.getBoundingClientRect(); if (r.width < 4) return false;
+      for (let e = b; e && e !== sc; e = e.parentElement) { const cs = getComputedStyle(e); if (cs.visibility === 'hidden' || +cs.opacity < .3 || cs.display === 'none') return false; }
+      if (seen.has(b.dataset.work)) return false; seen.add(b.dataset.work); return true;
+    });
+  }
+  /* the question: "play this MV?" for one work, "which one?" for several */
+  const ask = h('div#mvask', { role: 'dialog', 'aria-label': 'MV' });
+  $('#hud').append(ask);
+  let askTimers = [], askBeat = -1, dismissed = -1;
+  function hideAsk() { askTimers.forEach(clearTimeout); askTimers = []; ask.classList.remove('on'); }
+  function renderAsk(list) {
+    ask.innerHTML = '';
+    const one = list.length === 1;
+    const x = h('button.mq-x', { type: 'button', text: '×', 'aria-label': '닫기 · 关闭', on: { click: (e) => { e.stopPropagation(); dismissed = askBeat; hideAsk(); } } });
+    ask.append(h('div.mq-k', {}, h('span', { text: one ? '▶ MV' : `▶ MV · ${list.length}` }),
+        h('span.mq-mini', {}, document.createTextNode(one ? '재생할까요?' : '어떤 곡?'), h('span.zh', { lang: 'zh-Hans', text: one ? '要播放吗？' : '播放哪首？' })), x),
+      h('div.mq-q', { lang: 'ko', text: one ? '이 MV를 재생할까요?' : '어떤 곡을 재생할까요?' }),
+      h('div.mq-z', { lang: 'zh-Hans', text: one ? '这个 MV 需要播放吗？' : '该播放哪首呢？' }),
+      h('div.mq-list', {}, ...list.map(b => {
+        const w = WORKS[b.dataset.work];
+        return h('button.mq-b', { type: 'button', on: { click: (e) => { e.stopPropagation(); if (!direct(b.dataset.work)) open(b.dataset.work, b.isConnected ? b : null); } } }, h('b', { text: w.t }), h('span', { text: String(w.y) }));
+      })),
+      h('div.mq-h', { text: one ? 'V 재생 · 按 V 播放' : 'V = 첫 곡 · 按 V 播放第一首' }));
+  }
+  let foldTimer = 0;
+  const fold = (ms) => { clearTimeout(foldTimer); foldTimer = setTimeout(() => { if (!ask.matches(':hover')) ask.classList.add('mini'); }, ms); };
+  ask.addEventListener('click', (e) => { if (ask.classList.contains('mini')) { e.stopPropagation(); ask.classList.remove('mini'); fold(9000); } });
+  ask.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') { ask.classList.remove('mini'); clearTimeout(foldTimer); } });
+  ask.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') fold(1200); });
+  ask.addEventListener('pointerdown', (e) => e.stopPropagation());
+  function offer(beat) {
+    hideAsk(); askBeat = beat; clearTimeout(foldTimer);
+    if (VIEW !== 'stage' || beat < 0 || dismissed === beat) return;
+    /* look twice: switches come in with their pieces, some a few seconds into the beat */
+    let shownKeys = '';
+    [1900, 3800].forEach(ms => askTimers.push(setTimeout(() => {
+      if (askBeat !== beat || cur) return;
+      const list = visibleAll(); const keys = list.map(b => b.dataset.work).join();
+      if (!list.length) { ask.classList.remove('on'); return; }
+      if (keys !== shownKeys) { const first = !shownKeys; shownKeys = keys; renderAsk(list); ask.classList.remove('mini'); fold(first ? 6500 : 4500); }
+      ask.classList.add('on');
+    }, ms)));
+  }
+  return { open, close, toggle, direct, visible, visibleAll, offer, hideAsk, get cur() { return cur; }, get isOpen() { return !!cur; } };
 })();
 
 /* ── 08-hud ── */
@@ -3512,6 +3585,7 @@ const Captions = (() => {
   }
   function init() {
     Director.onTurn((beat, mode) => { if (beat < 0) hide(); else show(beat, { lead: mode === 'next' ? .5 : 0 }); });
+    Director.onTurn((beat) => MV.offer(beat));
     Settings.on((s) => { if (!s.subs) hide(); else if (shown < 0 && Director.beat >= 0) show(Director.beat); });
   }
   return { init, show, hide, pairs };
@@ -5645,8 +5719,8 @@ Scenes.define('bad', {
     this.sleeves = sl;
     sl.forEach((s, k) => mid.append(A('div.casc', 640 + k * 238, 320 + k * 112, { show: '1-1', cls: 'drop', d: .2 + k * .15, style: `rotate:${-6 + k * 3}deg` }, s)));
     back.append(A('div.b-5', 250, 560, { show: '1-1', cls: 'zoom slow' }, '5'));
-    mid.append(A('div.b-m.nowrap', 1840, 212, { anchor: 'ar', show: '1-1', d: 1 }, T(L('한 앨범에서 빌보드 1위 싱글 다섯 곡', '一张专辑，五支公告牌冠军单曲'))),
-      A('div.tag', 1840, 292, { anchor: 'ar', show: '1-1', d: 3.4 }, T(L('역사상 처음', '史上首次'))));
+    mid.append(A('div.b-m.nowrap', 1840, 262, { anchor: 'ar', show: '1-1', d: 1 }, T(L('한 앨범에서 빌보드 1위 싱글 다섯 곡', '一张专辑，五支公告牌冠军单曲'))),
+      A('div.tag', 1840, 340, { anchor: 'ar', show: '1-1', d: 3.4 }, T(L('역사상 처음', '史上首次'))));
     /* 2–4 · the film frame (the video plays here) */
     const FR = { x: 400, y: 172, w: 1120, h: 630 };
     Scenes.setRect('scFrame', FR);
