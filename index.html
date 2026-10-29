@@ -227,13 +227,26 @@ body.fs #hint .hint-demo, body.started #hint .hint-demo { pointer-events: none; 
 #vs-pip { border: 3px solid rgba(241, 234, 214, .85); box-shadow: 0 20px 60px rgba(0,0,0,.6); }
 #vs-pip::before { content: '45°  ·  LOOP'; position: absolute; left: 14px; top: 10px; z-index: 2; font: 600 16px/1 var(--f-num); letter-spacing: .25em; color: rgba(241, 234, 214, .85); text-shadow: 0 1px 6px #000; }
 #vs-main.framed { box-shadow: 0 0 0 2px rgba(241, 234, 214, .25), 0 40px 120px rgba(0,0,0,.7); }
-#leader { position: absolute; inset: 0; width: 1920px; height: 1080px; opacity: 0; visibility: hidden; transition: opacity .25s linear, visibility 0s linear .25s; }
+#leader { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; opacity: 0; visibility: hidden; transition: opacity .25s linear, visibility 0s linear .25s; }
+/* the trailer is projected: it lives on the cinema screen, grows to the whole stage and goes back.
+   Moved with a transform only, so the player is never re-laid out while it plays. */
+#vs-main.zoomer { transform-origin: 0 0; background: transparent; }
+#vs-main.zoomer.on { transition: opacity .7s ease, visibility 0s, transform 1.25s cubic-bezier(.62, 0, .3, 1); }
+#vs-main.zoomer:not(.on) { transition: opacity .7s ease, visibility 0s linear .7s, transform 1.25s cubic-bezier(.62, 0, .3, 1); }
+#vs-main.zoomer .vs-yt, #vs-main.zoomer .vs-file { background: #000; }
+/* while the film fills the stage, the act label and year step aside */
+#stage.film #hud > * { opacity: 0 !important; }
+/* music players: tiny, transparent and never display:none (hidden frames get throttled) */
+#bgm { position: absolute; left: 0; top: 0; width: 320px; height: 180px; opacity: 0; pointer-events: none; overflow: hidden; z-index: -1; }
+#bgm .vslot { width: 320px; height: 180px; transition: none; }
 #leader.on { opacity: 1; visibility: visible; transition: opacity .25s linear, visibility 0s; }
 /* subtitle strip for cue captions */
 #subs .sub { position: absolute; left: 50%; bottom: 74px; translate: -50% 0; max-width: 1500px; text-align: center; font: 500 40px/1.35 var(--f-ko); color: #fff;
   text-shadow: 0 2px 4px rgba(0,0,0,.9), 0 0 24px rgba(0,0,0,.8); opacity: 0; visibility: hidden; transition: opacity .4s ease, visibility 0s linear .4s; }
 #subs .sub .zh { font-family: var(--f-zh); }
 #subs .sub.on { opacity: 1; visibility: visible; transition: opacity .4s ease, visibility 0s; }
+#subs .sub.top { bottom: auto; top: 64px; }
+[data-lang="bi"] #subs .sub .t > .zh { font-size: .8em; opacity: .85; margin-top: .25em; }
 
 /* ── 08-hud ── */
 /* three persistent audience elements: act·chapter, year flip-board, now playing */
@@ -1319,17 +1332,18 @@ const ACTS = [
   { n: 4, label: L('피날레', '终幕') },
 ];
 
+/* file: the local copy (media/music/, not in the public repo) · yt: official uploads on YouTube, tried in order when the file is missing */
 const TRACKS = {
-  iwyb:       { title: 'I Want You Back', artist: 'The Jackson 5', year: 1969, file: 'media/music/01-i-want-you-back.mp3', cue: '前奏钢琴滑音' },
-  dstyge:     { title: "Don't Stop 'Til You Get Enough", artist: 'Michael Jackson', year: 1979, file: 'media/music/02-dont-stop-til-you-get-enough.mp3', cue: '贝斯律动' },
-  billiejean: { title: 'Billie Jean', artist: 'Michael Jackson', year: 1983, file: 'media/music/03-billie-jean.mp3', cue: '鼓与贝斯前奏' },
-  bad:        { title: 'Bad', artist: 'Michael Jackson', year: 1987, file: 'media/music/04-bad.mp3', cue: '前奏' },
-  bow:        { title: 'Black or White', artist: 'Michael Jackson', year: 1991, file: 'media/music/05-black-or-white.mp3', cue: '吉他前奏' },
-  moscow:     { title: 'Stranger in Moscow', artist: 'Michael Jackson', year: 1996, file: 'media/music/06-stranger-in-moscow.mp3', cue: '雨声与前奏' },
-  earth:      { title: 'Earth Song', artist: 'Michael Jackson', year: 1995, file: 'media/music/07-earth-song.mp3', cue: '钢琴前奏' },
-  human:      { title: 'Human Nature', artist: 'Michael Jackson', year: 1982, file: 'media/music/08-human-nature.mp3', cue: '合成器前奏' },
-  rtt:        { title: 'Remember the Time', artist: 'Michael Jackson', year: 1992, file: 'media/music/09-remember-the-time.mp3', cue: '鼓点前奏' },
-  mitm:       { title: 'Man in the Mirror', artist: 'Michael Jackson', year: 1988, file: 'media/music/10-man-in-the-mirror.mp3', cue: '键盘前奏' },
+  iwyb:       { title: 'I Want You Back', artist: 'The Jackson 5', year: 1969, file: 'media/music/01-i-want-you-back.mp3', cue: '前奏钢琴滑音', yt: ['79eyuz8z6Cg', 's3Q80mk7bxE'] },
+  dstyge:     { title: "Don't Stop 'Til You Get Enough", artist: 'Michael Jackson', year: 1979, file: 'media/music/02-dont-stop-til-you-get-enough.mp3', cue: '贝斯律动', yt: ['yURRmWtbTbo'] },
+  billiejean: { title: 'Billie Jean', artist: 'Michael Jackson', year: 1983, file: 'media/music/03-billie-jean.mp3', cue: '鼓与贝斯前奏', yt: ['OZGtRvYF-A4', 'Zi_XLOBDo_Y'] },
+  bad:        { title: 'Bad', artist: 'Michael Jackson', year: 1987, file: 'media/music/04-bad.mp3', cue: '前奏', yt: ['-DlMoJ2V6uk', 'dsUXAEzaC3Q'] },
+  bow:        { title: 'Black or White', artist: 'Michael Jackson', year: 1991, file: 'media/music/05-black-or-white.mp3', cue: '吉他前奏', yt: ['YP3W-E0OamU', 'F2AitTPI5U0'] },
+  moscow:     { title: 'Stranger in Moscow', artist: 'Michael Jackson', year: 1996, file: 'media/music/06-stranger-in-moscow.mp3', cue: '雨声与前奏', yt: ['pEEMi2j6lYE'] },
+  earth:      { title: 'Earth Song', artist: 'Michael Jackson', year: 1995, file: 'media/music/07-earth-song.mp3', cue: '钢琴前奏', yt: ['XAi3VTSdTxU'] },
+  human:      { title: 'Human Nature', artist: 'Michael Jackson', year: 1982, file: 'media/music/08-human-nature.mp3', cue: '合成器前奏', yt: ['_n9HhmX36Gk', 'ElN_4vUvTPs'] },
+  rtt:        { title: 'Remember the Time', artist: 'Michael Jackson', year: 1992, file: 'media/music/09-remember-the-time.mp3', cue: '鼓点前奏', yt: ['qM19eRgOK1Q', 'LeiFF0gvqcc'] },
+  mitm:       { title: 'Man in the Mirror', artist: 'Michael Jackson', year: 1988, file: 'media/music/10-man-in-the-mirror.mp3', cue: '键盘前奏', yt: ['8gqMRlN6mAA', 'PivWY9wn5ps'] },
 };
 
 const VIDEOS = {
@@ -1340,19 +1354,21 @@ const VIDEOS = {
 };
 
 const DEFAULTS = {
+  mver: 2,          /* media defaults version: settings saved before the trailer had a default link are brought up to date */
   lang: 'ko',
   rate: 3.5,
   trim: false,
   sfx: true,
   motion: 'auto',
   quality: 'auto',
-  vol: { master: 100, card: 45, speech: 18, low: 7, video: 0, max: 62 },
+  vol: { master: 100, card: 45, speech: 18, low: 7, video: 0, max: 62, sfx: 70 },
   name: L('林秉博', '林秉博'),
   course: L('글로벌 세미나', '全球研讨会'),
   org: L('경희대학교 포스트모던음악학과', '庆熙大学 后现代音乐系'),
   tracks: Object.fromEntries(Object.entries(TRACKS).map(([k, t]) => [k, { src: t.file, start: 0 }])),
   videos: {
-    trailer: { src: '', start: 0, end: 45 },
+    /* official 2nd trailer, Universal Pictures Korea (Korean subtitles) / Universal Pictures Hong Kong (Chinese subtitles) — the same cut */
+    trailer: { src: 'https://www.youtube.com/watch?v=D5Wbzgi6Ivs', srcZh: 'https://www.youtube.com/watch?v=2eWMoPkRx0U', start: 0, end: null, dur: null, subs: [], subPos: 'bottom' },
     sc: { src: 'https://www.youtube.com/watch?v=h_D3VFfhvs4', cues: [
       { start: null, end: null, label: L('클럽에 들어서다', '走进俱乐部') },
       { start: null, end: null, label: L('45° — 앞으로 기울다', '45° — 向前倾斜') },
@@ -1378,11 +1394,11 @@ const SCENES = [
       { ko: '불과 몇 초. 그런데 그 몇 초가 대중음악의 역사를 바꿉니다.', zh: '不过几秒钟，却改变了流行音乐的历史。', vis: '「그 몇 초가」' },
       { ko: '오늘은 질문 하나로 시작하겠습니다. 스포트라이트 밖의 그는, 과연 누구였을까요?', zh: '今天我想用一个问题开始：聚光灯之外的他，究竟是谁？', vis: '光移开，问题出现在暗处' },
     ] },
-  { key: 'trailer', era: 'cinema', act: 0, budget: 90, year: 2026, hud: true, enter: 'dissolve',
+  { key: 'trailer', era: 'cinema', act: 0, budget: 187, year: 2026, hud: true, enter: 'dissolve',
     title: L('예고편', '预告片'), short: L('예고편', '预告片'), track: null,
     beats: [
       { ko: '올해 5월 한국에서도 개봉한 영화가 있습니다. 혹시 보신 분 계신가요?', zh: '今年5月，有一部电影也在韩国上映了。有人看过吗？', vis: '电影卡「2026 · 〈마이클〉」' },
-      { silent: true, ko: '（말하지 않음）', zh: '（不说话）', vis: '胶片倒计时 3·2·1 → 预告片（约 45 秒，入点出点在设置里定）', media: 47.4, video: { key: 'trailer', slot: 'main', countdown: true }, note: '预告片结束后画面自动淡出，再按下一页' },
+      { silent: true, ko: '（말하지 않음）', zh: '（不说话）', vis: '银幕转正 → 银幕里 3·2·1 → 预告片从银幕放大到整屏，放完缩回银幕（时长按设置的入点出点）', media: 144, video: { key: 'trailer', slot: 'main', countdown: true }, note: '预告片放完自动缩回银幕，再按下一页；中途按下一页会直接收回' },
       { ko: '영화 〈마이클〉. 그의 친조카 자파 잭슨이 주연을 맡았고, 전기 영화로는 처음으로 전 세계 흥행 수익 10억 달러를 넘었습니다. 그런데 이 영화의 이야기는 1988년에서 멈춥니다.', zh: '电影《迈克尔》由他的亲侄子贾法尔·杰克逊主演，是第一部全球票房突破10亿美元的传记片。但这部电影的故事，停在了1988年。', vis: '电影信息 + 覆盖条亮到 1988' },
       { ko: '오늘 저는 그 너머, 스포트라이트가 닿지 않았던 곳까지 가 보려고 합니다.', zh: '今天，我想走得更远，走到聚光灯照不到的地方。', vis: '光越过 1988，进入黑暗段' },
     ] },
@@ -1498,11 +1514,25 @@ SCENES.forEach(sc => {
   let n = 0;
   sc.beats.forEach((b) => { if (!b.cont) n++; b.tag = '①②③④⑤⑥⑦⑧⑨'[n - 1] + (b.cont ? '续' : ''); });
 });
-const TOTAL_PLAN = SCENES.reduce((s, sc) => s + sc.budget, 0);   /* 865 s = 14:25 */
+/* the trailer plays to its out point: its scene budget follows the clip (talk 42.6 s + leader and zoom 4 s + the clip) */
+const TRAILER_TALK = 42.6, TRAILER_DEFAULT = 140;
+function trailerSeconds(cfg) {
+  if (!cfg) return TRAILER_DEFAULT;
+  const a = +cfg.start || 0, b = cfg.end != null && cfg.end !== '' ? +cfg.end : null;
+  if (b != null && b > a) return b - a;
+  return cfg.dur ? Math.max(1, cfg.dur - a) : TRAILER_DEFAULT;
+}
+function syncTrailerBudget(cfg) {
+  const sc = SCENES.find(s => s.key === 'trailer'), b = sc.beats.find(x => x.video && x.video.key === 'trailer'), len = trailerSeconds(cfg);
+  b.media = Math.round((len + 4) * 10) / 10; sc.budget = Math.round(TRAILER_TALK + b.media);
+  TOTAL_PLAN = SCENES.reduce((s, x) => s + x.budget, 0);
+}
+let TOTAL_PLAN = SCENES.reduce((s, sc) => s + sc.budget, 0);   /* 962 s with the full 2:20 trailer; 865 s with a 45 s cut */
 const HARD_LIMIT = 900;
 
 /* planned timeline: inside each scene, split the budget by estimated beat length */
 function computePlan(rate) {
+  if (typeof Settings !== 'undefined') syncTrailerBudget(Settings.get().videos.trailer);
   let t = 0;
   SCENES.forEach(sc => {
     const raw = sc.beats.map(b => (b.syl / rate) + (b.media || 0) + .5);
@@ -1532,8 +1562,16 @@ function deepMerge(base, over) {
 }
 const clone = v => v == null ? v : JSON.parse(JSON.stringify(v));
 
+/* settings saved by an older version keep their choices; only defaults the user never changed move forward */
+function migrate(saved) {
+  if (!saved || typeof saved !== 'object' || (saved.mver || 1) >= DEFAULTS.mver) return saved;
+  const o = clone(saved), t = o.videos && o.videos.trailer;
+  if (t) { if (!t.src) delete t.src; if (t.end === 45 && !t.start) t.end = null; }
+  o.mver = DEFAULTS.mver;
+  return o;
+}
 const Settings = (() => {
-  let s = deepMerge(DEFAULTS, store.get('settings', {}));
+  let s = deepMerge(DEFAULTS, migrate(store.get('settings', {})));
   const subs = new Set();
   const emit = () => subs.forEach(f => { try { f(s); } catch (e) { console.error(e); } });
   return {
@@ -1545,9 +1583,9 @@ const Settings = (() => {
       store.set('settings', s);
       if (!silent) { Bus.send({ type: 'settings' }); emit(); }
     },
-    replace(obj) { s = deepMerge(DEFAULTS, obj || {}); store.set('settings', s); Bus.send({ type: 'settings' }); emit(); },
+    replace(obj) { s = deepMerge(DEFAULTS, migrate(obj || {})); store.set('settings', s); Bus.send({ type: 'settings' }); emit(); },
     reset() { s = clone(DEFAULTS); store.set('settings', s); Bus.send({ type: 'settings' }); emit(); },
-    reload() { s = deepMerge(DEFAULTS, store.get('settings', {})); emit(); },
+    reload() { s = deepMerge(DEFAULTS, migrate(store.get('settings', {}))); emit(); },
     on(f) { subs.add(f); return () => subs.delete(f); },
   };
 })();
@@ -2191,14 +2229,16 @@ const isFileSrc = (src) => !!src && !ytId(src) && /\.(mp3|m4a|aac|ogg|oga|wav|fl
 /* Local media is pulled into memory once. Blob URLs are always seekable (python's http.server has no
    Range support, so start points and cue points would otherwise be ignored) and nothing buffers mid-talk. */
 const MediaCache = (() => {
-  const urls = new Map(), pending = new Map();
+  const urls = new Map(), pending = new Map(), failed = new Map();
   function url(src) {
     if (!src || /^(blob:|data:)/.test(src) || location.protocol === 'file:') return Promise.resolve(src);
     if (urls.has(src)) return Promise.resolve(urls.get(src));
+    /* a file that is not there is not asked for again on every scene change (a minute later it may have been added) */
+    if (failed.has(src) && now() - failed.get(src).at < 60000) return Promise.reject(failed.get(src).err);
     if (pending.has(src)) return pending.get(src);
     const p = fetch(src).then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.blob(); })
       .then(b => { const u = URL.createObjectURL(b); urls.set(src, u); pending.delete(src); return u; })
-      .catch(err => { pending.delete(src); throw err; });
+      .catch(err => { pending.delete(src); failed.set(src, { at: now(), err }); throw err; });
     pending.set(src, p);
     return p;
   }
@@ -2211,12 +2251,19 @@ const MediaCache = (() => {
   return { url, warmAll, ready: (src) => urls.has(src) };
 })();
 
+/* ═══ MUSIC — one deck per era track ═══
+   A deck tries its sources in order: the configured one (normally the local file in media/music/), then the
+   official uploads on YouTube. YouTube decks share a pool of three hidden players: the one fading out, the one
+   playing and the next era's, which is cued while the current era runs so a change of era starts at once.
+   A new era never leaves a gap: the old track keeps playing until the new one is actually sounding, then the
+   two cross with an equal-power curve timed to the visual dissolve. */
 const Music = (() => {
   const decks = {};            /* key → deck */
-  let active = null, mode = 'off', muted = false, ducked = false;
+  let active = null, mode = 'off', muted = false, ducked = false, primed = null;
   let decayTimer = 0, fadeTimer = 0, unduckTimer = 0;
   const listeners = new Set();
   const emit = () => listeners.forEach(f => f(status()));
+  const SILENT = ['off', 'cut', 'cut6', 'video'];
 
   function levelOf(m) {
     const v = Settings.get().vol;
@@ -2233,86 +2280,169 @@ const Music = (() => {
   }
   const master = () => muted ? 0 : Settings.get().vol.master / 100;
 
+  /* the configured source first, then the official uploads (skipped when the user picked a YouTube link of their own) */
+  function sourcesOf(key) {
+    const cfg = Settings.get().tracks[key] || {}, src = (cfg.src || '').trim(), list = [];
+    if (src) list.push(ytId(src) ? { kind: 'yt', id: ytId(src) } : { kind: 'file', src });
+    (TRACKS[key].yt || []).forEach(id => { if (!list.some(s => s.id === id)) list.push({ kind: 'yt', id }); });
+    return list;
+  }
+
+  /* hidden YouTube players, shared */
+  const pool = [];
+  function acquire(d) {
+    if (d.slot) return d.slot;
+    const cur = decks[active];
+    const idle = (o) => o !== cur && o !== primed && o.gain < .002;
+    let p = pool.find(x => !x.owner) || pool.find(x => idle(x.owner));
+    if (!p && pool.length < 3) { p = { slot: Video.bgSlot('m' + pool.length), owner: null }; pool.push(p); }
+    if (!p) p = pool.find(x => x.owner !== cur) || pool[0];
+    if (p.owner && p.owner !== d) release(p.owner);
+    p.owner = d; d.slot = p.slot;
+    return d.slot;
+  }
+  function release(d) {
+    const p = pool.find(x => x.owner === d);
+    if (p) { p.owner = null; try { p.slot.stop(); } catch (e) { /* ignore */ } }
+    d.slot = null; d.ready = false;
+  }
+
   function makeDeck(key) {
     const cfg = Settings.get().tracks[key] || {};
-    const src = (cfg.src || '').trim();
-    const d = { key, src, start: +cfg.start || 0, gain: 0, state: 'idle', error: null, stop: null, kind: null };
-    const yid = ytId(src);
-    if (yid) {
-      d.kind = 'yt';
-      d.slot = Video.bgSlot(key);
-      d.setVol = (g) => d.slot.setVolume(Math.round(g * 100));
-      d.play = () => { d.state = 'loading'; return d.slot.load({ id: yid, start: d.start, muted: false, loop: true, autoplay: true }).then(ok => { d.state = ok ? 'playing' : 'error'; if (!ok) d.error = d.slot.error || 'YouTube'; emit(); return ok; }); };
-      d.pause = () => d.slot.pause();
-      d.show = (v) => d.slot.showBg(v);
-    } else if (src) {
-      d.kind = 'file';
+    const d = { key, cfgSrc: (cfg.src || '').trim(), start: +cfg.start || 0, list: sourcesOf(key), at: 0, gain: 0, state: 'idle', error: null, stop: null, kind: null, el: null, node: null, slot: null, ready: false };
+    if (!d.list.length) d.state = 'unset';
+    const cur = () => d.list[d.at];
+    d.setVol = (g) => {
+      const v = clamp(g, 0, 1);
+      if (d.kind === 'file' && d.el) { if (d.node) d.node.gain.value = v; else d.el.volume = v; }
+      else if (d.kind === 'yt' && d.slot) d.slot.setVolume(Math.round(v * 100));
+    };
+    function audio() {
+      if (d.el) return d.el;
       const a = new Audio(); a.preload = 'auto'; a.loop = true; a.volume = 0;
-      a.addEventListener('error', () => { if (!a.getAttribute('src')) return; d.state = 'error'; d.error = '文件无法加载'; emit(); });
-      a.addEventListener('playing', () => { d.state = 'playing'; emit(); NowPlaying.show(key); });
-      d.el = a;
-      d.setVol = (g) => { a.volume = clamp(g, 0, 1); };
-      d.play = () => {
-        d.state = 'loading'; emit();
-        return MediaCache.url(src).then(u => new Promise((res) => {
-          if (a.getAttribute('src') !== u) a.src = u;
-          const seekThenPlay = () => {
-            try { a.currentTime = d.start; } catch (e) { /* ignore */ }
-            const p = a.play();
-            (p && p.then ? p : Promise.resolve()).then(() => res(true)).catch(err => {
-              if (err && err.name === 'NotAllowedError') { d.state = 'blocked'; Music.pendingGesture = true; }
-              else { d.state = 'error'; d.error = d.error || String(err && err.message || err); }
-              emit(); res(false);
-            });
-          };
-          if (a.readyState >= 1) seekThenPlay(); else a.addEventListener('loadedmetadata', seekThenPlay, { once: true });
-        })).catch(err => { d.state = 'error'; d.error = '文件无法加载：' + src + '（' + (err && err.message || err) + '）'; emit(); return false; });
-      };
-      d.pause = () => { try { a.pause(); } catch (e) { /* ignore */ } };
-      d.show = () => {};
-    } else {
-      d.kind = 'none'; d.state = 'unset';
-      d.setVol = () => {}; d.play = () => Promise.resolve(false); d.pause = () => {}; d.show = () => {};
+      a.addEventListener('playing', () => { if (d.kind === 'file') { d.state = 'playing'; emit(); } });
+      d.el = a; return a;
     }
+    function playFile(src) {
+      d.kind = 'file';
+      return MediaCache.url(src).then(u => new Promise((res) => {
+        const a = audio();
+        if (a.getAttribute('src') !== u) { a.src = u; d.ready = false; }
+        /* through Web Audio when it runs: element volume is ignored on iOS */
+        if (!d.node) d.node = SFX.route(a);
+        if (d.node) a.volume = 1;
+        d.setVol(d.gain * master());
+        const go = () => {
+          if (!d.ready) { try { a.currentTime = d.start; } catch (e) { /* ignore */ } }
+          d.ready = false;
+          const p = a.play();
+          (p && p.then ? p : Promise.resolve()).then(() => res(true)).catch(err => {
+            if (err && err.name === 'NotAllowedError') { d.state = 'blocked'; Music.pendingGesture = true; res('blocked'); }
+            else { d.error = String(err && err.message || err); res(false); }
+          });
+        };
+        if (a.readyState >= 1) go(); else { a.addEventListener('loadedmetadata', go, { once: true }); a.addEventListener('error', () => { d.error = '文件格式无法播放'; res(false); }, { once: true }); }
+      })).catch(err => { d.error = '文件无法加载：' + src + '（' + (err && err.message || err) + '）'; return false; });
+    }
+    function playYt(id) {
+      d.kind = 'yt';
+      const slot = acquire(d);
+      d.setVol(d.gain * master());
+      if (d.ready && d.readyId === id && slot.want && slot.want.id === id) { d.ready = false; return slot.resume().then(ok => ok || (d.error = slot.error || 'YouTube', false)); }
+      d.ready = false;
+      return slot.load({ id, start: d.start, muted: false, loop: true, autoplay: true }).then(ok => { if (!ok) d.error = slot.error || YTAPI.reason || 'YouTube'; return ok; });
+    }
+    function tryFrom(i) {
+      if (i >= d.list.length) {
+        d.at = 0; d.state = d.list.length ? 'error' : 'unset'; d.error = d.list.length ? (d.error || '音源都无法播放') : null;
+        emit(); return Promise.resolve(false);
+      }
+      d.at = i; d.state = 'loading'; emit();
+      const s = d.list[i];
+      if (s.kind === 'yt' && d.kind === 'file' && d.el) { try { d.el.pause(); } catch (e) { /* ignore */ } }
+      return (s.kind === 'file' ? playFile(s.src) : playYt(s.id)).then(r => {
+        if (r === 'blocked') { emit(); return false; }
+        if (r) { d.state = 'playing'; d.error = null; emit(); return true; }
+        if (s.kind === 'yt') release(d);
+        return tryFrom(i + 1);
+      });
+    }
+    d.play = () => tryFrom(d.at);
+    /* get the first seconds ready without making a sound */
+    d.prime = () => {
+      const s = cur(); if (!s || d.state === 'playing' || d.state === 'loading' || d.ready) return;
+      if (s.kind === 'file') {
+        MediaCache.url(s.src).then(u => { const a = audio(); if (a.getAttribute('src') !== u) { a.src = u; a.load(); } const seek = () => { try { a.currentTime = d.start; } catch (e) { /* ignore */ } d.ready = true; }; if (a.readyState >= 1) seek(); else a.addEventListener('loadedmetadata', seek, { once: true }); })
+          .catch(() => { if (d.at < d.list.length - 1) { d.at++; d.prime(); } });
+      } else {
+        if (LITE || YTAPI.state === 'failed') return;
+        d.kind = 'yt';
+        const slot = acquire(d); slot.setVolume(0);
+        slot.load({ id: s.id, start: d.start, muted: false, loop: true, autoplay: false }).then(ok => { if (ok && d.slot === slot) { d.ready = true; d.readyId = s.id; } });
+      }
+    };
+    d.pause = () => { if (d.kind === 'file' && d.el) { try { d.el.pause(); } catch (e) { /* ignore */ } } else if (d.slot) d.slot.pause(); };
+    d.show = () => {};
     return d;
   }
   function deck(key) {
     const cfg = Settings.get().tracks[key] || {};
     let d = decks[key];
-    if (d && (d.src !== (cfg.src || '').trim())) { try { d.pause(); } catch (e) { /* ignore */ } d = null; }
+    if (d && d.cfgSrc !== (cfg.src || '').trim()) { try { d.pause(); } catch (e) { /* ignore */ } release(d); d = null; }
     if (!d) d = decks[key] = makeDeck(key);
     d.start = +cfg.start || 0;
     return d;
   }
-  function ramp(d, to, dur, onDone) {
+  /* curve: 'in' / 'out' = the halves of an equal-power crossfade, otherwise a plain sine ease */
+  function ramp(d, to, dur, onDone, curve) {
     if (d.stop) d.stop();
     const from = d.gain;
     if (!(dur > 0)) { d.gain = to; d.setVol(to * master()); onDone && onDone(); return; }
-    d.stop = tween(dur * 1000, (e) => { d.gain = lerp(from, to, e); d.setVol(d.gain * master()); }, ease.inOutSine, () => { d.stop = null; onDone && onDone(); });
+    const f = curve === 'in' ? (p) => from + (to - from) * Math.sin(p * Math.PI / 2)
+      : curve === 'out' ? (p) => to + (from - to) * Math.cos(p * Math.PI / 2)
+        : (p) => lerp(from, to, ease.inOutSine(p));
+    d.stop = tween(dur * 1000, (e, p) => { d.gain = f(p); d.setVol(d.gain * master()); }, ease.linear, () => { d.stop = null; onDone && onDone(); });
   }
-  function stopDeck(d, dur) { ramp(d, 0, dur, () => { if (active !== d.key) { d.pause(); d.show(false); d.state = d.state === 'error' ? 'error' : 'idle'; emit(); } }); }
+  function stopDeck(d, dur, curve) {
+    ramp(d, 0, dur, () => {
+      if (active === d.key) return;
+      d.pause(); d.state = d.state === 'error' || d.state === 'unset' ? d.state : 'idle';
+      if (d.kind === 'yt' && d !== primed) release(d);
+      emit();
+    }, curve);
+  }
 
-  /* called by the director for every beat */
-  function apply(track, m, { dir = 1, instant = false } = {}) {
+  /* called by the director for every beat. enter: how the scene came in (dissolve | blackout | houselights) on its first beat */
+  function apply(track, m, { dir = 1, instant = false, enter = null } = {}) {
     clearTimeout(decayTimer); clearTimeout(fadeTimer); clearTimeout(unduckTimer); ducked = false;
     mode = m || 'speech';
     if (dir < 0 && (mode === 'card' || mode === 'rise')) mode = 'speech';
     if (dir < 0 && mode === 'fadeout') mode = 'max';
     const target = track ? levelOf(mode) : 0;
-    if (active && active !== track) { const old = decks[active]; if (old) stopDeck(old, instant ? .3 : (mode === 'cut' ? .15 : 2)); }
-    if (!track) { active = null; emit(); return; }
+    const old = active && active !== track ? decks[active] : null;
+    if (!track) {
+      if (old) stopDeck(old, instant ? .3 : mode === 'cut' ? .15 : enter === 'blackout' ? .9 : 2, enter === 'blackout' ? 'out' : null);
+      active = null; emit(); return;
+    }
     const d = deck(track);
+    if (primed === d) primed = null;
     const isNew = active !== track || d.state === 'idle' || d.state === 'blocked';
     active = track;
     const settle = (afterMs) => { clearTimeout(decayTimer); decayTimer = setTimeout(() => { if (active === track && (mode === 'card' || mode === 'rise')) { mode = 'speech'; ramp(d, levelOf('speech'), 1.6); emit(); } }, afterMs); };
     if (isNew) {
-      d.gain = 0; d.setVol(0); d.show(true);
-      if (mode === 'off' || mode === 'cut' || mode === 'cut6' || mode === 'video') { emit(); return; }
-      const rampIn = mode === 'rise' ? 3 : (instant ? .4 : (mode === 'card' ? 1.2 : 2));
+      d.gain = 0; d.setVol(0);
+      if (SILENT.includes(mode)) { if (old) stopDeck(old, instant ? .3 : 1.2); emit(); return; }
+      /* crossfade length follows the picture: era dissolve 1.8 s, house lights 1.6 s, a blackout's 0.8 s lift */
+      const xf = instant ? .4 : enter === 'dissolve' ? 2.6 : enter === 'houselights' ? 3.4 : enter === 'blackout' ? (mode === 'card' ? 1.4 : 2.2) : (mode === 'rise' ? 3 : mode === 'card' ? 1.2 : 2);
+      let sounding = false;
+      /* if the new track is slow to start, the old one does not wait for ever */
+      if (old) setTimeout(() => { if (!sounding && active !== old.key) stopDeck(old, 1.8, 'out'); }, 2600);
       d.play().then(ok => {
+        sounding = true;
+        if (old && active !== old.key) stopDeck(old, ok ? xf : 1.2, 'out');
         if (!(ok && active === track)) return;
-        ramp(d, target, rampIn); NowPlaying.show(track);
-        if (mode === 'card' || mode === 'rise') settle(rampIn * 1000 + 2000);
+        ramp(d, levelOf(mode), mode === 'rise' ? Math.max(3, xf) : xf, null, 'in'); NowPlaying.show(track);
+        if (mode === 'card' || mode === 'rise') settle(xf * 1000 + 2000);
       });
     } else {
       const dur = { cut: .15, cut6: .6, off: 1, video: .9, card: .8, max: 2.2, rise: 3, fadeout: 1.2, low: 1.5 }[mode] || 1.2;
@@ -2323,6 +2453,13 @@ const Music = (() => {
     if (mode === 'fadeout') fadeTimer = setTimeout(() => { if (active === track && mode === 'fadeout') ramp(d, 0, 14); }, 9000);
     emit();
   }
+  /* cue the next era's track while this one plays */
+  function prime(track) {
+    if (!track || track === active || VIEW !== 'stage') return;
+    const d = deck(track);
+    if (primed && primed !== d && primed.gain < .002 && primed.key !== active) { const p = primed; primed = null; if (p.kind === 'yt') release(p); }
+    primed = d; d.prime();
+  }
   /* videos with sound push the music out of the way */
   function duck(on) {
     clearTimeout(unduckTimer);
@@ -2332,45 +2469,158 @@ const Music = (() => {
   }
   function setMuted(v) { muted = !!v; Object.values(decks).forEach(d => d.setVol(d.gain * master())); emit(); }
   function refreshVolumes() { Object.values(decks).forEach(d => d.setVol(d.gain * master())); }
-  function retry() { const d = active && decks[active]; if (d && (d.state === 'blocked' || d.state === 'idle') && mode !== 'off' && mode !== 'cut' && mode !== 'cut6') { d.play().then(ok => ok && ramp(d, levelOf(mode === 'video' ? 'speech' : mode), 1.2)); } }
-  function stopAll() { Object.values(decks).forEach(d => { if (d.stop) d.stop(); d.gain = 0; d.setVol(0); d.pause(); d.show(false); }); active = null; emit(); }
+  function retry() { const d = active && decks[active]; if (d && (d.state === 'blocked' || d.state === 'idle') && !SILENT.includes(mode)) { d.play().then(ok => ok && ramp(d, levelOf(mode), 1.2, null, 'in')); } }
+  function stopAll() { Object.values(decks).forEach(d => { if (d.stop) d.stop(); d.stop = null; d.gain = 0; d.setVol(0); d.pause(); if (d.kind === 'yt') release(d); if (d.state === 'playing' || d.state === 'loading') d.state = 'idle'; }); active = null; primed = null; emit(); }
+  function srcLabel(d) { const s = d && d.list[d.at]; return !s ? '' : s.kind === 'file' ? '本地文件' : (d.at === 0 && d.cfgSrc ? 'YouTube' : 'YouTube 官方音源'); }
   function status() {
     const d = active && decks[active];
-    return { track: active, title: active ? TRACKS[active].title : null, mode, ducked, muted, level: d ? Math.round(d.gain * 100) : 0, state: d ? d.state : 'idle', error: d && d.error, kind: d && d.kind };
+    return { track: active, title: active ? TRACKS[active].title : null, mode, ducked, muted, level: d ? Math.round(d.gain * 100) : 0, state: d ? d.state : 'idle', error: d && d.error, kind: d && d.kind, source: srcLabel(d) };
   }
   /* preview a track from its start point (settings panel) */
   function preview(key, secs = 8) {
-    const d = deck(key); stopAll(); active = key; d.gain = 0; d.setVol(0); d.show(true);
-    return d.play().then(ok => { if (ok) { ramp(d, levelOf('card'), .5); setTimeout(() => { if (active === key) stopDeck(d, 1); active = null; emit(); }, secs * 1000); } return ok; });
+    const d = deck(key); stopAll(); active = key; d.gain = 0; d.setVol(0);
+    return d.play().then(ok => { if (ok) { ramp(d, levelOf('card'), .5); setTimeout(() => { if (active === key) { active = null; stopDeck(d, 1); } emit(); }, secs * 1000); } return ok; });
   }
-  function position(key) { const d = decks[key]; if (!d) return null; if (d.kind === 'file') return d.el.currentTime; if (d.kind === 'yt') return d.slot.time(); return null; }
-  function probe(key) {
-    const cfg = Settings.get().tracks[key] || {}; const src = (cfg.src || '').trim();
-    if (!src) return Promise.resolve({ ok: false, why: '未设置' });
-    if (ytId(src)) return Video.probe(ytId(src)).then(r => r);
-    return MediaCache.url(src).then(u => new Promise(res => {
-      const a = new Audio(); let done = false;
-      const fin = (ok, why) => { if (done) return; done = true; res({ ok, why }); };
-      a.preload = 'auto'; a.addEventListener('loadedmetadata', () => fin(true, '可播放 · ' + fmt(a.duration) + ' · 已载入内存'), { once: true });
-      a.addEventListener('error', () => fin(false, '文件格式无法播放：' + src), { once: true });
-      setTimeout(() => fin(false, '超时'), 10000); a.src = u;
-    })).catch(err => ({ ok: false, why: '文件无法加载：' + src + '（' + (err && err.message || err) + '）' }));
+  function position(key) { const d = decks[key]; if (!d) return null; if (d.kind === 'file' && d.el) return d.el.currentTime; if (d.kind === 'yt' && d.slot) return d.slot.time(); return null; }
+  /* pre-flight: the first source that would play */
+  async function probe(key) {
+    const list = sourcesOf(key); if (!list.length) return { ok: false, why: '未设置' };
+    const notes = [];
+    for (const s of list) {
+      if (s.kind === 'yt') {
+        const r = await Video.probe(s.id);
+        if (r.ok) return { ok: true, why: (notes.length ? notes.join(' · ') + ' → ' : '') + 'YouTube · ' + r.why + ' · ' + s.id };
+        notes.push('YouTube ' + s.id + '：' + r.why);
+        continue;
+      }
+      const r = await MediaCache.url(s.src).then(u => new Promise(res => {
+        const a = new Audio(); let done = false;
+        const fin = (ok, why) => { if (done) return; done = true; res({ ok, why }); };
+        a.preload = 'auto'; a.addEventListener('loadedmetadata', () => fin(true, '本地文件 · ' + fmt(a.duration) + ' · 已载入内存'), { once: true });
+        a.addEventListener('error', () => fin(false, '文件格式无法播放'), { once: true });
+        setTimeout(() => fin(false, '超时'), 10000); a.src = u;
+      })).catch(() => ({ ok: false, why: '没有本地文件' }));
+      if (r.ok) return r;
+      notes.push(r.why);
+    }
+    return { ok: false, why: notes.join(' · ') };
   }
-  const debug = () => Object.values(decks).map(d => ({ key: d.key, kind: d.kind, gain: Math.round(d.gain * 100) / 100, state: d.state, paused: d.el ? d.el.paused : null, t: d.el ? Math.round(d.el.currentTime * 10) / 10 : null, vol: d.el ? Math.round(d.el.volume * 100) / 100 : null }));
-  return { debug, apply, duck, setMuted, refreshVolumes, retry, stopAll, status, preview, position, probe, on: f => (listeners.add(f), () => listeners.delete(f)), get muted() { return muted; }, pendingGesture: false };
+  const debug = () => Object.values(decks).map(d => ({ key: d.key, kind: d.kind, src: srcLabel(d), at: d.at, gain: Math.round(d.gain * 100) / 100, state: d.state, ready: d.ready, slot: d.slot ? d.slot.name : null, paused: d.el ? d.el.paused : null, t: d.el ? Math.round(d.el.currentTime * 10) / 10 : null, error: d.error }));
+  return { debug, apply, prime, duck, setMuted, refreshVolumes, retry, stopAll, status, preview, position, probe, sourcesOf, on: f => (listeners.add(f), () => listeners.delete(f)), get muted() { return muted; }, pendingGesture: false };
 })();
 
-/* synthesized effects: projector clatter for the countdown, a burst of TV static */
+/* ═══ SFX — synthesized, no files: the sounds of a theatre and its follow spot ═══
+   One bus (gain → gentle compressor) with a small generated hall reverb. Nothing pitched sits under the
+   music: transitions are filtered noise and sub-bass, so they never clash with the key of the next song. */
 const SFX = (() => {
-  let ctx = null;
+  let ctx = null, out = null, wet = null, noise = null;
   const ensure = () => {
-    try { if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === 'suspended') ctx.resume(); } catch (e) { ctx = null; }
+    try {
+      if (!ctx) { ctx = new (window.AudioContext || window.webkitAudioContext)(); build(); }
+      if (ctx.state === 'suspended') ctx.resume();
+    } catch (e) { ctx = null; }
     return ctx;
   };
-  const on = () => VIEW === 'stage' && Settings.get().sfx && !Music.muted;
-  const vol = () => .55 * Settings.get().vol.master / 100;
+  function build() {
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -16; comp.knee.value = 12; comp.ratio.value = 3; comp.attack.value = .004; comp.release.value = .25;
+    out = ctx.createGain(); out.connect(comp); comp.connect(ctx.destination);
+    /* hall: 2.4 s of decaying noise, darker at the tail */
+    const sr = ctx.sampleRate, n = Math.floor(sr * 2.4), ir = ctx.createBuffer(2, n, sr);
+    for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); let lp = 0; for (let i = 0; i < n; i++) { const t = i / n; lp += ((Math.random() * 2 - 1) - lp) * (.9 - .75 * t); d[i] = lp * Math.pow(1 - t, 2.6); } }
+    const conv = ctx.createConvolver(); conv.buffer = ir;
+    wet = ctx.createGain(); wet.gain.value = .55; wet.connect(conv); conv.connect(out);
+    const nb = ctx.createBuffer(1, sr * 3, sr), nd = nb.getChannelData(0);
+    for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+    noise = nb;
+  }
+  const on = () => VIEW === 'stage' && Settings.get().sfx && !Music.muted && !Director.reduced;
+  const vol = () => (Settings.get().vol.sfx ?? 70) / 100 * Settings.get().vol.master / 100;
+  const fired = [];
+  const ready = (name) => { const ok = on() && ensure() && ctx.state === 'running'; if (ok && name) { fired.push([name, Math.round(now())]); if (fired.length > 40) fired.shift(); } return ok; };
+
+  /* building blocks */
+  function voice(gain, { pan = 0, send = 0 } = {}) {
+    const g = ctx.createGain(); g.gain.value = 0;
+    let node = g;
+    if (pan && ctx.createStereoPanner) { const p = ctx.createStereoPanner(); p.pan.value = pan; g.connect(p); node = p; }
+    node.connect(out);
+    if (send) { const s = ctx.createGain(); s.gain.value = send; node.connect(s); s.connect(wet); }
+    g.peak = gain * vol();
+    return g;
+  }
+  function noiseSrc(t0, dur) { const s = ctx.createBufferSource(); s.buffer = noise; s.loop = true; s.loopStart = Math.random() * 2; s.start(t0, Math.random() * 2); s.stop(t0 + dur + .05); return s; }
+  function filt(type, f, q = .7) { const b = ctx.createBiquadFilter(); b.type = type; b.frequency.value = f; b.Q.value = q; return b; }
+  function env(param, t0, peak, attack, hold, release) {
+    param.setValueAtTime(0, t0);
+    param.linearRampToValueAtTime(peak, t0 + attack);
+    param.setValueAtTime(peak, t0 + attack + hold);
+    param.exponentialRampToValueAtTime(.0001, t0 + attack + hold + release);
+  }
+  function sub(t0, f0, f1, peak, dur, send = .3) {
+    const o = ctx.createOscillator(); o.type = 'sine';
+    o.frequency.setValueAtTime(f0, t0); o.frequency.exponentialRampToValueAtTime(f1, t0 + dur * .8);
+    const g = voice(peak, { send }); env(g.gain, t0, g.peak, .008, .02, dur);
+    o.connect(g); o.start(t0); o.stop(t0 + dur + .1);
+  }
+
+  /* era dissolve: air moving across the room, loudest where the two songs cross */
+  function whoosh(dur = 2.3, peakAt = .5, gain = .32) {
+    if (!ready('whoosh')) return;
+    const t0 = ctx.currentTime + .02, tp = t0 + dur * peakAt, t1 = t0 + dur;
+    const s = noiseSrc(t0, dur);
+    const bp = filt('bandpass', 260, 1.1);
+    bp.frequency.setValueAtTime(260, t0); bp.frequency.exponentialRampToValueAtTime(2300, tp); bp.frequency.exponentialRampToValueAtTime(520, t1);
+    const g = voice(gain, { send: .45 });
+    g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(g.peak * .25, t0 + (tp - t0) * .5); g.gain.linearRampToValueAtTime(g.peak, tp); g.gain.exponentialRampToValueAtTime(.0001, t1);
+    let tail = bp;
+    if (ctx.createStereoPanner) { const p = ctx.createStereoPanner(); p.pan.setValueAtTime(-.55, t0); p.pan.linearRampToValueAtTime(.55, t1); bp.connect(p); tail = p; }
+    s.connect(bp); tail.connect(g);
+    /* a low bed under it */
+    const s2 = noiseSrc(t0, dur), lp = filt('lowpass', 140, .5), g2 = voice(gain * .9);
+    g2.gain.setValueAtTime(0, t0); g2.gain.linearRampToValueAtTime(g2.peak, tp); g2.gain.exponentialRampToValueAtTime(.0001, t1);
+    s2.connect(lp); lp.connect(g2);
+  }
+  /* blackout: the big switch on the lighting board, the hall answering */
+  function lampOff(gain = .55) {
+    if (!ready('lampOff')) return;
+    const t0 = ctx.currentTime + .01;
+    const c = noiseSrc(t0, .05), hp = filt('highpass', 1800), gc = voice(gain * .8, { send: .5 }); env(gc.gain, t0, gc.peak, .001, .004, .045); c.connect(hp); hp.connect(gc);
+    const r = noiseSrc(t0, .25), bp = filt('bandpass', 620, 3), gr = voice(gain * .45, { send: .6 }); env(gr.gain, t0 + .004, gr.peak, .002, .01, .16); r.connect(bp); bp.connect(gr);
+    sub(t0, 92, 38, gain, .75, .7);
+  }
+  /* lights up: a carbon-arc follow spot striking, its hum settling */
+  function lampOn(gain = .4) {
+    if (!ready('lampOn')) return;
+    const t0 = ctx.currentTime + .01;
+    const c = noiseSrc(t0, .06), hp = filt('highpass', 2600), gc = voice(gain * .55, { send: .4 }); env(gc.gain, t0, gc.peak, .001, .006, .05); c.connect(hp); hp.connect(gc);
+    const f = noiseSrc(t0, .5), bp = filt('bandpass', 3400, 2.2), gf = voice(gain * .32, { send: .3 }); env(gf.gain, t0 + .01, gf.peak, .01, .04, .3); f.connect(bp); bp.connect(gf);
+    const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 100;
+    const lp = filt('lowpass', 320, .8), gh = voice(gain * .14, { send: .2 });
+    gh.gain.setValueAtTime(0, t0); gh.gain.linearRampToValueAtTime(gh.peak, t0 + .18); gh.gain.exponentialRampToValueAtTime(.0001, t0 + 1.9);
+    o.connect(lp); lp.connect(gh); o.start(t0); o.stop(t0 + 2);
+    sub(t0, 70, 50, gain * .7, .4, .3);
+  }
+  /* house lights coming up: the room filling, slow */
+  function house(dur = 1.8, gain = .3) {
+    if (!ready('house')) return;
+    const t0 = ctx.currentTime + .02, t1 = t0 + dur;
+    const s = noiseSrc(t0, dur + 2.6), lp = filt('lowpass', 260, .4), g = voice(gain, { send: .6 });
+    lp.frequency.setValueAtTime(260, t0); lp.frequency.exponentialRampToValueAtTime(2400, t1);
+    g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(g.peak, t1); g.gain.exponentialRampToValueAtTime(.0001, t1 + 2.5);
+    s.connect(lp); lp.connect(g);
+    sub(t0 + dur * .7, 55, 42, gain * .8, 1.6, .6);
+  }
+  /* a chapter card landing: one soft sub hit in the hall */
+  function boom(gain = .42) {
+    if (!ready('boom')) return;
+    const t0 = ctx.currentTime + .01;
+    sub(t0, 60, 36, gain, 1.7, .6);
+    const s = noiseSrc(t0, .4), lp = filt('lowpass', 700, .6), g = voice(gain * .5, { send: .7 }); env(g.gain, t0, g.peak, .004, .02, .32); s.connect(lp); lp.connect(g);
+  }
+  /* film leader: projector clatter (24 fps) with its motor */
   function projector(dur = 2.6) {
-    if (!on() || !ensure()) return;
+    if (!ready('projector')) return;
     const sr = ctx.sampleRate, n = Math.floor(sr * dur), buf = ctx.createBuffer(1, n, sr), d = buf.getChannelData(0);
     for (let i = 0; i < n; i++) {
       const t = i / sr, ph = (t * 24) % 1;
@@ -2379,23 +2629,53 @@ const SFX = (() => {
       d[i] = click * .55 + gate * .25 + Math.sin(TAU * 48 * t) * .06 + Math.sin(TAU * 96 * t) * .025 + (Math.random() * 2 - 1) * .018;
     }
     const s = ctx.createBufferSource(); s.buffer = buf;
-    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1400; bp.Q.value = .6;
-    const lo = ctx.createBiquadFilter(); lo.type = 'lowpass'; lo.frequency.value = 5200;
-    const g = ctx.createGain(); const t0 = ctx.currentTime;
-    g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(vol() * .8, t0 + .12); g.gain.setValueAtTime(vol() * .8, t0 + dur - .5); g.gain.linearRampToValueAtTime(0, t0 + dur);
-    s.connect(bp); bp.connect(lo); lo.connect(g); g.connect(ctx.destination); s.start();
+    const bp = filt('bandpass', 1400, .6), lo = filt('lowpass', 5200);
+    const g = voice(.8, { send: .15 }); const t0 = ctx.currentTime;
+    g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(g.peak, t0 + .12); g.gain.setValueAtTime(g.peak, t0 + dur - .5); g.gain.linearRampToValueAtTime(0, t0 + dur);
+    s.connect(bp); bp.connect(lo); lo.connect(g); s.start();
+  }
+  /* the reel running out: clatter slowing to a stop */
+  function runout(dur = 1.4) {
+    if (!ready('runout')) return;
+    const sr = ctx.sampleRate, n = Math.floor(sr * dur), buf = ctx.createBuffer(1, n, sr), d = buf.getChannelData(0);
+    let ph = 0;
+    for (let i = 0; i < n; i++) {
+      const t = i / sr, rate = 24 * Math.pow(1 - t / dur, 1.6) + 2;
+      ph += rate / sr; const p = ph % 1;
+      d[i] = (p < .1 ? (Math.random() * 2 - 1) * Math.exp(-p * 50) * .6 : 0) + Math.sin(TAU * 48 * (1 - t / dur * .5) * t) * .05 * (1 - t / dur);
+    }
+    const s = ctx.createBufferSource(); s.buffer = buf;
+    const bp = filt('bandpass', 1200, .6), g = voice(.6, { send: .2 }); const t0 = ctx.currentTime;
+    g.gain.setValueAtTime(g.peak, t0); g.gain.linearRampToValueAtTime(0, t0 + dur);
+    s.connect(bp); bp.connect(g); s.start();
   }
   function staticBurst(dur = .55) {
-    if (!on() || !ensure()) return;
-    const sr = ctx.sampleRate, n = Math.floor(sr * dur), buf = ctx.createBuffer(1, n, sr), d = buf.getChannelData(0);
-    for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1);
-    const s = ctx.createBufferSource(); s.buffer = buf;
-    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 900;
-    const g = ctx.createGain(); const t0 = ctx.currentTime;
-    g.gain.setValueAtTime(vol() * .28, t0); g.gain.exponentialRampToValueAtTime(.001, t0 + dur);
-    s.connect(hp); hp.connect(g); g.connect(ctx.destination); s.start();
+    if (!ready('staticBurst')) return;
+    const t0 = ctx.currentTime;
+    const s = noiseSrc(t0, dur), hp = filt('highpass', 900), g = voice(.28);
+    g.gain.setValueAtTime(g.peak, t0); g.gain.exponentialRampToValueAtTime(.001, t0 + dur);
+    s.connect(hp); hp.connect(g);
   }
-  return { ensure, projector, staticBurst };
+
+  /* a scene change, matched to how the picture changes (timings from the director) */
+  function transition(kind, sc) {
+    if (!on()) return;
+    if (kind === 'blackout') { setTimeout(() => lampOff(), 480); setTimeout(() => lampOn(), 1040); return; }
+    if (kind === 'houselights') { house(1.8); return; }
+    whoosh(sc && sc.act === 0 ? 1.9 : 2.3, .5, sc && sc.act === 0 ? .22 : .32);
+    if (sc && sc.chapter) setTimeout(() => boom(.36), 1250);
+  }
+
+  /* a media element through Web Audio (volume that works on iOS); null when the context is not running yet */
+  function route(el) {
+    try {
+      if (!ensure() || ctx.state !== 'running' || el.__routed) return null;
+      const src = ctx.createMediaElementSource(el), g = ctx.createGain(); g.gain.value = 0;
+      src.connect(g); g.connect(ctx.destination); el.__routed = true;
+      return g;
+    } catch (e) { return null; }
+  }
+  return { fired, ensure, route, transition, whoosh, lampOff, lampOn, house, boom, projector, runout, staticBurst, get state() { return ctx ? ctx.state : 'none'; } };
 })();
 
 /* ── 07-video ── */
@@ -2522,6 +2802,18 @@ function makeSlot(name, host, opt = {}) {
     })).catch(err => { s.error = String(err && err.message || err); showFallback(); return false; });
   };
   s.play = () => { if (s.kind === 'file') return vid.play().catch(() => {}); try { s.player && s.player.playVideo(); } catch (e) { /* ignore */ } };
+  /* start a cued video; resolves once it is really playing */
+  s.resume = () => {
+    if (s.kind === 'file') return vid.play().then(() => { s.playing = true; el.classList.add('playing'); return true; }, () => false);
+    if (!s.player || s.error) return Promise.resolve(false);
+    if (s.playing) return Promise.resolve(true);
+    if (s.pending) settle(false);
+    return new Promise(res => {
+      s.pending = res;
+      try { if (!(s.want && s.want.muted)) { s.player.unMute(); s.player.setVolume(s.vol); } s.player.playVideo(); } catch (e) { settle(false); return; }
+      s.loadTimer = setTimeout(() => { if (s.pending) { s.error = s.error || '播放超时'; settle(false); } }, 8000);
+    });
+  };
   s.pause = () => { s.playing = false; if (s.kind === 'file') { vid.pause(); return; } try { s.player && s.player.pauseVideo(); } catch (e) { /* ignore */ } };
   s.stop = () => { s.onEnd = null; s.loop = null; s.endAt = null; s.pause(); el.classList.remove('playing'); };
   s.seek = (t) => { if (s.kind === 'file') { try { vid.currentTime = Math.max(0, t); } catch (e) { /* ignore */ } return; } try { s.player && s.player.seekTo(Math.max(0, t), true); } catch (e) { /* ignore */ } };
@@ -2530,7 +2822,14 @@ function makeSlot(name, host, opt = {}) {
   s.setVolume = (v) => { s.vol = clamp(v, 0, 100); if (s.kind === 'file') vid.volume = s.vol / 100; else try { s.player && s.player.setVolume(s.vol); } catch (e) { /* ignore */ } };
   s.mute = (m) => { if (s.kind === 'file') vid.muted = m; else try { s.player && (m ? s.player.mute() : s.player.unMute()); } catch (e) { /* ignore */ } };
   s.show = (v) => el.classList.toggle('on', !!v);
+  s.fallback = showFallback;
   s.showBg = (v) => { el.classList.toggle('on', !!v); const bg = $('#ytbg'); if (bg) bg.classList.toggle('on', $$('#ytbg > .vslot.on').length > 0); };
+  /* full-size box mapped onto a rect by a transform (uniform scale, centred) */
+  s.fit = (r) => {
+    if (!r) { el.style.transform = ''; return; }
+    const k = Math.min(r.w / W, r.h / H), x = r.x + (r.w - W * k) / 2, y = r.y + (r.h - H * k) / 2;
+    el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) scale(${k.toFixed(4)})`;
+  };
   s.place = (r) => { if (!r) return; el.style.left = r.x + 'px'; el.style.top = r.y + 'px'; el.style.width = r.w + 'px'; el.style.height = r.h + 'px'; };
   s.isPlaying = () => { if (s.kind === 'file') return !vid.paused; try { return s.player && s.player.getPlayerState() === 1; } catch (e) { return false; } };
   return s;
@@ -2541,7 +2840,7 @@ const Video = (() => {
   const slots = {};
   const listeners = new Set();
   let beatToken = 0, capture = 0;
-  const subs = h('div.sub'); $('#subs').append(subs);
+  const subs = h('div.sub'), subsEl = subs; $('#subs').append(subs);
   const leader = h('canvas#leader', { width: 1920, height: 1080 }); layer.append(leader);
 
   function slot(name) {
@@ -2550,12 +2849,17 @@ const Video = (() => {
   }
   function bgSlot(key) {
     const n = 'bg-' + key;
-    if (!slots[n]) slots[n] = makeSlot(n, $('#ytbg'), { bg: true });
+    if (!slots[n]) {
+      let host = $('#bgm'); if (!host) { host = h('div#bgm', { 'aria-hidden': 'true' }); $('#stage').append(host); }
+      slots[n] = makeSlot(n, host, { bg: true }); slots[n].place({ x: 0, y: 0, w: 320, h: 180 }); slots[n].show(true);
+    }
     return slots[n];
   }
   function src(key) {
     const v = Settings.get().videos[key] || {};
-    const s = (v.src || '').trim();
+    /* the trailer follows the screen language: the Chinese-subtitled cut when the stage is in Chinese */
+    const zh = key === 'trailer' && $('#stage').dataset.lang === 'zh' && (v.srcZh || '').trim();
+    const s = (zh || v.src || '').trim();
     return { id: ytId(s), file: isFileSrc(s) ? s : null, cfg: v, set: !!s };
   }
   const configured = (key) => src(key).set;
@@ -2571,15 +2875,19 @@ const Video = (() => {
   });
 
   function showSub(label) {
+    if (!label) subs.classList.remove('top');
     subs.innerHTML = ''; if (!label || !(label.ko || label.zh)) { subs.classList.remove('on'); return; }
     subs.append(T(label)); subs.classList.add('on');
   }
 
   /* film leader 3·2·1 */
-  function countdown(sec = 2.4) {
+  function countdown(sec = 2.4, rect = null) {
     return new Promise(res => {
-      const c = leader.getContext('2d'); leader.classList.add('on');
-      if (Settings.get().sfx) SFX.projector(sec + .3);
+      const c = leader.getContext('2d');
+      if (rect) { const k = Math.min(rect.w / W, rect.h / H); leader.style.transform = `translate(${(rect.x + (rect.w - W * k) / 2).toFixed(1)}px, ${(rect.y + (rect.h - H * k) / 2).toFixed(1)}px) scale(${k.toFixed(4)})`; }
+      else leader.style.transform = '';
+      leader.classList.add('on');
+      SFX.projector(sec + .3);
       const t0 = now(), per = sec / 3;
       const off = Loop.add(() => {
         const t = (now() - t0) / 1000;
@@ -2612,6 +2920,7 @@ const Video = (() => {
   function playRange(slotName, key, { start = 0, end = null, muted = false, rect, loop = false, onEnd, sub, framed = false } = {}) {
     if (VIEW !== 'stage') return Promise.resolve(false);
     const s = slot(slotName); const so = src(key);
+    if (s.el.classList.contains('zoomer')) { clearTimeout(s.unzoom); s.el.classList.remove('zoomer', 'big'); s.el.style.transform = ''; }
     s.place(rect || { x: 0, y: 0, w: W, h: H });
     s.el.classList.toggle('framed', !!framed);
     s.show(true);
@@ -2621,8 +2930,12 @@ const Video = (() => {
   }
   function stop(slotName, { fade = true } = {}) {
     const s = slots[slotName]; if (!s) return;
-    s.stop(); s.show(false); s.el.classList.remove('fallback');
-    if (slotName === 'main') showSub(null);
+    s.stop(); s.show(false); s.el.classList.remove('fallback', 'big');
+    if (slotName === 'main') {
+      showSub(null); trailerOn = null; $('#stage').classList.remove('film');
+      /* a projected slot keeps its transform until it has faded, then goes back to an ordinary box */
+      if (s.el.classList.contains('zoomer')) { const el = s.el; clearTimeout(s.unzoom); s.unzoom = setTimeout(() => { if (!el.classList.contains('on')) { el.classList.remove('zoomer'); el.style.transform = ''; } }, 760); }
+    }
     emit();
   }
 
@@ -2643,10 +2956,7 @@ const Video = (() => {
     const audible = true;
     const go = () => {
       if (token !== beatToken) return;
-      if (v.key === 'trailer') {
-        Music.duck(true);
-        playRange('main', 'trailer', { start: +cfg.start || 0, end: cfg.end != null && cfg.end !== '' ? +cfg.end : null, onEnd: () => { if (token !== beatToken) return; stop('main'); Music.duck(false); } });
-      } else if (v.key === 'sc') {
+      if (v.key === 'sc') {
         const c = (cfg.cues || [])[v.cue - 1] || {};
         const rect = Scenes.rect && Scenes.rect('scFrame');
         if (c.start == null) {
@@ -2664,11 +2974,75 @@ const Video = (() => {
         playRange('tv', 'motown', { start: +cfg.start || 0, end: cfg.end != null && cfg.end !== '' ? +cfg.end : null, rect, onEnd: () => { if (token !== beatToken) return; stop('tv'); Music.duck(false); } });
       }
     };
+    if (v.key === 'trailer') { playTrailer(token, { skipCountdown }); return; }
     /* no film leader when the video cannot play here (phone, or an embed-blocking preview): go straight to its card */
     const playable = !!so.file || (YTAPI.state !== 'failed' && !LITE);
     if (v.countdown && !skipCountdown && playable) countdown(2.4).then(go);
     else setTimeout(go, Music.status().level > 0 ? 900 : 0);
   }
+
+  /* ── the trailer: projected on the cinema screen, then the camera goes into the screen, and back out ── */
+  let trailerOn = null;
+  function playTrailer(token, { skipCountdown = false } = {}) {
+    const so = src('trailer'), cfg = so.cfg;
+    const scr = (Scenes.rect && Scenes.rect('cineScreen')) || { x: 0, y: 0, w: W, h: H };
+    const s = slot('main');
+    clearTimeout(s.unzoom);
+    s.el.classList.remove('framed', 'big'); s.el.classList.add('zoomer');
+    s.el.style.transition = 'none'; s.place({ x: 0, y: 0, w: W, h: H }); s.fit(scr); void s.el.offsetWidth; s.el.style.transition = '';
+    const start = +cfg.start || 0, end = cfg.end != null && cfg.end !== '' ? +cfg.end : null;
+    const back = () => {
+      if (token !== beatToken) return;
+      trailerOn = null; showSub(null);
+      s.pause();                     /* the last frame goes back onto the screen, frozen */
+      $('#stage').classList.remove('film');
+      s.el.classList.remove('big'); s.fit(scr);
+      Music.duck(false);
+      later(1300, () => { SFX.runout(1.3); s.show(false); later(800, () => stop('main')); });
+    };
+    const later = (ms, f) => setTimeout(() => { if (token === beatToken) f(); }, ms);
+    const playable = !!so.file || (!!so.id && YTAPI.state !== 'failed' && !LITE);
+    s.setVolume(100);
+    if (!playable) {           /* phone or preview: the card with its link sits on the screen */
+      s.show(true);
+      s.load({ key: 'trailer', id: so.id, file: so.file, start, autoplay: false }).then(ok => { if (ok && !so.file) s.fallback(); emit(); });
+      return;
+    }
+    /* cue it while the screen turns to face us and the leader runs on it */
+    const cued = s.load({ key: 'trailer', id: so.id, file: so.file, start, end, autoplay: false, onEnd: back });
+    const lead = skipCountdown ? Promise.resolve() : new Promise(res => later(1100, () => countdown(2.4, scr).then(res)));
+    Promise.all([cued, lead]).then(([ok]) => {
+      if (token !== beatToken) return;
+      s.show(true);
+      if (!ok) { emit(); return; }
+      Music.duck(true);
+      s.resume().then(playing => {
+        if (token !== beatToken) return;
+        if (!playing) { s.fallback(); emit(); return; }
+        trailerOn = { token, cur: -1 };
+        later(700, () => { if (s.isPlaying()) { s.el.classList.add('big'); s.fit(null); $('#stage').classList.add('film'); } });
+        later(1500, () => {
+          /* without an out point, stop just before the end: YouTube's end screen of suggestions never shows */
+          if (end == null && s.duration() > 2 && s.endAt == null) { s.endAt = s.duration() - .35; s.onEnd = back; }
+          const d = Math.round(s.duration()); if (d > 5 && Math.abs((cfg.dur || 0) - d) >= 1) Settings.set('videos.trailer.dur', d); });
+        emit();
+      });
+    });
+  }
+  /* trailer subtitles (optional, from the media settings): one Korean/Chinese pair at a time, by the clock */
+  Loop.add(() => {
+    if (!trailerOn) return;
+    const s = slots.main; if (!s || !s.playing) return;
+    const subs = (Settings.get().videos.trailer || {}).subs || []; if (!subs.length) return;
+    const t = s.time();
+    let i = -1; for (let k = 0; k < subs.length; k++) { if (subs[k].t != null && subs[k].t <= t) i = k; }
+    const c = subs[i];
+    if (c && c.end != null && t > c.end) i = -1;
+    if (i === trailerOn.cur) return;
+    trailerOn.cur = i;
+    subsEl.classList.toggle('top', (Settings.get().videos.trailer || {}).subPos === 'top');
+    showSub(i >= 0 ? L(subs[i].ko || subs[i].zh || '', subs[i].zh || subs[i].ko || '') : null);
+  });
 
   /* operator controls */
   function activeSlot() {
@@ -4303,6 +4677,8 @@ Scenes.define('trailer', {
   },
   beat(i, ctx) {
     this.cine.style.transform = i >= 1 ? 'perspective(1700px) rotateY(0deg)' : '';
+    /* where the trailer is projected: the screen once it faces us (layout box, before its turn) */
+    Scenes.setRect('cineScreen', stageBox(this.cine));
     if (i <= 1) {
       ctx.light({ lights: [
         { id: 'scr', type: 'rect', x: 1300, y: 420, w: 1220, h: 620, r: 10, soft: 90, i: i === 0 ? .92 : .5 },
@@ -5758,7 +6134,7 @@ const Director = (() => {
     if (ms > 0 && mode !== 'cut') el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: ms, easing: 'linear' });
   }
 
-  function applyBeat(b, { dir = 1, instant = false, first = false, enterDur, sceneChange = false } = {}) {
+  function applyBeat(b, { dir = 1, instant = false, first = false, enterDur, enter = null } = {}) {
     const sc = SCENES[b.scene];
     stage.classList.toggle('rev', dir < 0);
     if (instant) stage.classList.add('instant');
@@ -5767,8 +6143,10 @@ const Director = (() => {
     HUD.setYear(b.year ?? sc.year, { instant, show: sc.hud });
     Scenes.run(sc, b.local, { dir, instant, first, enterDur });
     if (VIEW === 'stage') {
-      Music.apply(sc.track, b.mus || 'speech', { dir, instant });
+      Music.apply(sc.track, b.mus || 'speech', { dir, instant, enter });
       Video.enterBeat(b, { dir, instant });
+      /* the next era's song is cued while this one plays, so the change of era starts on time */
+      if (first || instant) { const nx = SCENES.slice(b.scene + 1).find(x => x.track && x.track !== sc.track); Music.prime(nx && nx.track); }
     }
     if (instant) { void stage.offsetWidth; requestAnimationFrame(() => requestAnimationFrame(() => stage.classList.remove('instant'))); }
   }
@@ -5829,12 +6207,12 @@ const Director = (() => {
     const kind = sc.enter || 'dissolve';
     if (kind === 'blackout') {                                     /* between acts: 0.6 down · 0.4 hold · 0.8 up */
       fadeBlack(1, 600);
-      if (VIEW === 'stage') Music.apply(null, 'off', { dir: 1 });
+      if (VIEW === 'stage') { Music.apply(null, 'off', { dir: 1, enter: 'blackout' }); Music.prime(sc.track); SFX.transition('blackout', sc); }
       later(1000, () => {
         if (my !== token) return;
         Era.apply(sc.era, { instant: true });
         showScene(sc, 'cut', 0);
-        applyBeat(b, { dir: 1, first: true, enterDur: .8 });
+        applyBeat(b, { dir: 1, first: true, enterDur: .8, enter: 'blackout' });
         fadeBlack(0, 800);
         publish();
       });
@@ -5843,7 +6221,8 @@ const Director = (() => {
     const ms = kind === 'houselights' ? 1600 : 1800;               /* era dissolve */
     Era.apply(sc.era, { dur: ms / 1000 });
     showScene(sc, 'cross', ms);
-    applyBeat(b, { dir: 1, first: true, enterDur: ms / 1000 });
+    if (VIEW === 'stage') SFX.transition(kind, sc);
+    applyBeat(b, { dir: 1, first: true, enterDur: ms / 1000, enter: kind });
     publish();
   }
   function jumpFade() { fadeBlack(1, 0); requestAnimationFrame(() => fadeBlack(0, 400)); }
@@ -6011,8 +6390,9 @@ const Panel = (() => {
   }
 
   /* ── media ── */
-  function startLab(key, from) {
+  function startLab(key, from, lang) {
     const so = Video.src(key); const box = $('.lab-box', root); if (!box) return;
+    if (lang === 'zh') { const z = (so.cfg.srcZh || '').trim(); if (!z) { toastL('还没有填中文字幕版链接'); return; } so.id = ytId(z); so.file = isFileSrc(z) ? z : null; }
     $('.empty', box) && $('.empty', box).remove();
     if (!lab) { lab = makeSlot('lab', box); }
     lab.place({ x: 0, y: 0, w: box.clientWidth, h: box.clientHeight }); lab.show(true); labKey = key;
@@ -6030,6 +6410,15 @@ const Panel = (() => {
       const extras = [];
       if ('start' in cfg) { const a = h('input', { type: 'number', step: '0.1', min: '0', value: cfg.start ?? 0 }); a.addEventListener('change', () => Settings.set(`videos.${k}.start`, +a.value || 0)); extras.push(h('label.muted', { text: k === 'bj' ? '从' : '入点' }), a); }
       if ('end' in cfg) { const b = h('input', { type: 'number', step: '0.1', min: '0', value: cfg.end ?? '' }); b.addEventListener('change', () => Settings.set(`videos.${k}.end`, b.value === '' ? null : +b.value)); extras.push(h('label.muted', { text: '出点' }), b); }
+      if (k === 'trailer') {
+        const zh = h('input', { type: 'text', value: cfg.srcZh || '', placeholder: '中文画面时用的版本（可空）', style: { width: '100%', marginTop: '6px' } });
+        zh.addEventListener('change', () => Settings.set('videos.trailer.srcZh', zh.value.trim()));
+        inp.placeholder = '韩文 / 双语画面时用的版本';
+        return h('tr', {}, h('td', {}, h('b', { text: VIDEOS[k].name.zh }), h('div.muted', { text: '第 1 场 ② · 银幕 → 整屏 → 银幕' }), h('div.muted', { text: `时长 ${fmt(trailerSeconds(cfg))}${cfg.end != null ? '（按出点）' : cfg.dur ? '（实测）' : '（估计）'}` })),
+          h('td', { style: { minWidth: '280px' } }, h('div.muted', { text: '韩文字幕版' }), inp, h('div.muted', { text: '中文字幕版', style: { marginTop: '6px' } }), zh),
+          h('td', {}, h('div.row', {}, ...extras)),
+          h('td', {}, h('div.row', {}, h('button.btn.sm', { type: 'button', text: '预览', on: { click: () => startLab(k) } }), h('button.btn.sm', { type: 'button', text: '预览中文版', on: { click: () => startLab(k, null, 'zh') } }))));
+      }
       return h('tr', {}, h('td', {}, h('b', { text: VIDEOS[k].name.zh }), h('div.muted', { text: { trailer: '第 1 场 ② · 整屏播放', sc: '第 6 场 ④⑤ · 提示点', bj: '第 5 场 ③ · 显像管电视（静音）', motown: '第 5 场 ⑤ · 可选' }[k] })),
         h('td', { style: { minWidth: '280px' } }, inp), h('td', {}, h('div.row', {}, ...extras)), h('td', {}, h('button.btn.sm', { type: 'button', text: '预览', on: { click: () => startLab(k) } })));
     };
@@ -6070,8 +6459,33 @@ const Panel = (() => {
         h('div.tbl-wrap', {}, h('table', {}, h('tbody', {}, ...Object.keys(VIDEOS).map(vidRow))))),
       h('div.sec', {}, h('h3', { text: '预览与提示点' }), h('div.row', { style: { alignItems: 'flex-start', gap: '20px' } }, h('div.lab-box', {}, h('div.empty', { text: '点击上方「预览」在这里播放；播放 Smooth Criminal 时按 C 依次记录 ①起点 → ①终点 → ②起点 → ②终点' })), h('div', { style: { flex: '1', minWidth: '260px' } }, labCtl, h('p.note', { text: '提示点到点自动停；正式演讲时数字键 1–4 让视频跳到对应提示点。第四章 ⑥ 的画中画会循环播放提示点② 这一段（静音）。' }))),
         h('div.tbl-wrap', { style: { marginTop: '12px' } }, h('table', {}, h('thead', {}, h('tr', {}, ...['', '起点（秒）', '终点（秒）', '字幕', ''].map(t => h('th', { text: t })))), h('tbody', {}, ...cueRows)))),
+      renderSubs(),
       h('div.sec', {}, h('h3', { text: '年代音乐' }), h('p.note', { text: '推荐本地音频（没有广告、不依赖网络）：把文件放进 media/music/ 并保持下列文件名，或改成你自己的路径。起点填「最有辨识度的那几秒」。注意：公开仓库的 GitHub Pages 会把音频公开，必要时只在本机放音频。' }),
         h('div.tbl-wrap', {}, h('table', {}, h('thead', {}, h('tr', {}, ...['曲目', '音源', '起点（秒）', ''].map(t => h('th', { text: t })))), h('tbody', {}, ...trackRows)))));
+  }
+
+  /* trailer subtitles: one line per subtitle — time | 韩文 | 中文 (time optional; 打点 fills it from the preview) */
+  function renderSubs() {
+    const cfg = Settings.get().videos.trailer;
+    const toText = (list) => (list || []).map(c => [c.t != null ? fmt(c.t, true) : '', c.ko || '', c.zh || ''].join(' | ')).join('\n');
+    const parseT = (x) => { x = String(x || '').trim(); if (!x) return null; const m = x.split(':').map(Number); if (m.some(isNaN)) return null; return m.length > 1 ? m[0] * 60 + m[1] : m[0]; };
+    const fromText = (txt) => txt.split('\n').map(l => l.trim()).filter(Boolean).map(l => { const p = l.split('|').map(x => x.trim()); if (p.length === 1) return { t: null, ko: p[0], zh: '' }; if (p.length === 2) return { t: null, ko: p[0], zh: p[1] }; return { t: parseT(p[0]), ko: p[1], zh: p.slice(2).join(' | ') }; });
+    const ta = h('textarea', { rows: '7', style: { width: '100%', font: '14px/1.5 var(--f-num), monospace' }, placeholder: '0:12.5 | 한국어 자막 | 中文字幕\n0:16.0 | … | …' });
+    ta.value = toText(cfg.subs);
+    const save = () => Settings.set('videos.trailer.subs', fromText(ta.value));
+    ta.addEventListener('change', save);
+    const pos = h('select', {}, h('option', { value: 'bottom', text: '画面底部', selected: cfg.subPos !== 'top' }), h('option', { value: 'top', text: '画面顶部（视频自带字幕时用）', selected: cfg.subPos === 'top' }));
+    pos.addEventListener('change', () => Settings.set('videos.trailer.subPos', pos.value));
+    const stamp = () => {
+      if (!lab || labKey !== 'trailer') { toastL('先在上方预览预告片'); return; }
+      const list = fromText(ta.value), i = list.findIndex(c => c.t == null);
+      if (i < 0) { toastL('每一行都已经有时间了'); return; }
+      list[i].t = Math.round(lab.time() * 10) / 10; ta.value = toText(list); save();
+      toastL(`第 ${i + 1} 行 = ${fmt(list[i].t, true)}`);
+    };
+    return h('div.sec', {}, h('h3', { text: '预告片字幕（中韩对照，可选）' }),
+      h('p.note', { text: '默认的两个官方版本已经各自带有字幕：韩文画面播韩文字幕版，中文画面播中文字幕版。想在「双语」画面里同时看到中韩两行时，在这里每行写一句：时间 | 韩文 | 中文。时间可以先空着，预览预告片时每句开口按一次「打点」。' }),
+      ta, h('div.row', { style: { marginTop: '8px' } }, h('button.btn.sm', { type: 'button', text: '打点（下一句从现在开始）', on: { click: stamp } }), h('label.muted', { text: '位置' }), pos));
   }
 
   /* ── sound ── */
@@ -6087,8 +6501,8 @@ const Panel = (() => {
     const sfx = h('input', { type: 'checkbox', checked: Settings.get().sfx, id: 'opt-sfx' }); sfx.addEventListener('change', () => Settings.set('sfx', sfx.checked));
     return h('div', {},
       h('div.sec', {}, h('h3', { text: '三档音量' }), h('p.note', { text: '章节卡出现时用「章节卡」音量，2 秒后自动降到「讲话」；视频播放时让到「视频」档；视频结束 1.5 秒后回来。' }),
-        h('div.grid2', {}, slider('master', '总音量', '全部声音'), slider('card', '章节卡', '默认 45%'), slider('speech', '讲话', '默认 18%'), slider('video', '视频播放时', '默认 0%'), slider('low', '第六章「阴影」', '几乎听不见'), slider('max', '终幕推到最高', 'Man in the Mirror'))),
-      h('div.sec', {}, h('h3', { text: '效果音' }), h('div.row', {}, sfx, h('label', { for: 'opt-sfx', text: '倒计时放映机声、电视换台雪花声（合成音，不需要文件）' }))));
+        h('div.grid2', {}, slider('master', '总音量', '全部声音'), slider('sfx', '效果音', '默认 70%'), slider('card', '章节卡', '默认 45%'), slider('speech', '讲话', '默认 18%'), slider('video', '视频播放时', '默认 0%'), slider('low', '第六章「阴影」', '几乎听不见'), slider('max', '终幕推到最高', 'Man in the Mirror'))),
+      h('div.sec', {}, h('h3', { text: '效果音' }), h('div.row', {}, sfx, h('label', { for: 'opt-sfx', text: '年代溶解的气流声、幕间熄灯与追光点亮、场灯渐亮、章节卡低音、放映机与胶片走完、电视雪花声（全部是合成音，不需要文件；「减少动态」时自动关闭）' })), h('p.note', { text: '年代音乐：先找 media/music/ 里的本地文件，没有就用 YouTube 上的官方音源；下一年代的歌会提前载好，转场时旧歌一直响到新歌真正出声，再随画面溶解交叉过渡。' })));
   }
 
   /* ── talk ── */
@@ -6560,7 +6974,7 @@ const App = (() => {
 
 /* ── 99-boot ── */
 /* ═══ go ═══ */
-window.BTS = { BEATS, SCENES, Director, Settings, Session, Runs, Light, Video, Music, Scenes, Era, FX, HUD, Overview, Panel, Figure, h, Torch, Pointer, Loop };
+window.BTS = { BEATS, SCENES, Director, Settings, Session, Runs, Light, Video, Music, SFX, Scenes, Era, FX, HUD, Overview, Panel, Figure, h, Torch, Pointer, Loop };
 App.boot();
 })();
 </script>
