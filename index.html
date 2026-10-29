@@ -105,6 +105,15 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .rv.slow { transition-duration: 1.6s; }
 .rv.fast { transition-duration: .5s; }
 .rv.on { opacity: 1; transform: none; filter: none; }
+/* ── 3D: a chapter card swings down like a hanging sign; record sleeves turn to face us as they land ── */
+.rv.card3d { transform: perspective(1500px) rotateX(-74deg) translateY(-30px); transform-origin: 50% 0; transition-duration: 1.25s; transition-timing-function: cubic-bezier(.2, .9, .25, 1.12); }
+.rv.card3d.on { transform: none; }
+.rv.card3d .cc-num { transition: transform 1.6s cubic-bezier(.2, .8, .2, 1) .35s; transform: perspective(800px) rotateY(-180deg); }
+.rv.card3d.on .cc-num { transform: none; }
+.rv.flip3d { transform: perspective(1100px) rotateY(82deg) translateZ(-80px) translateY(-30px); transition-duration: 1.1s; transition-timing-function: cubic-bezier(.2, .85, .3, 1.08); }
+.rv.flip3d.on { transform: none; }
+#stage.q-low .rv.card3d, #stage.q-low .rv.flip3d, #stage.reduced .rv.card3d, #stage.reduced .rv.flip3d { transform: none; }
+#stage.q-low .rv.card3d .cc-num, #stage.reduced .rv.card3d .cc-num { transform: none; }
 .rv.gone { opacity: 0; transform: none; filter: blur(8px); transition-delay: 0s; transition-duration: .6s; }
 .rv.dimmed.on { opacity: .28; filter: blur(1.5px); }
 #stage.rev .rv { transition-duration: .32s !important; transition-delay: 0s !important; }
@@ -255,27 +264,48 @@ body.fs #hint .hint-demo, body.started #hint .hint-demo { pointer-events: none; 
 #subs .sub .sz { margin-top: 6px; font: 400 29px/1.35 var(--f-zh); color: rgba(255, 255, 255, .86); }
 
 /* ── 07b-mv ── */
-/* ── MV switches: a small tab on each work the stage shows, in that work's own colours ── */
-.mvs { --mv: currentColor; position: relative; display: inline-flex; align-items: center; gap: 9px; height: 34px; padding: 0 13px 0 10px; margin: 0; border: 1.5px solid color-mix(in srgb, var(--mv) 55%, transparent);
-  border-radius: 17px; background: color-mix(in srgb, var(--mv) 9%, transparent); color: var(--mv); font: 600 15px/1 var(--f-num); letter-spacing: .22em; text-transform: uppercase;
-  cursor: pointer; pointer-events: auto; vertical-align: middle; white-space: nowrap; opacity: .82; transition: opacity .25s ease, background .25s ease, border-color .25s ease, transform .25s var(--e-stage); }
-.mvs::before { content: ''; width: 0; height: 0; border-left: 10px solid currentColor; border-top: 6.5px solid transparent; border-bottom: 6.5px solid transparent; margin-left: 2px; }
+/* ── MV switches: a small record on each work the stage shows, in that work's colours.
+   It rolls in with its piece, pings once so the room notices, spins when you point at it, and keeps spinning while its video plays. ── */
+.mvs { --mv: currentColor; position: relative; display: inline-flex; align-items: center; gap: 11px; height: 44px; padding: 0 18px 0 5px; margin: 0;
+  border: 1.5px solid color-mix(in srgb, var(--mv) 65%, transparent); border-radius: 22px; background: rgba(10, 8, 6, .62); color: var(--mv);
+  font: 700 16px/1 var(--f-num); letter-spacing: .24em; text-transform: uppercase; cursor: pointer; pointer-events: auto; vertical-align: middle; white-space: nowrap;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .35), 0 0 0 0 color-mix(in srgb, var(--mv) 40%, transparent);
+  transition: background .25s ease, border-color .25s ease, transform .3s var(--e-stage), box-shadow .3s ease; }
+.mvs .mv-disc { position: relative; flex: none; width: 34px; height: 34px; border-radius: 50%;
+  background: radial-gradient(circle, var(--mv) 0 24%, #0d0d0d 25% 29%, transparent 30%), repeating-radial-gradient(circle, #0b0b0b 0 1.2px, #2a2a2a 1.7px 2.6px);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .06), 0 2px 6px rgba(0, 0, 0, .6); transition: transform .5s var(--e-stage); }
+.mvs .mv-disc::before { content: ''; position: absolute; left: 50%; top: 50%; translate: -35% -50%; border-left: 7px solid #0d0d0d; border-top: 4.5px solid transparent; border-bottom: 4.5px solid transparent; }
+.mvs .mv-disc::after { content: ''; position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(from 20deg, transparent 0 12%, rgba(255, 255, 255, .22) 16%, transparent 22% 58%, rgba(255, 255, 255, .14) 63%, transparent 69%); }
+.mvs .mv-l { display: block !important; line-height: 1 !important; margin: 0 !important; padding: 0 !important; height: auto !important; text-align: left; }
+.mvs .mv-l > span { display: block !important; margin: 0 !important; padding: 0 !important; position: static !important; }
+.mvs .mv-l > .mv-y { margin-top: 4px !important; }
+.mvs .mv-l .mv-t { font: inherit; color: inherit; background: none; padding: 0; }
+.mvs .mv-y { font: 600 11px/1 var(--f-num); letter-spacing: .18em; opacity: .62; }
+.mvs:hover, .mvs:focus-visible { background: rgba(10, 8, 6, .85); border-color: var(--mv); transform: translateY(-2px) scale(1.04); outline: none; box-shadow: 0 10px 26px rgba(0, 0, 0, .45), 0 0 18px color-mix(in srgb, var(--mv) 35%, transparent); }
+.mvs:hover .mv-disc, .mvs:focus-visible .mv-disc { animation: mvspin 1.1s linear infinite; }
+.mvs.on { border-color: var(--mv); background: color-mix(in srgb, var(--mv) 20%, rgba(10, 8, 6, .8)); }
+.mvs.on .mv-disc { animation: mvspin 1.8s linear infinite; }
+.mvs.on .mv-disc::before { translate: -50% -50%; width: 7px; height: 7px; border: 0; background: #0d0d0d; border-radius: 1px; }
+/* arriving: the record rolls in from the left, then one ring goes out */
+.rv .mvs .mv-disc, .rv.mvs-w .mvs .mv-disc { transform: translateX(-14px) rotate(-200deg); }
+.rv.on .mvs .mv-disc, .rv.on.mvs-w .mvs .mv-disc, .slv .mvs .mv-disc { transform: none; transition: transform 1.1s cubic-bezier(.2, .9, .3, 1.1) calc(var(--d, 0s) + .5s); }
+.mvs::after { content: ''; position: absolute; inset: -2px; border-radius: inherit; border: 2px solid var(--mv); opacity: 0; pointer-events: none; }
+.rv.on .mvs::after, .rv.on.mvs-w .mvs::after { animation: mvping 1.5s ease-out calc(var(--d, 0s) + 1.4s) 2; }
+@keyframes mvping { 0% { opacity: .8; transform: scale(1); } 100% { opacity: 0; transform: scale(1.35, 1.8); } }
+@keyframes mvspin { to { transform: rotate(360deg); } }
+.mvs.sm { height: 38px; gap: 9px; font-size: 14px; padding: 0 14px 0 4px; border-radius: 19px; }
+.mvs.sm .mv-disc { width: 30px; height: 30px; }
+.hit .mvs { margin-left: 10px; font-style: normal; }
+/* on a record sleeve: hangs under it like a label */
+.slv .mvs { position: absolute; left: 50%; bottom: -21px; translate: -50% 0; z-index: 5; background: rgba(12, 10, 8, .88); border-color: color-mix(in srgb, var(--mv) 75%, transparent); }
+.slv .mvs:hover { background: rgba(12, 10, 8, .96); }
+#stage.reduced .mvs .mv-disc { animation: none !important; transform: none !important; }
+#stage.reduced .mvs::after { animation: none !important; }
+#stage.q-low .mvs .mv-disc::after { display: none; }
 /* clickable even inside tilting / hover-reactive pieces, but never while its piece is still hidden */
 .scene .mvs, .scene .tilt .mvs, .scene .hov .mvs, #stage.touch .scene .mvs { pointer-events: auto !important; }
 .scene .mvs * { pointer-events: none; }
 .scene .rv:not(.on) .mvs, .scene .rv:not(.on).mvs-w .mvs { pointer-events: none !important; }
-.mvs:hover, .mvs:focus-visible { opacity: 1; background: color-mix(in srgb, var(--mv) 18%, transparent); border-color: var(--mv); transform: translateY(-1px); outline: none; }
-.mvs.on { opacity: 1; background: color-mix(in srgb, var(--mv) 22%, transparent); border-color: var(--mv); }
-.mvs.on::before { width: 10px; height: 10px; border: 0; background: currentColor; border-radius: 2px; }
-.mvs .mv-y { opacity: .6; letter-spacing: .12em; }
-.mvs.sm { height: 28px; font-size: 13px; padding: 0 10px 0 8px; gap: 7px; }
-.mvs.sm::before { border-left-width: 8px; border-top-width: 5px; border-bottom-width: 5px; }
-.hit .mvs { margin-left: 6px; font-style: normal; }
-/* on a record sleeve: sits in the corner like a sticker */
-.slv .mvs { position: absolute; left: 50%; bottom: -17px; translate: -50% 0; z-index: 5; background: rgba(12, 10, 8, .82); border-color: color-mix(in srgb, var(--mv) 70%, transparent); opacity: 1; }
-.slv .mvs:hover { background: rgba(12, 10, 8, .95); }
-#stage.touch .mvs { opacity: .95; }
-#stage.q-low .mvs { background: rgba(0, 0, 0, .35); }
 
 /* the question in the corner when this page has something to play */
 #mvask { position: absolute; right: 96px; top: 170px; width: 380px; padding: 13px 15px 12px; border-radius: 10px; pointer-events: auto;
@@ -302,6 +332,22 @@ body.fs #hint .hint-demo, body.started #hint .hint-demo { pointer-events: none; 
 #mvask .mq-mini .zh { font-family: var(--f-zh); color: rgba(239, 232, 218, .7); margin-left: 6px; }
 #mvask.mini .mq-mini { display: inline; }
 #stage.mv-open #mvask, #stage.film #mvask { opacity: 0 !important; visibility: hidden !important; }
+/* the progress bar of whatever video is playing: play / pause, drag to any point, ten seconds back or on */
+#vbar { position: absolute; left: 230px; top: 938px; width: 1460px; height: 40px; display: flex; align-items: center; gap: 14px; padding: 0 14px; border-radius: 8px; z-index: 3;
+  background: rgba(10, 8, 6, .72); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08); color: #efe8da; pointer-events: auto; opacity: 0; visibility: hidden; transition: opacity .35s ease, visibility 0s linear .35s; }
+#vbar.on { opacity: 1; visibility: visible; transition: opacity .35s ease, visibility 0s; }
+#vbar.idle { opacity: 0; }
+#vbar button { flex: none; height: 28px; min-width: 28px; padding: 0 8px; border: 0; border-radius: 6px; background: rgba(255, 255, 255, .08); color: inherit; font: 600 13px/1 var(--f-num); letter-spacing: .08em; cursor: pointer; }
+#vbar button:hover { background: rgba(255, 208, 138, .25); }
+#vbar .vb-pp { width: 34px; font-size: 14px; }
+#vbar .vb-t { flex: none; font: 600 14px/1 var(--f-num); letter-spacing: .08em; color: rgba(239, 232, 218, .75); min-width: 96px; text-align: center; }
+#vbar .vb-tr { position: relative; flex: 1; height: 28px; cursor: pointer; touch-action: none; }
+#vbar .vb-tr::before { content: ''; position: absolute; left: 0; right: 0; top: 12px; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, .16); }
+#vbar .vb-fill { position: absolute; left: 0; top: 12px; height: 4px; border-radius: 2px; background: linear-gradient(90deg, #ffb24a, #ffe2a8); width: 0; }
+#vbar .vb-knob { position: absolute; top: 7px; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; background: #fff2d6; box-shadow: 0 0 0 4px rgba(255, 208, 138, .25), 0 2px 6px rgba(0, 0, 0, .5); left: 0; transition: transform .15s ease; }
+#vbar .vb-tr:hover .vb-knob, #vbar.drag .vb-knob { transform: scale(1.25); }
+#vbar .vb-tip { position: absolute; bottom: 30px; translate: -50% 0; padding: 4px 7px; border-radius: 4px; background: rgba(0, 0, 0, .8); font: 600 12px/1 var(--f-num); opacity: 0; transition: opacity .15s ease; white-space: nowrap; }
+#vbar .vb-tr:hover .vb-tip, #vbar.drag .vb-tip { opacity: 1; }
 /* the MV window: grows out of its switch, plays above a dimmed stage, goes back into the switch */
 #mvdim { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 46%, rgba(0, 0, 0, .78), rgba(0, 0, 0, .94) 75%); opacity: 0; visibility: hidden; pointer-events: none;
   transition: opacity .7s ease, visibility 0s linear .7s; }
@@ -310,7 +356,7 @@ body.fs #hint .hint-demo, body.started #hint .hint-demo { pointer-events: none; 
 #vs-mv.on { transition: opacity .55s ease, visibility 0s, transform 1.05s cubic-bezier(.62, 0, .3, 1); }
 #vs-mv:not(.on) { transition: opacity .55s ease .35s, visibility 0s linear .9s, transform 1s cubic-bezier(.62, 0, .3, 1); }
 #stage.mv-open #hud > * { opacity: 0 !important; }
-#mvcap { position: absolute; left: 230px; top: 948px; width: 1460px; display: flex; align-items: baseline; gap: 22px; color: #efe8da; opacity: 0; visibility: hidden; transition: opacity .5s ease, visibility 0s linear .5s; pointer-events: none; }
+#mvcap { position: absolute; left: 230px; top: 990px; width: 1460px; display: flex; align-items: baseline; gap: 22px; color: #efe8da; opacity: 0; visibility: hidden; transition: opacity .5s ease, visibility 0s linear .5s; pointer-events: none; }
 #mvcap.on { opacity: 1; visibility: visible; transition: opacity .5s ease .5s, visibility 0s; }
 #mvcap b { font: italic 600 40px/1 var(--f-en); }
 #mvcap span { font: 500 20px/1 var(--f-num); letter-spacing: .3em; color: rgba(239, 232, 218, .6); }
@@ -374,16 +420,28 @@ body.fs #hint .hint-demo, body.started #hint .hint-demo { pointer-events: none; 
 .np-a b { font: 600 17px/1 var(--f-num); color: var(--ink); letter-spacing: .12em; margin-right: 4px; }
 .np-a .ko { font-family: var(--f-ko); letter-spacing: .04em; }
 .np-a .zh { font-family: var(--f-zh); letter-spacing: .04em; opacity: .85; }
+/* the ∞ auto switch */
+#stage > #autobtn { position: absolute; inset: auto; right: 22px; top: 52px; z-index: 10; width: 64px; height: 30px; padding: 0; border: 0; background: none; cursor: pointer; pointer-events: auto; opacity: .55; transition: opacity .4s ease; }
+#autobtn:hover, #autobtn:focus-visible, #autobtn.on { opacity: 1; outline: none; }
+#autobtn svg { width: 100%; height: 100%; overflow: visible; }
+#autobtn .inf-base { fill: none; stroke: rgba(239, 232, 218, .55); stroke-width: 3; }
+#autobtn.on .inf-base { stroke: rgba(255, 214, 150, .35); }
+#autobtn .inf-flow { fill: none; stroke: #ffe2a8; stroke-width: 3.6; stroke-linecap: round; stroke-dasharray: 0 100; opacity: 0; }
+#autobtn.on .inf-flow { opacity: 1; stroke-dasharray: 22 78; animation: infflow 2.6s linear infinite; filter: drop-shadow(0 0 4px rgba(255, 210, 140, .9)); }
+#autobtn.on .inf-flow.f2 { stroke-dasharray: 9 91; animation-delay: -1.3s; opacity: .7; }
+#stage:not(.q-high) #autobtn.on .inf-flow { filter: none; }
+@keyframes infflow { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -100; } }
+#stage.film #autobtn, #stage.mv-open #autobtn { opacity: 0; pointer-events: none; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes pulse { 50% { opacity: .3; } }
 
 /* ── 08b-captions ── */
 /* ── subtitles of what is being said: Korean above, Chinese below, one sentence at a time ── */
-#capt { position: absolute; left: 50%; bottom: 26px; translate: -50% 0; width: max-content; max-width: 1480px; padding: 12px 34px 14px; text-align: center; pointer-events: none;
+#capt { position: absolute; left: 50%; bottom: 10px; translate: -50% 0; width: max-content; max-width: 1700px; padding: 8px 30px 10px; text-align: center; pointer-events: none;
   background: radial-gradient(ellipse at 50% 60%, rgba(0, 0, 0, .62), rgba(0, 0, 0, .38) 62%, transparent 78%); opacity: 0; visibility: hidden; transition: opacity .35s ease, visibility 0s linear .35s; }
 #capt.on { opacity: 1; visibility: visible; transition: opacity .35s ease, visibility 0s; }
-#capt .ck { font: 500 34px/1.32 var(--f-ko); color: #fbf6ec; letter-spacing: -.005em; text-shadow: 0 2px 3px rgba(0, 0, 0, .9), 0 0 18px rgba(0, 0, 0, .7); text-wrap: balance; }
-#capt .cz { margin-top: 6px; font: 400 26px/1.36 var(--f-zh); color: rgba(251, 246, 236, .84); text-shadow: 0 2px 3px rgba(0, 0, 0, .9), 0 0 16px rgba(0, 0, 0, .7); text-wrap: balance; }
+#capt .ck { font: 500 31px/1.3 var(--f-ko); color: #fbf6ec; letter-spacing: -.005em; text-shadow: 0 2px 3px rgba(0, 0, 0, .9), 0 0 18px rgba(0, 0, 0, .7); text-wrap: balance; }
+#capt .cz { margin-top: 4px; font: 400 23px/1.34 var(--f-zh); color: rgba(251, 246, 236, .84); text-shadow: 0 2px 3px rgba(0, 0, 0, .9), 0 0 16px rgba(0, 0, 0, .7); text-wrap: balance; }
 #capt .ck, #capt .cz { transition: opacity .22s ease; }
 #capt.swap .ck, #capt.swap .cz { opacity: 0; }
 #stage.film #capt, #stage.mv-open #capt { opacity: 0 !important; }
@@ -560,6 +618,13 @@ body.fs #hint .hint-demo, body.started #hint .hint-demo { pointer-events: none; 
 [data-lang="bi"] .photo .ph-cap .zh { opacity: .75; }
 .photo .ph-cr { padding: 2px 4px 10px; font: 500 11px/1.3 var(--f-num); letter-spacing: .06em; color: rgba(42, 34, 26, .55); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .photo-w.nophoto { display: none; }
+.hero { position: relative; }
+.hero.nophoto { display: none; }
+.hero .hero-in { position: absolute; inset: 0; overflow: hidden; -webkit-mask-image: radial-gradient(ellipse 58% 66% at 50% 42%, #000 52%, transparent 100%); mask-image: radial-gradient(ellipse 58% 66% at 50% 42%, #000 52%, transparent 100%); }
+.hero img { width: 100%; height: 100%; object-fit: cover; object-position: var(--pos, 50% 25%); filter: grayscale(1) sepia(.28) contrast(1.18) brightness(.96); opacity: 0; transform: scale(1.08); transition: opacity 1.6s ease, transform 14s linear; }
+.hero.loaded img { opacity: 1; }
+.rv.on .hero.loaded img, .hero.loaded.live img { transform: scale(1); }
+.hero .hero-cr { position: absolute; right: 96px; top: 150px; writing-mode: vertical-rl; font: 500 12px/1.3 var(--f-num); letter-spacing: .08em; color: rgba(239, 232, 218, .42); white-space: nowrap; }
 
 /* ── 12-scenes-prologue ── */
 /* ── prologue: cold open · trailer · title ── */
@@ -644,6 +709,10 @@ body.fs #hint .hint-demo, body.started #hint .hint-demo { pointer-events: none; 
 .ttl-d .zh { font-family: var(--f-zh); }
 .ttl-d .sep { display: inline-block; width: 36px; height: 1px; background: var(--faint); vertical-align: middle; margin: 0 16px; }
 .tt-group { transition: transform 1.4s var(--e-stage), opacity 1s ease; transform-origin: 0 0; }
+/* the hero photo: centre of the title page; it steps back (smaller, dimmer) when the three acts come in */
+.tt-hero.dim > .hero { transform: scale(.82); opacity: .42; }
+.tt-hero > .hero { transition: transform 1.6s var(--e-stage), opacity 1.2s ease; transform-origin: 50% 40%; }
+.tt-word { position: relative; text-shadow: 0 8px 40px rgba(0, 0, 0, .55); }
 .tt-group.up { transform: translate(40px, -60px) scale(.6); }
 .tt-act { text-align: center; }
 .tt-act .t { font: 500 30px/1.25 var(--f-ko-h); white-space: nowrap; }
@@ -717,6 +786,14 @@ body.fs #hint .hint-demo, body.started #hint .hint-demo { pointer-events: none; 
 .pedestal { width: 180px; height: 300px; background: linear-gradient(180deg, #2b2418, #120e09); box-shadow: inset 0 1px 0 rgba(255, 240, 200, .2), 0 30px 60px rgba(0, 0, 0, .6); }
 
 /* ── 14-scenes-act1b ── */
+/* the moonwalk wipe into Billie Jean */
+#mwipe { position: absolute; inset: 0; z-index: 7; pointer-events: none; visibility: hidden; overflow: hidden; }
+#mwipe.on { visibility: visible; }
+#mwipe .mw-curtain { position: absolute; left: 0; top: 0; bottom: 0; width: 1920px; background: linear-gradient(90deg, #060405 0, #060405 calc(100% - 120px), rgba(6, 4, 5, 0)); }
+#mwipe .mw-spot { position: absolute; left: 0; top: 0; width: 720px; height: 1080px; background: radial-gradient(ellipse 260px 470px at 50% 62%, rgba(255, 236, 246, .2), transparent 70%); }
+#mwipe .mw-floor { position: absolute; left: 0; right: 0; top: 1000px; height: 2px; background: linear-gradient(90deg, transparent, rgba(255, 220, 236, .35), transparent); }
+#mwipe .mw-fig { position: absolute; left: 0; top: 0; width: 1px; height: 1px; }
+
 /* ── III · Thriller (jacket red, CRT) ── */
 [data-era="thriller"] { --ink: #f4eeee; --acc: #e0233a; --acc2: #ff5a5f; --dim: rgba(244, 238, 238, .56); --faint: rgba(244, 238, 238, .22); --line: rgba(244, 238, 238, .15); }
 [data-scene="thriller"] .cc-en { font: italic 500 108px/1 var(--f-en); color: var(--acc); letter-spacing: -.01em; text-shadow: 0 0 40px rgba(224, 35, 58, .4); }
@@ -927,6 +1004,13 @@ body.fs #hint .hint-demo, body.started #hint .hint-demo { pointer-events: none; 
   background: radial-gradient(circle, #fff 0 6%, rgba(240, 246, 255, .85) 10%, rgba(220, 232, 255, .25) 34%, transparent 62%); animation: flashPop .5s ease-out forwards; }
 @keyframes flashPop { 0% { opacity: 0; transform: scale(.4); } 12% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1.25); } }
 .songs.l { text-align: left; font-size: 84px; }
+/* the songs as outlines, with a faint glint running along the strokes (like light on wet glass) */
+.songs.l > div { color: transparent; -webkit-text-stroke: 1.4px rgba(214, 226, 240, .85); background: linear-gradient(100deg, transparent 0 40%, rgba(230, 240, 255, .55) 50%, transparent 60% 100%) 0 0 / 300% 100%;
+  -webkit-background-clip: text; background-clip: text; animation: glint 6s linear infinite; }
+.songs.l > div:nth-child(2) { animation-delay: -3s; }
+.songs.l small { -webkit-text-stroke: 0; color: var(--dim); }
+@keyframes glint { from { background-position: 100% 0; } to { background-position: -50% 0; } }
+#stage:not(.q-high) .songs.l > div { animation: none; background: none; }
 /* seoul · redesign */
 .se-and { font: 500 56px/1 var(--f-ko-h); color: var(--dim); white-space: nowrap; }
 .se-and .zh { font-family: var(--f-zh-h); }
@@ -1477,12 +1561,12 @@ const WORKS = {
 const VIDEOS = {
   trailer: { name: L('〈마이클〉 공식 예고편', '《迈克尔》官方预告片'), title: 'Michael (2026) — Official Trailer', year: 2026 },
   sc:      { name: L('〈Smooth Criminal〉 공식 영상', '《Smooth Criminal》官方视频'), title: 'Smooth Criminal', year: 1988 },
-  bj:      { name: L('〈Billie Jean〉 공식 영상', '《Billie Jean》官方视频'), title: 'Billie Jean', year: 1983 },
+  bj:      { name: L('모타운 25 · 〈Billie Jean〉 — 첫 문워크', '摩城 25 ·《Billie Jean》——第一次太空步'), title: 'Billie Jean — Motown 25', year: 1983 },
   motown:  { name: L('모타운 25 · 〈Billie Jean〉', '摩城 25 ·《Billie Jean》'), title: 'Motown 25 — Billie Jean', year: 1983 },
 };
 
 const DEFAULTS = {
-  mver: 3,          /* media defaults version: settings saved before the trailer had a default link are brought up to date */
+  mver: 4,          /* media defaults version: settings saved before the trailer had a default link are brought up to date */
   lang: 'ko',
   rate: 3.5,
   trim: false,
@@ -1504,8 +1588,9 @@ const DEFAULTS = {
       { start: null, end: null, label: L('', '') },
       { start: null, end: null, label: L('', '') },
     ] },
-    bj: { src: 'https://www.youtube.com/watch?v=Zi_XLOBDo_Y', start: 0 },
-    motown: { src: '', start: 0, end: 15 },
+    /* the CRT and the optional broadcast beat both show the night of the first moonwalk, not the music video */
+    bj: { src: 'https://www.youtube.com/watch?v=iQrjmTrVx4Q', start: 0 },
+    motown: { src: 'https://www.youtube.com/watch?v=iQrjmTrVx4Q', start: 0, end: 15 },
   },
 };
 
@@ -1696,6 +1781,9 @@ function migrate(saved) {
   if (!saved || typeof saved !== 'object' || (saved.mver || 1) >= DEFAULTS.mver) return saved;
   const o = clone(saved), t = o.videos && o.videos.trailer;
   if (t) { if (!t.src) delete t.src; if (t.end === 45 && !t.start) t.end = null; }
+  const v = o.videos || {};
+  if (v.bj && /Zi_XLOBDo_Y/.test(v.bj.src || '')) delete v.bj.src;      /* the old default (the music video) */
+  if (v.motown && !v.motown.src) delete v.motown.src;
   o.mver = DEFAULTS.mver;
   return o;
 }
@@ -2182,7 +2270,7 @@ const ERAS = {
                grade: { background: 'linear-gradient(180deg, rgba(60, 90, 200, .1), rgba(5, 10, 40, .3))', mixBlendMode: 'soft-light', opacity: 1 } },
   dangerous: { bg: 'radial-gradient(ellipse 80% 70% at 50% 35%, #2a1f0e 0%, #0d0a06 58%, #050403 100%)', grain: .09, light: { ambient: .74, warm: 1, haze: .3, dust: .5 }, fx: { gold: 1 },
                grade: { background: 'linear-gradient(180deg, rgba(255, 200, 100, .1), rgba(90, 10, 20, .22))', mixBlendMode: 'soft-light', opacity: 1 } },
-  shadow:    { bg: 'linear-gradient(180deg, #2b3139 0%, #1d2228 55%, #14181d 100%)', grain: .12, over: { cold: 1 }, desat: true, light: { ambient: .38, warm: 0, haze: 0, dust: 0 } },
+  shadow:    { bg: 'linear-gradient(180deg, #1a1e24 0%, #121519 55%, #0b0d10 100%)', grain: .12, over: { cold: 1 }, desat: true, light: { ambient: .38, warm: 0, haze: 0, dust: 0 } },
   seoul:     { bg: 'radial-gradient(ellipse 80% 70% at 62% 30%, #15295a 0%, #0a1634 52%, #040a1a 100%)', grain: .07, light: { ambient: .55, warm: .55, haze: .12, dust: .15 }, fx: { bokeh: 1 } },
   tii:       { bg: 'radial-gradient(ellipse 70% 70% at 72% 18%, #3d3d42 0%, #232326 52%, #141416 100%)', grain: .1, light: { ambient: .82, warm: .15, haze: .55, dust: 1 } },
   legacy:    { bg: 'radial-gradient(ellipse 85% 75% at 50% 62%, #7a4b1a 0%, #40280f 48%, #1c1007 100%)', grain: .07, over: { warm: 1 }, light: { ambient: .3, warm: 1.3, haze: .2, dust: .3 }, fx: { rise: 1 } },
@@ -2789,6 +2877,42 @@ const SFX = (() => {
       const gv = voice(gain * g, { send: .3 }); env(gv.gain, t0, gv.peak, .001, .002, .07); o.connect(gv); o.start(t0); o.stop(t0 + .12);
     });
   }
+  /* the voice as a drum kit (Off the Wall): a falsetto "hoo", a breath, the vocal hiccup.
+     A saw through two vowel formants reads as a voice; the falsetto sits on B, the key of the song under it. */
+  function vowel(t0, f0, f1, dur, F, gain, send = .45) {
+    const o = ctx.createOscillator(); o.type = 'sawtooth';
+    o.frequency.setValueAtTime(f0, t0); o.frequency.linearRampToValueAtTime(f1, t0 + dur * .7);
+    const vib = ctx.createOscillator(), vg = ctx.createGain(); vib.frequency.value = 5.6; vg.gain.value = f0 * .012; vib.connect(vg); vg.connect(o.frequency);
+    const g = voice(gain, { send });
+    F.forEach(([f, q, a]) => { const b = filt('bandpass', f, q), ga = ctx.createGain(); ga.gain.value = a; o.connect(b); b.connect(ga); ga.connect(g); });
+    g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(g.peak, t0 + Math.min(.09, dur * .2)); g.gain.setValueAtTime(g.peak, t0 + dur * .6); g.gain.exponentialRampToValueAtTime(.0001, t0 + dur);
+    o.start(t0); vib.start(t0); o.stop(t0 + dur + .05); vib.stop(t0 + dur + .05);
+  }
+  function falsetto(gain = .5) {
+    if (!ready('falsetto')) return;
+    const t0 = ctx.currentTime + .01;
+    vowel(t0, 880, 987.8, 1.05, [[330, 5, 1], [880, 7, 1.4], [2600, 6, .25]], gain, .6);
+    const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.setValueAtTime(880, t0); o.frequency.linearRampToValueAtTime(987.8, t0 + .7);
+    const g = voice(gain * .35, { send: .6 }); env(g.gain, t0, g.peak, .08, .55, .4); o.connect(g); o.start(t0); o.stop(t0 + 1.1);
+  }
+  function breath(gain = .55) {
+    if (!ready('breath')) return;
+    const t0 = ctx.currentTime + .01;
+    const n = noiseSrc(t0, 1.1), bp = filt('bandpass', 1700, .6), hp = filt('highpass', 500), g = voice(gain, { send: .35 });
+    bp.frequency.setValueAtTime(1300, t0); bp.frequency.linearRampToValueAtTime(2300, t0 + .45);
+    g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(g.peak, t0 + .42); g.gain.linearRampToValueAtTime(g.peak * .15, t0 + .5);
+    g.gain.linearRampToValueAtTime(g.peak * .5, t0 + .62); g.gain.exponentialRampToValueAtTime(.0001, t0 + 1.05);
+    n.connect(hp); hp.connect(bp); bp.connect(g);
+  }
+  function hiccup(gain = .6) {
+    if (!ready('hiccup')) return;
+    const t0 = ctx.currentTime + .01;
+    [0, .21].forEach((dt, k) => {
+      const t = t0 + dt;
+      const c = noiseSrc(t, .03), hp = filt('highpass', 2400), gc = voice(gain * .5, { send: .2 }); env(gc.gain, t, gc.peak, .001, .002, .02); c.connect(hp); hp.connect(gc);
+      vowel(t + .004, k ? 700 : 760, 330, .11, [[310, 6, 1], [2300, 8, 1.1], [3000, 6, .4]], gain, .25);
+    });
+  }
   /* a footstep on a wooden stage: heel, then the sole; wet = a rainy street, slide = the moonwalk's glide */
   function step({ gain = .3, pan = 0, wet = false, slide = false } = {}) {
     if (!ready(slide ? 'slide' : 'step')) return;
@@ -2831,7 +2955,7 @@ const SFX = (() => {
       return g;
     } catch (e) { return null; }
   }
-  return { fired, ensure, route, transition, clap, step, whoosh, lampOff, lampOn, house, boom, projector, runout, staticBurst, get state() { return ctx ? ctx.state : 'none'; } };
+  return { fired, ensure, route, transition, clap, step, falsetto, breath, hiccup, whoosh, lampOff, lampOn, house, boom, projector, runout, staticBurst, get state() { return ctx ? ctx.state : 'none'; } };
 })();
 
 /* ── 07-video ── */
@@ -3234,7 +3358,7 @@ const Video = (() => {
 
   /* operator controls */
   function activeSlot() {
-    for (const n of ['main', 'tv', 'pip', 'lab']) { const s = slots[n]; if (s && s.el.classList.contains('on')) return s; }
+    for (const n of ['mv', 'main', 'tv', 'pip', 'lab']) { const s = slots[n]; if (s && s.el.classList.contains('on')) return s; }
     return null;
   }
   function toggle() {
@@ -3291,7 +3415,7 @@ const Video = (() => {
 function mvSwitch(work, o = {}) {
   const w = WORKS[work]; if (!w) return null;
   const b = h('button.mvs', { type: 'button', 'data-work': work, 'aria-label': `${w.t} — MV`, title: `${w.t} (${w.y}) · MV`, cls: o.sm ? 'sm' : '' },
-    h('span', { text: o.label || 'MV' }), o.year === false ? null : h('span.mv-y', { text: String(w.y) }));
+    h('i.mv-disc'), h('span.mv-l', {}, h('span.mv-t', { text: o.label || 'MV' }), o.year === false ? null : h('span.mv-y', { text: String(w.y) })));
   if (o.color) b.style.setProperty('--mv', o.color);
   b.addEventListener('click', (e) => { e.stopPropagation(); e.preventDefault(); if (!MV.direct(work)) MV.toggle(work, b); });
   b.addEventListener('pointerdown', (e) => e.stopPropagation());
@@ -3423,9 +3547,64 @@ const MV = (() => {
   return { open, close, toggle, direct, visible, visibleAll, offer, hideAsk, get cur() { return cur; }, get isOpen() { return !!cur; } };
 })();
 
+/* ═══ VBAR — scrubbing for the video on screen (MV window, the trailer, the Smooth Criminal frame) ═══ */
+const VBar = (() => {
+  const layer = $('#video');
+  const bar = h('div#vbar', { role: 'group', 'aria-label': '视频进度' });
+  const pp = h('button.vb-pp', { type: 'button', text: '❚❚', 'aria-label': '播放 / 暂停' });
+  const back = h('button', { type: 'button', text: '−10', 'aria-label': '后退 10 秒' }), fwd = h('button', { type: 'button', text: '+10', 'aria-label': '前进 10 秒' });
+  const tr = h('div.vb-tr'), fill = h('div.vb-fill'), knob = h('div.vb-knob'), tip = h('div.vb-tip');
+  const tm = h('div.vb-t', { text: '0:00 / 0:00' });
+  tr.append(fill, knob, tip); bar.append(pp, back, tr, fwd, tm); layer.append(bar);
+  let slot = null, drag = null, lastMove = now();
+  const stop = (e) => e.stopPropagation();
+  ['pointerdown', 'pointerup', 'click'].forEach(ev => bar.addEventListener(ev, stop));
+  pp.addEventListener('click', () => { if (!slot) return; if (slot.isPlaying()) slot.pause(); else slot.play(); });
+  back.addEventListener('click', () => slot && slot.seek(slot.time() - 10));
+  fwd.addEventListener('click', () => slot && slot.seek(Math.min(slot.duration() - .5, slot.time() + 10)));
+  const ratio = (e) => { const r = tr.getBoundingClientRect(); return clamp((e.clientX - r.left) / r.width, 0, 1); };
+  tr.addEventListener('pointerdown', (e) => { if (!slot) return; drag = ratio(e); bar.classList.add('drag'); tr.setPointerCapture(e.pointerId); });
+  tr.addEventListener('pointermove', (e) => {
+    const d = slot ? slot.duration() : 0; const r = ratio(e);
+    tip.style.left = (r * 100) + '%'; tip.textContent = fmt(r * d);
+    if (drag != null) drag = r;
+  });
+  tr.addEventListener('pointerup', () => { if (drag != null && slot) { const d = slot.duration(); slot.seek(drag * d); if (slot.endAt != null && drag * d >= slot.endAt) slot.endAt = null; } drag = null; bar.classList.remove('drag'); });
+  $('#vp').addEventListener('pointermove', () => { lastMove = now(); });
+  /* where the bar goes for each kind of screen */
+  function place(s) {
+    const st = bar.style;
+    if (s.name === 'mv') { st.left = '230px'; st.top = '938px'; st.width = '1460px'; return; }
+    if (s.el.classList.contains('big')) { st.left = '160px'; st.top = '1016px'; st.width = '1600px'; return; }
+    const r = Scenes.rect && Scenes.rect('scFrame');
+    if (s.el.classList.contains('framed') && r) { st.left = r.x + 'px'; st.top = (r.y + r.h + 6) + 'px'; st.width = r.w + 'px'; return; }
+    st.left = '160px'; st.top = '1016px'; st.width = '1600px';
+  }
+  function pick() {
+    if (MV.isOpen) return Video.slot('mv');
+    const m = Video.status().slot && Video.slot('main');
+    if (m && m.el.classList.contains('on') && m.want && (m.want.key === 'trailer' || m.want.key === 'sc') && m.kind) return m;
+    return null;
+  }
+  Loop.add(() => {
+    const s = VIEW === 'stage' ? pick() : null;
+    if (!s || s.el.classList.contains('fallback') || !(s.duration() > 0)) { if (slot) { bar.classList.remove('on'); slot = null; } return; }
+    if (s !== slot) { slot = s; place(s); bar.classList.add('on'); }
+    else if (now() % 500 < 20) place(s);
+    const d = s.duration(), t = drag != null ? drag * d : s.time(), p = d ? t / d : 0;
+    fill.style.width = (p * 100).toFixed(2) + '%'; knob.style.left = (p * 100).toFixed(2) + '%';
+    tm.textContent = `${fmt(t)} / ${fmt(d)}`;
+    pp.textContent = s.isPlaying() ? '❚❚' : '▶';
+    /* over the full-screen trailer the bar steps away while nobody touches the mouse */
+    bar.classList.toggle('idle', s.el.classList.contains('big') && s.isPlaying() && drag == null && now() - lastMove > 2600 && !bar.matches(':hover'));
+  });
+  return { get slot() { return slot; } };
+})();
+
 /* ── 08-hud ── */
 /* ═══ HUD ═══ */
 const COVERS = {
+  wbss:       { bg: 'linear-gradient(160deg, #f4f0e7 0 58%, #e9c46a 58% 66%, #1b1712 66%)', fg: '#1b1712', mark: 'WBSS', c: '#e9c46a' },
   iwyb:       { bg: 'repeating-linear-gradient(180deg, #e7a92f 0 13px, #e2672b 13px 26px, #8c3b1a 26px 39px)', fg: '#fff3dc', mark: 'J5', c: '#e2672b' },
   dstyge:     { bg: 'radial-gradient(circle at 30% 30%, #f3deae, #b8955a 45%, #2b2114)', fg: '#1a140b', mark: 'OtW', c: '#d9be86' },
   billiejean: { bg: 'linear-gradient(135deg, #0b0b0b 0 55%, #c8102e 55% 63%, #0b0b0b 63%)', fg: '#f4efe6', mark: 'BJ', c: '#c8102e' },
@@ -3544,7 +3723,7 @@ const Captions = (() => {
   const el = h('div#capt', { 'aria-hidden': 'true' }, h('div.ck', { lang: 'ko' }), h('div.cz', { lang: 'zh-Hans' }));
   $('#subs').append(el);
   const ck = el.firstChild, cz = el.lastChild;
-  let timers = [], shown = -1;
+  let timers = [], shown = -1, cur = [], at = 0;
   const sentences = (s, re) => String(s || '').replace(/<[^>]+>/g, '').split(re).map(x => x.trim()).filter(Boolean);
   /* merge neighbours of the longer list until both have n pieces, keeping pieces of similar length */
   function squeeze(list, n, join = ' ') {
@@ -3575,20 +3754,30 @@ const Captions = (() => {
     const b = BEATS[beat];
     if (VIEW !== 'stage' || !Settings.get().subs || !b || b.silent) { hide(); return; }
     const P = pairs(b); if (!P.length) { hide(); return; }
-    shown = beat;
+    shown = beat; cur = P; at = 0;
+    /* by hand (the default): the first sentence now, the clicker moves on sentence by sentence */
+    if (!Auto.on) { timers.push(setTimeout(() => { if (shown === beat) put(P[0]); }, lead * 1000)); return; }
     const rate = Scenes.rate();
     let t = lead;
     P.forEach((p, i) => {
-      timers.push(setTimeout(() => { if (shown === beat) put(p); }, t * 1000));
+      timers.push(setTimeout(() => { if (shown === beat) { at = i; put(p); } }, t * 1000));
       t += Math.max(1.6, syllables(p.ko) / rate + .35);
     });
   }
+  /* the clicker: the next / previous sentence of this beat; false when there is none (the page turns instead) */
+  function step(d) {
+    if (Auto.on || shown < 0 || shown !== Director.beat || !Settings.get().subs || !cur.length) return false;
+    const n = at + d;
+    if (n < 0 || n >= cur.length) return false;
+    clear(); at = n; put(cur[n]); return true;
+  }
+  const state = () => ({ beat: shown, at, of: cur.length });
   function init() {
     Director.onTurn((beat, mode) => { if (beat < 0) hide(); else show(beat, { lead: mode === 'next' ? .5 : 0 }); });
     Director.onTurn((beat) => MV.offer(beat));
     Settings.on((s) => { if (!s.subs) hide(); else if (shown < 0 && Director.beat >= 0) show(Director.beat); });
   }
-  return { init, show, hide, pairs };
+  return { init, show, hide, pairs, step, state };
 })();
 
 /* ── 09-figure ── */
@@ -4680,6 +4869,17 @@ const PHOTOS = {
   dw_1992: { file: '1992-dangerous-tour-bucharest.jpg', commons: 'Michael_Jackson_Live_in_Bucharest_1992_Toni_Salabasev.jpg', pos: '50% 30%',
     cap: L('1992 · 부쿠레슈티, Dangerous 월드 투어', '1992 · 布加勒斯特，Dangerous 世界巡演'), credit: 'Toni Salabasev · CC BY-SA 4.0 · Wikimedia Commons' },
 };
+/* a photograph as the centre of a whole page (the title): no paper print, the picture itself, toned and feathered into the dark */
+function heroPhoto(slot, o = {}) {
+  const p = PHOTOS[slot];
+  const img = h('img', { alt: '', decoding: 'async', draggable: 'false', referrerpolicy: 'no-referrer' });
+  const el = h('div.hero', { style: { width: (o.w || 760) + 'px', height: (o.h || 1000) + 'px', '--pos': o.pos || p.pos } }, h('div.hero-in', {}, img), h('div.hero-cr', { text: p.credit }));
+  const src = photoSources(p); let n = 0;
+  img.addEventListener('error', () => { n++; if (n < src.length) img.src = src[n]; else el.classList.add('nophoto'); });
+  img.addEventListener('load', () => el.classList.add('loaded'));
+  img.src = src[0];
+  return el;
+}
 const photoSources = (p) => ['media/photos/' + p.file, 'https://commons.wikimedia.org/wiki/Special:FilePath/' + encodeURIComponent(p.commons) + '?width=900'];
 
 /* a print: photograph, caption, credit. o: x, y, w, h (image area), rot, show, d, cls */
@@ -4804,7 +5004,7 @@ function opener(el, sc, o) {
     g.road = A('div', 960, 800, { cls: 'rv up slow', d: .5 }, roadmap());
     el.append(g.act, g.road);
   }
-  g.card = A('div', o.cardX ?? 960, o.cardY ?? 500, { cls: 'rv zoom slow' }, chapterCard(o.card));
+  g.card = A('div', o.cardX ?? 960, o.cardY ?? 500, { cls: 'rv zoom slow card3d' }, chapterCard(o.card));
   el.append(g.card);
   g.cc = $('.cc', g.card);
   g.dock = () => {
@@ -5125,6 +5325,11 @@ Scenes.define('title', {
   build(el) {
     const back = layer(-.15), mid = layer(.15), fg = layer(.4);
     el.append(back, mid, fg);
+    /* the centre of the page: Michael on the Bad tour, everything else arranged around him */
+    this.hero = heroPhoto('bad_1988', { w: 820, h: 1080, pos: '50% 18%' });
+    this.heroW = A('div.tt-hero', 1060, 540, { show: '0-1', cls: 'zoom slow' }, this.hero);
+    back.append(this.heroW);
+    tiltify(this.hero, 4);
     this.credit = h('div.ttl-d');
     this.g = A('div.tt-group', 0, 0, { anchor: '' });
     this.g.append(A('div.tt-beyond', 136, 316, { anchor: 'ay' }, 'BEYOND THE'),
@@ -5134,15 +5339,15 @@ Scenes.define('title', {
     this.actLabs = [];
     /* 1 · three acts on an arc, each with the man of its years */
     const acts = [[1, 330, 'billie', 'hat'], [2, 960, 'military', 'statue'], [3, 1590, 'person', 'person']];
-    const arcSvg = svgEl(`<svg class="arc" viewBox="0 0 1920 1080"><path pathLength="1" d="M110 850 Q 960 806 1810 850"/></svg>`);
+    const arcSvg = svgEl(`<svg class="arc" viewBox="0 0 1920 1080"><path pathLength="1" d="M110 812 Q 960 768 1810 812"/></svg>`);
     this.arc = A('div', 0, 0, { anchor: '', show: '1', cls: 'slow' }, arcSvg);
     mid.append(this.arc);
     this.actFigs = acts.map(([n, x, cos, pose], k) => {
       const a = ACTS[n];
       const f = new Figure.Fig({ costume: cos, pose, glowPx: 6, rimPx: 1.6, shadow: 'pool' });
-      f.place(x, 838, 300);
+      f.place(x, 800, 290);
       const box = A('div.figbox', 0, 0, { anchor: '', show: '1', cls: 'up slow', d: .5 + k * .45 }); box.append(f.el);
-      const lab = A('div.tt-act', x, 880, { anchor: 'ax', show: '1', d: .8 + k * .45, cls: 'up' }, h('span.n', { text: ['I', 'II', 'III'][k] }), T(L(`${a.label.ko} · ${a.name.ko}`, `${a.label.zh} · ${a.name.zh}`)), h('small', {}, T(a.years)));
+      const lab = A('div.tt-act', x, 822, { anchor: 'ax', show: '1', d: .8 + k * .45, cls: 'up' }, h('span.n', { text: ['I', 'II', 'III'][k] }), T(L(`${a.label.ko} · ${a.name.ko}`, `${a.label.zh} · ${a.name.zh}`)), h('small', {}, T(a.years)));
       fg.append(box, lab); this.actLabs.push(lab);
       return f;
     });
@@ -5157,23 +5362,26 @@ Scenes.define('title', {
   },
   beat(i, ctx) {
     this.g.classList.toggle('up', i >= 1);
+    this.heroW.classList.toggle('dim', i >= 1);
+    const HERO = this.hero.classList.contains('nophoto') ? [] : [{ id: 'hero', type: 'rect', x: 1060, y: 470, w: 700, h: 900, r: 200, soft: 160, i: i >= 1 ? .28 : .85, delay: i === 0 && ctx.fwd ? 2.6 : 0 }];
     /* the presenter's name sits at the edge of the pool: give it its own soft light */
     const CREDIT = textLight('cr', this.credit, { i: .7 });
     if (i === 0) {
       if (ctx.fwd) {
         ctx.light({ lights: [{ id: 's', x: -260, y: 540, rx: 300, ry: 560, soft: .08, i: 1 }] }, { dur: 0 });
         ctx.after(120, () => ctx.light({ lights: [{ id: 's', x: 1900, y: 540, rx: 300, ry: 560, soft: .08 }] }, { dur: 2.4, ease: ease.inOutSine }));
-        ctx.after(2550, () => ctx.light({ lights: [{ id: 's', x: 960, y: 580, rx: 1150, ry: 620, soft: .5 }, CREDIT] }, { dur: 1.6 }));
-      } else ctx.light({ lights: [{ id: 's', x: 960, y: 580, rx: 1150, ry: 620, soft: .5 }, CREDIT] });
+        ctx.after(2550, () => ctx.light({ lights: [{ id: 's', x: 960, y: 580, rx: 1150, ry: 620, soft: .5 }, CREDIT, ...HERO] }, { dur: 1.6 }));
+      } else ctx.light({ lights: [{ id: 's', x: 960, y: 580, rx: 1150, ry: 620, soft: .5 }, CREDIT, ...HERO] });
     }
     if (i === 1) {
       ctx.light({ lights: [
         { id: 's', x: 760, y: 300, rx: 900, ry: 300, soft: .6, i: .8, cone: false },
         { id: 'bt', type: 'rect', x: 296, y: 130, w: 420, h: 60, r: 30, soft: 40, i: .55 },
-        { id: 'a1', x: 330, y: 760, rx: 230, ry: 250, soft: .3, delay: .4 },
-        { id: 'a2', x: 960, y: 760, rx: 230, ry: 250, soft: .3, delay: .85 },
-        { id: 'a3', x: 1590, y: 760, rx: 230, ry: 250, soft: .3, delay: 1.3 },
+        { id: 'a1', x: 330, y: 722, rx: 230, ry: 250, soft: .3, delay: .4 },
+        { id: 'a2', x: 960, y: 722, rx: 230, ry: 250, soft: .3, delay: .85 },
+        { id: 'a3', x: 1590, y: 722, rx: 230, ry: 250, soft: .3, delay: 1.3 },
         ...this.actLabs.map((e, k) => textLight('t' + k, e, { i: .62, padY: 8, delay: .8 + k * .45 })),
+        ...HERO,
       ] });
     }
   },
@@ -5260,7 +5468,7 @@ Scenes.define('gary', {
     this.sleeves = sl.map((o, k) => {
       const s = sleeve(o); s.classList.add('s70'); tiltify(s, 12);
       s.append(mvSwitch(['iwyb', 'abc', 'loveyousave', 'illbethere'][k], { sm: true, year: false, color: lighter(o.bg, o.fg) }));
-      const wrap = A('div.fan', FAN[k][0], FAN[k][1], { show: '2', cls: 'drop', d: .15 + k * .14, style: `rotate:${FAN[k][2]}deg` }, s);
+      const wrap = A('div.fan', FAN[k][0], FAN[k][1], { show: '2', cls: 'drop flip3d', d: .15 + k * .14, style: `rotate:${FAN[k][2]}deg` }, s);
       mid.append(wrap); s.wrap = wrap; return s;
     });
     mid.append(
@@ -5339,11 +5547,11 @@ Scenes.define('otw', {
     this.op = opener(mid, sc, { card: { num: 'II', title: L('오프 더 월', '《Off the Wall》'), en: 'OFF THE WALL', years: L('1979') }, hold: 2400 });
     $('.cc', this.op.card).classList.add('endup');
     /* 0 · two people walk into one light */
-    this.mjM = stageFig(stg, { costume: 'tux', pose: 'stand', style: 'costume', x: 330, y: 930, h: 560, glowPx: 5, rimPx: 1.5 });
-    this.qjM = stageFig(stg, { costume: 'qj', pose: 'stand', style: 'costume', face: -1, x: 1590, y: 930, h: 600, glowPx: 5, rimPx: 1.5 });
-    this.mj = A('div.meet', 330, 990, { cls: 'rv' }, T(L('마이클 잭슨', '迈克尔·杰克逊')), h('small', { text: 'ARTIST' }));
-    this.qj = A('div.meet', 1590, 990, { cls: 'rv' }, T(L('퀸시 존스', '昆西·琼斯')), h('small', { text: 'PRODUCER' }));
-    this.wiz = A('div.b-m.nowrap', 960, 340, { cls: 'rv up' }, T(L('1978 · 영화 〈위즈〉에서', '1978 · 电影《新绿野仙踪》片场')));
+    this.mjM = stageFig(stg, { costume: 'tux', pose: 'stand', style: 'costume', x: 330, y: 880, h: 560, glowPx: 5, rimPx: 1.5 });
+    this.qjM = stageFig(stg, { costume: 'qj', pose: 'stand', style: 'costume', face: -1, x: 1590, y: 880, h: 600, glowPx: 5, rimPx: 1.5 });
+    this.mj = A('div.meet', 330, 940, { cls: 'rv' }, T(L('마이클 잭슨', '迈克尔·杰克逊')), h('small', { text: 'ARTIST' }));
+    this.qj = A('div.meet', 1590, 940, { cls: 'rv' }, T(L('퀸시 존스', '昆西·琼斯')), h('small', { text: 'PRODUCER' }));
+    this.wiz = A('div.b-m.nowrap', 960, 236, { cls: 'rv up' }, T(L('1978 · 영화 〈위즈〉에서', '1978 · 电影《新绿野仙踪》片场')));
     mid.append(this.mj, this.qj, this.wiz);
     /* 1 · the disco point under the mirror ball; a giant 4 behind him */
     back.append(A('div.o-4', 560, 610, { show: '1-1', cls: 'zoom slow' }, '4'));
@@ -5363,7 +5571,7 @@ Scenes.define('otw', {
       h('div.wv-l', { style: { left: '750px', transitionDelay: '1.6s' } }, T(L('숨소리', '呼吸声')), h('small', { text: 'BREATH' })),
       h('div.wv-l', { style: { left: '1260px', transitionDelay: '2.6s' } }, T(L('딸꾹질', '打嗝般的短音')), h('small', { text: 'HICCUP' })));
     mid.append(A('div', 1170, 470, { show: '2-2' }, this.wave),
-      this.voice = A('div.h-s.nowrap', 1840, 860, { anchor: 'ar', show: '2-2', d: 3 }, T(L('목소리가 리듬 악기가 되다', '嗓音，成了节奏乐器'))));
+      this.voice = A('div.h-s.nowrap', 1840, 830, { anchor: 'ar', show: '2-2', d: 3 }, T(L('목소리가 리듬 악기가 되다', '嗓音，成了节奏乐器'))));
     /* 3 · one trophy; he turns away */
     back.append(A('div.o-1', 1080, 600, { show: '3', cls: 'zoom slow' }, '1'));
     mid.append(A('div.pedestal', 1080, 930, { show: '3', cls: 'up' }),
@@ -5373,8 +5581,10 @@ Scenes.define('otw', {
     this.mjX = stageFig(stg, { costume: 'tux', pose: 'person', style: 'costume', face: -1, x: 520, y: 980, h: 680, show: '3', d: .2, glowPx: 5, p: { neck: 20, head: 8, turn: .45 } });
     /* interaction: he dances when clicked; the voice hiccups */
     clickable(this.mjD.hitbox(300), () => this.mjD.seq([['point', 240, 80], ['groove', 240, 60], [(f) => f.spinTurn(520), 0, 540], ['kick', 260, 120], ['groove', 380]]));
-    clickable(this.mjS.hitbox(300), () => this.mjS.seq([[{ neck: -30, head: -10 }, 90], [{ neck: -18, head: -6 }, 90], [{ neck: -30, head: -10 }, 90], [{ neck: -18, head: -6 }, 160]]));
+    clickable(this.mjS.hitbox(300), () => SFX.hiccup() || this.mjS.seq([[{ neck: -30, head: -10 }, 90], [{ neck: -18, head: -6 }, 90], [{ neck: -30, head: -10 }, 90], [{ neck: -18, head: -6 }, 160]]));
     mid.append(itip(820, 260, L('클릭해 보세요', '点他一下'), '1-1'), itip(470, 300, L('클릭 · 딸꾹질', '点一下 · 打嗝音'), '2-2'));
+    /* each label plays its own sound again */
+    $$('.wv-l', this.wave).forEach((l, k) => clickable(l, () => { if (this.i === 2) [SFX.falsetto, SFX.breath, SFX.hiccup][k](); }));
   },
   beat(i, ctx) {
     this.i = i;
@@ -5413,6 +5623,7 @@ Scenes.define('otw', {
       ctx.light({ lights: [{ id: 'm', x: 560, y: 560, rx: 400, ry: 470, soft: .25 }, { id: 'q', x: 1300, y: 560, rx: 560, ry: 370, soft: .5, i: .9, cone: false }] });
       if (ctx.fwd) ctx.after(900, () => this.mjD.seq([['point', 320, 200], ['groove', 380]]));
     }
+    if (i === 2 && ctx.fwd) { ctx.after(600, () => SFX.falsetto()); ctx.after(1600, () => SFX.breath()); ctx.after(2600, () => { SFX.hiccup(); this.mjS.seq([[{ neck: -30, head: -10 }, 90], [{ neck: -18, head: -6 }, 120], [{ neck: -30, head: -10 }, 90], [{ neck: -18, head: -6 }, 160]]); }); }
     if (i === 2) { this.mjS.pose('sing', { mic: 0, nSh: 40, nEl: 118, nHand: Figure.HI('fist') }); ctx.light({ lights: [{ id: 'm', x: 1080, y: 520, rx: 1000, ry: 330, soft: .45 }, { id: 'f', x: 300, y: 600, rx: 280, ry: 450, soft: .3 },
       ...$$('.wv-l', this.wave).map((e, k) => textLight('wl' + k, e, { i: .6, pad: 22, padY: 12, delay: ctx.fwd ? .6 + k : 0 })),
       textLight('v', this.voice, { i: .78, delay: ctx.fwd ? 3 : 0 })] }); }
@@ -5441,10 +5652,10 @@ function bjMini() {
   const polys = $$('polygon', wrap), lit = new Array(polys.length).fill(0);
   const midRow = 1, rowY = (edge(midRow) + edge(midRow + 1)) / 2;
   let off = null, alive = false;
+  /* he moonwalks across the lit pavement: right to left, the way the dance goes, then back to the start */
   const step = () => {
     if (!alive) return;
-    fig.pose('stand', { x: 0 });
-    fig.walk({ steps: 9, stride: 50, stepMs: 540, done: () => setTimeout(step, 500) });
+    fig.moonwalk({ steps: 7, stride: 56, stepMs: 560, x0: 430, done: () => setTimeout(step, 700) });
   };
   wrap.start = () => {
     if (alive) return; alive = true; step();
@@ -5461,6 +5672,33 @@ function bjMini() {
   wrap.stop = () => { alive = false; fig.stop(); if (off) { off(); off = null; } polys.forEach(p => p.classList.remove('lit')); };
   wrap.fig = fig;
   return wrap;
+}
+/* the page turn into Billie Jean: a moonwalking silhouette crosses the stage from right to left, and the new
+   page opens behind him (a curtain follows his back) */
+function moonwalkWipe(ms = 2300) {
+  if (Director.reduced) return;
+  let box = $('#mwipe');
+  if (!box) {
+    box = h('div#mwipe', {}, h('div.mw-curtain'), h('div.mw-spot'), h('div.mw-floor'));
+    $('#stage').append(box);
+    box.fig = new Figure.Fig({ costume: 'billie', pose: 'stand', style: 'costume', glowPx: 10, rimPx: 2, rim: '#ffe3f0', glow: 'rgba(255, 160, 210, .55)', shadow: 'pool' });
+    box.figWrap = h('div.mw-fig'); box.figWrap.append(box.fig.el); box.append(box.figWrap);
+    box.fig.place(0, 1000, 660);
+  }
+  const cur = $('.mw-curtain', box), spot = $('.mw-spot', box), fw = box.figWrap, f = box.fig;
+  if (box.stop) box.stop();
+  box.classList.add('on');
+  const X0 = 2080, X1 = -260, t0 = now();
+  f.moonwalk({ steps: 5, stride: 74, stepMs: ms / 5.4, x0: 0, onStep: () => SFX.step({ slide: true, gain: .3 }) });
+  SFX.whoosh(ms / 1000, .45, .2);
+  const off = Loop.add(() => {
+    const p = clamp((now() - t0) / ms, 0, 1), x = lerp(X0, X1, ease.inOutSine(p));
+    fw.style.transform = `translateX(${x.toFixed(1)}px)`;
+    cur.style.width = Math.max(0, x + 40).toFixed(0) + 'px';
+    spot.style.transform = `translateX(${(x - 360).toFixed(1)}px)`;
+    if (p >= 1) { box.stop(); }
+  });
+  box.stop = () => { off(); f.stop(); box.classList.remove('on'); box.stop = null; };
 }
 /* ═══ 5 · III THRILLER ═══ */
 function tvSet() {
@@ -5530,10 +5768,10 @@ Scenes.define('thriller', {
       A('div.lab', 150, 300, { anchor: 'ay', show: '2-2', cls: 'left' }, 'MTV · 1981 —'),
       A('div.b-l', 150, 400, { anchor: 'ay', show: '2-2', d: .2, cls: 'left', style: 'color:var(--dim)' }, T(L('흑인 아티스트의 뮤직비디오는<br>거의 방영되지 않았다', '黑人艺人的 MV<br>几乎不被播放'))),
       A('div', 360, 625, { show: '2-2', d: .4 }, this.wall),
-      this.bjLine = A('div.h-m.nowrap', 150, 946, { anchor: 'ay', show: '2-2', d: 2.2, cls: 'up', style: 'color:var(--acc2)' }, T(L('〈Billie Jean〉, 그 벽을 넘다', '《Billie Jean》，越过那道墙'))),
+      this.bjLine = A('div.h-m.nowrap', 150, 900, { anchor: 'ay', show: '2-2', d: 2.2, cls: 'up', style: 'color:var(--acc2)' }, T(L('〈Billie Jean〉, 그 벽을 넘다', '《Billie Jean》，越过那道墙'))),
     );
     Scenes.setRect('tvScreen', { x: 1270 - 380 + 50, y: 560 - 300 + 50, w: 504, h: 400 });
-    mid.append(mvAt('billiejean', 1270, 898, { anchor: 'ac', show: '2-2', d: 1.4, color: '#f3e9d8' }));
+    mid.append(mvAt('motown25', 1270, 898, { anchor: 'ac', show: '2-2', d: 1.4, label: 'LIVE', color: '#f3e9d8' }));
     /* 3 · the same night again: a chronophotograph of the first moonwalk */
     this.slate2 = slate({ prod: '<span class="fill">MOTOWN 25</span>', scene: '25', take: '1', roll: '83', loc: 'PASADENA, CA', date: '1983. 3. 25' });
     this.slate2.classList.add('written'); $$('.sl-v', this.slate2).slice(-1)[0].style.fontSize = '25px';
@@ -5560,7 +5798,7 @@ Scenes.define('thriller', {
     });
     back.append(A('div.t-8', 1420, 560, { show: '5-5', cls: 'zoom slow' }, '8'));
     mid.append(A('div.lab.nowrap', 1840, 214, { anchor: 'ar', show: '5-5', cls: 'down' }, T(L('1980 · 그래미 1 → 1984 · 그래미 8', '1980 · 格莱美 1 → 1984 · 格莱美 8'))),
-      this.g8 = A('div.h-s.nowrap', 1420, 930, { anchor: 'ax', show: '5-5', d: 2 }, T(L('하룻밤에, 여덟 개', '一夜之间，八座'))));
+      this.g8 = A('div.h-s.nowrap', 1420, 896, { anchor: 'ax', show: '5-5', d: 2 }, T(L('하룻밤에, 여덟 개', '一夜之间，八座'))));
     /* 6 · fourteen minutes: the dance, frame by frame */
     const Z = {
       a: { turn: .62, lean: 8, chest: 8, neck: 22, head: 10, nSh: 96, nEl: 74, nWr: 26, nHand: 3, fSh: 84, fEl: 86, fWr: 24, fHand: 3, nHip: 22, nKnee: 40, nFoot: 92, fHip: -14, fKnee: 30, fFoot: 96, hat: 0 },
@@ -5623,6 +5861,7 @@ Scenes.define('thriller', {
     else if (this.count._stop) this.count._stop();
     const tvOn = i === 2 || i === 4;
     if (i === 2) {
+      if (ctx.fwd && !ctx.first) moonwalkWipe();
       Video.stop('tv');
       const play = () => { this.tv.snow(false); this.tv.scr.classList.add('card-on'); this.tv.bj.start(); this.real = false; };
       if (ctx.fwd) {
@@ -5717,7 +5956,7 @@ Scenes.define('bad', {
       { title: 'The Way You<br>Make Me Feel', year: '1988' }, { title: 'Man in<br>the Mirror', year: '1988' }, { title: 'Dirty<br>Diana', year: '1988' },
     ].map((o, k) => { const s = sleeve(Object.assign(o, { bg: k % 2 ? '#f2ebd8' : '#0e1838', fg: k % 2 ? '#0e1838' : '#f2ebd8', label: '#3d6cff' })); s.classList.add('deco-s'); tiltify(s, 12); s.append(mvSwitch(['ijcslu', 'bad', 'twymmf', 'mitm', 'dirtydiana'][k], { sm: true, year: false, color: lighter(o.bg, o.fg) })); return s; });
     this.sleeves = sl;
-    sl.forEach((s, k) => mid.append(A('div.casc', 640 + k * 238, 320 + k * 112, { show: '1-1', cls: 'drop', d: .2 + k * .15, style: `rotate:${-6 + k * 3}deg` }, s)));
+    sl.forEach((s, k) => mid.append(A('div.casc', 640 + k * 238, 320 + k * 112, { show: '1-1', cls: 'drop flip3d', d: .2 + k * .15, style: `rotate:${-6 + k * 3}deg` }, s)));
     back.append(A('div.b-5', 250, 560, { show: '1-1', cls: 'zoom slow' }, '5'));
     mid.append(A('div.b-m.nowrap', 1840, 262, { anchor: 'ar', show: '1-1', d: 1 }, T(L('한 앨범에서 빌보드 1위 싱글 다섯 곡', '一张专辑，五支公告牌冠军单曲'))),
       A('div.tag', 1840, 340, { anchor: 'ar', show: '1-1', d: 3.4 }, T(L('역사상 처음', '史上首次'))));
@@ -5766,7 +6005,7 @@ Scenes.define('bad', {
     this.pfig = new Figure.Fig({ costume: 'smooth', pose: 'lean', style: 'line', line: '#1d1a16', lineBg: '#efe7d3', rim: null, glow: null, shadow: 'none', p: { tilt: 0, hatTilt: 10 } });
     this.pfig.place(300, 552, 300);
     this.paper.append(this.pfig.el);
-    mid.append(this.paper, A('div.h-s.center.nowrap', 960, 948, { show: '7', d: .4 }, T(L('노래하는 사람이자, 무대를 설계하는 사람', '他是歌手，也是舞台的设计者'))));
+    mid.append(this.paper, A('div.h-s.center.nowrap', 960, 912, { show: '7', d: .4 }, T(L('노래하는 사람이자, 무대를 설계하는 사람', '他是歌手，也是舞台的设计者'))));
     clickable(this.dm.hitbox(260), () => this.dm.seq([['hat', 380, 200], [{ hatTilt: 18, neck: 10, turn: .1, nSh: 4, fSh: -4 }, 500]]));
     this.angle = 45;
   },
@@ -6011,7 +6250,8 @@ Scenes.define('shadow', {
     this.op = opener(mid, sc, { card: { num: 'VI', title: L('그림자', '阴影'), years: L('1993 — 2005') }, cardY: 470, cardX: 640 });
     mid.append(A('div.b-l.nowrap', 640, 820, { anchor: 'ax', show: '0-0', d: 2.2, style: 'color:var(--dim)' }, T(L('빛의 성격이 바뀌다', '光，变了性质'))));
     /* the man, first in a dying spot, then under an umbrella */
-    this.man = stageFig(stg, { costume: 'person', pose: 'person', style: 'costume', x: 1420, y: 960, h: 700, show: '0-1', glowPx: 6, rim: '#dfe8f2', glow: 'rgba(200, 215, 235, .3)', c: { jacket: '#2a2f36', pants: '#1c2026' } });
+    /* in the shadow years he is drawn only as an outline: a man the light no longer fills in */
+    this.man = stageFig(stg, { costume: 'person', pose: 'person', style: 'line', line: 'rgba(205, 220, 238, .9)', lineBg: '#0d1015', x: 1420, y: 960, h: 700, show: '0-1', glowPx: 6, rim: null, glow: 'rgba(170, 195, 230, .28)' });
     this.flashes = A('div.flashes', 0, 0, { anchor: '', show: '1-1' });
     stg.append(this.flashes);
     mid.append(stack(150, 520, { anchor: 'ay', align: 'left', gap: 24 },
@@ -6033,12 +6273,12 @@ Scenes.define('shadow', {
       mid.append(card); return card;
     });
     mid.append(A('div.verified', 150, 170, { anchor: 'ay', show: '2-3', cls: 'left' }, T(L('확인된 사실', '已确认的事实'))),
-      A('div.b-m.nowrap', 1800, 960, { anchor: 'ar', show: '3-3', d: .8 }, T(L('판단 대신 — 확인된 사실까지만', '不下判断——只讲到已确认的事实为止'))));
+      A('div.b-m.nowrap', 1800, 920, { anchor: 'ar', show: '3-3', d: .8 }, T(L('판단 대신 — 확인된 사실까지만', '不下判断——只讲到已确认的事实为止'))));
     /* 4 · the loneliest songs, and a walk in the rain */
     mid.append(A('div.lab.nowrap', 150, 250, { anchor: 'ay', show: '4', cls: 'down' }, T(L('그 시기의 노래', '那段时期的歌'))),
       A('div.songs.l', 150, 450, { anchor: 'ay', show: '4', cls: 'blur slow', d: .3 }, h('div', {}, '〈Earth Song〉', h('small', { text: '1995' }), mvSwitch('earth', { sm: true, year: false })), h('div', {}, '〈Stranger in Moscow〉', h('small', { text: '1996' }), mvSwitch('moscow', { sm: true, year: false }))),
       A('div.h-s.nowrap', 150, 760, { anchor: 'ay', show: '4', d: 1.4 }, T(L('가장 강한 빛 속에서,<br>가장 외로운 노래를', '站在最强的光里，<br>唱着最孤独的歌'))));
-    this.rain = stageFig(stg, { costume: 'person', pose: 'umbrella', style: 'costume', x: 1240, y: 990, h: 640, show: '4', d: .6, glowPx: 5, rim: '#dfe8f2', glow: 'rgba(200, 215, 235, .3)', c: { jacket: '#2a2f36', pants: '#1c2026' } });
+    this.rain = stageFig(stg, { costume: 'person', pose: 'umbrella', style: 'line', line: 'rgba(205, 220, 238, .9)', lineBg: '#0d1015', x: 1240, y: 990, h: 640, show: '4', d: .6, glowPx: 5, rim: null, glow: 'rgba(170, 195, 230, .28)' });
   },
   popFlashes(n = 9, ms = 2600) {
     const box = this.flashes; box.innerHTML = '';
@@ -6052,7 +6292,8 @@ Scenes.define('shadow', {
   beat(i, ctx) {
     this.i = i;
     [this.man, this.rain].forEach(f => f.stop());
-    const cold = (k = .55, extra = []) => ({ ambient: .4, warm: 0, haze: 0, dust: 0, lights: [{ id: 'cold', type: 'rect', x: 960, y: 540, w: 1700, h: 940, r: 40, soft: 320, i: k, halo: false }, ...extra] });
+    /* darker than it used to be: the room is mostly unlit, the cold wash is thin */
+    const cold = (k = .55, extra = []) => ({ ambient: .78, warm: 0, haze: 0, dust: 0, lights: [{ id: 'cold', type: 'rect', x: 960, y: 540, w: 1700, h: 940, r: 40, soft: 320, i: k * .6, halo: false }, ...extra] });
     if (i > 0 && ctx.fwd) Director.flash();
     this.tab.classList.toggle('on', i >= 1 && i <= 3);
     this.man.pose(i === 1 ? 'umbrella' : 'person', i === 1 ? {} : { neck: 12 });
@@ -6075,7 +6316,7 @@ Scenes.define('shadow', {
       c.style.left = pp[0] + 'px'; c.style.top = pp[1] + 'px'; c.style.rotate = pp[2] + 'deg';
       vis(c, show ? 'on' : (i > 3 ? 'gone' : 'off'));
     });
-    if (i >= 1) ctx.light(cold(i === 4 ? .42 : .62, i === 4 ? [{ id: 'r', x: 1240, y: 600, rx: 360, ry: 470, soft: .6, i: .5, cone: false, col: '#c9d6e6' }] : []));
+    if (i >= 1) ctx.light(cold(i === 4 ? .42 : .62, i === 4 ? [{ id: 'r', x: 1240, y: 640, rx: 380, ry: 480, soft: .55, i: .8, cone: false, col: '#c9d6e6' }] : []));
     ctx.fx(i === 4 ? { rain: 1 } : {});
     if (i === 4) {
       this.rain.pose('umbrella', { x: 0 });
@@ -6417,7 +6658,7 @@ Scenes.define('finale', {
       [L('천재', '天才'), 1780, 230, '천재였고'],
       [L('거대한 산업', '庞大的产业'), 1760, 610, '거대한 산업'],
       [L('피고인', '被告'), 1560, 830, '피고인이었고'],
-      [L('세 아이의 아버지', '三个孩子的父亲'), 880, 940, '세 아이의'],
+      [L('세 아이의 아버지', '三个孩子的父亲'), 880, 858, '세 아이의'],
     ];
     this.words = W6.map(([t, x, y, cue]) => { const w = A('div.word', x, y, {}, T(t)); w.cue = cue; w.pos = [x, y]; mid.append(w); return w; });
     const pts = [...W6.map(w => [w[1], w[2]]), [560, 560]];
@@ -6555,6 +6796,11 @@ const Director = (() => {
     el.classList.remove('leaving'); el.classList.add('active');
     shown = sc;
     if (ms > 0 && mode !== 'cut') el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: ms, easing: 'linear' });
+    /* 3D: the camera travels into the next scene (it starts a little behind and below, and settles) */
+    if (ms > 0 && mode === 'cross' && !reduced && Q.tier !== 'low' && VIEW === 'stage') {
+      el.animate([{ transform: 'perspective(1800px) translate3d(0, 26px, -190px) rotateX(4deg)' }, { transform: 'none' }], { duration: ms * 1.35, easing: 'cubic-bezier(.2, .7, .2, 1)' });
+      $$('.scene.leaving', stage).forEach(s => s.animate([{ transform: 'none' }, { transform: 'perspective(1800px) translate3d(0, -18px, 160px)' }], { duration: ms, easing: 'cubic-bezier(.5, 0, .8, .4)', fill: 'forwards' }));
+    }
   }
 
   function applyBeat(b, { dir = 1, instant = false, first = false, enterDur, enter = null } = {}) {
@@ -6992,7 +7238,7 @@ const Panel = (() => {
 
   /* ── keys ── */
   function renderKeys() {
-    const K = [['V', '视频开关：随时播放 / 关闭这一页的视频（预告片、Smooth Criminal 等），没有就播放画面上第一个作品的 MV'], ['U', '中韩字幕开关（韩文在上、中文在下）'], ['Esc', '关闭正在播放的 MV'], ['→ ↓ PageDown 空格', '下一页（下一个节拍）'], ['← ↑ PageUp', '上一页（精确倒回）'], ['B 或 .', '黑场开关（翻页器的「黑屏」键）'], ['1 – 4', 'Smooth Criminal 跳到第 N 个提示点'], ['K', '视频播放 / 暂停（倒回到视频节拍时用它播放）'], ['Shift + ← / →', '视频后退 / 前进 5 秒'], ['C', '排练时记录提示点时间（起点、终点依次）'], ['↑ ↓（第四章 ⑥）', '现场调整倾斜角度（也可以用鼠标直接拖动人物）'], ['T', '鼠标手电筒 开 / 关'], ['G', '场景总览，问答时跳转'], ['M', '全部静音'], ['L', '切换 韩文 / 中文 / 双语'], ['F', '全屏'], ['P', '打开演讲者视图'], ['S', '设置与课前预检'], ['Esc', '关闭面板'], ['F5', '已屏蔽，防止翻页器误触刷新']];
+    const K = [['A 或右上角 ∞', '自动演出开关（默认关闭）：关闭时全部手动，字幕每按一次 → 走一句；打开时字幕按排练语速走、页面自动翻'], ['V', '视频开关：随时播放 / 关闭这一页的视频（预告片、Smooth Criminal 等），没有就播放画面上第一个作品的 MV'], ['U', '中韩字幕开关（韩文在上、中文在下）'], ['Esc', '关闭正在播放的 MV'], ['→ ↓ PageDown 空格', '下一页（下一个节拍）'], ['← ↑ PageUp', '上一页（精确倒回）'], ['B 或 .', '黑场开关（翻页器的「黑屏」键）'], ['1 – 4', 'Smooth Criminal 跳到第 N 个提示点'], ['K', '视频播放 / 暂停（倒回到视频节拍时用它播放）'], ['Shift + ← / →', '视频后退 / 前进 5 秒'], ['C', '排练时记录提示点时间（起点、终点依次）'], ['↑ ↓（第四章 ⑥）', '现场调整倾斜角度（也可以用鼠标直接拖动人物）'], ['T', '鼠标手电筒 开 / 关'], ['G', '场景总览，问答时跳转'], ['M', '全部静音'], ['L', '切换 韩文 / 中文 / 双语'], ['F', '全屏'], ['P', '打开演讲者视图'], ['S', '设置与课前预检'], ['Esc', '关闭面板'], ['F5', '已屏蔽，防止翻页器误触刷新']];
     const I = [['移动鼠标', '手电筒：暗处的字和人会被照亮；画面随鼠标轻微视差'], ['冷开场 · 点人物', '重现摩城 25 的转身、踢腿、踮脚'], ['冷开场 ④ · 左右拖人物', '倒放 / 快进太空步'], ['卡片、唱片、票、胶片', '指针放上去会倾斜；唱片会滑出'], ['Thriller ③ · 电视旋钮', '在插画和真实 MV 之间换台'], ['Bad ⑥ · 拖人物', '改变倾斜角度，超过 30° 数字变色'], ['首尔 ② · 票根', '往右拖，把票根撕下来'], ['遗产 ① · 画框', '指针放上去，画里的人会动']];
     return h('div.sec', {}, h('h3', { text: '键位（兼容常见翻页器）' }), h('table', {}, h('tbody', {}, ...K.map(([k, d]) => h('tr', {}, h('td', { style: { width: '220px' } }, ...k.split(' ').map(x => /^(或|\+|–|（第四章|⑥）)$/.test(x) ? ' ' + x + ' ' : h('kbd', { text: x }))), h('td', { text: d }))))),
       h('h3', { text: '鼠标互动（全部可选，不影响翻页）', style: { marginTop: '26px' } }), h('table', {}, h('tbody', {}, ...I.map(([k, d]) => h('tr', {}, h('td', { style: { width: '220px' }, text: k }), h('td', { text: d }))))));
@@ -7149,31 +7395,37 @@ const Wake = {
 document.addEventListener('visibilitychange', () => { if (!document.hidden && VIEW === 'stage') Wake.req(); });
 
 /* self-running demo: the whole show plays by itself (any key or tap stops it) */
-const Demo = (() => {
+/* ═══ AUTO — the show runs by itself (off by default; the ∞ in the corner, or A) ═══
+   Off: everything waits for the presenter, subtitles included (one sentence per click).
+   On: subtitles follow the rehearsed pace and the pages turn on their own; a manual page turn restarts the clock. */
+const Auto = (() => {
   let on = false, t = 0;
+  const subs = new Set();
   function dur(b) {
     if (!b) return 4000;
-    if (b.video) return b.video.key === 'trailer' ? 5200 : 3800;
-    const base = (b.syl / 6.2 + 2.4) * 1000;
+    if (b.video) return b.video.key === 'trailer' ? (trailerSeconds(Settings.get().videos.trailer) + 6) * 1000 : (b.media || 4) * 1000 + 2400;
+    const base = (b.syl / Scenes.rate() + 2.4) * 1000;
     const first = b.local === 0 ? 2600 : 0;
-    const long = (SCENES[b.scene].key === 'finale' && b.local === 1) || (SCENES[b.scene].key === 'legacy' && b.local === 1) ? 3000 : 0;
-    return clamp(base + first + long, 3600, 13000);
+    return clamp(base + first, 3600, 30000);
   }
+  function arm() { clearTimeout(t); if (!on) return; t = setTimeout(step, dur(BEATS[Director.beat])); }
   function step() {
     if (!on) return;
-    if (Director.beat >= BEATS.length - 1) { t = setTimeout(stop, 9000); return; }
-    Director.next();
-    t = setTimeout(step, dur(BEATS[Director.beat]));
+    if (MV.isOpen) { t = setTimeout(step, 2000); return; }
+    if (Director.beat >= BEATS.length - 1) { set(false); return; }
+    Director.next(); arm();
   }
-  function start() {
-    if (on) return; on = true;
-    document.body.classList.add('demo');
-    toast('自动演示中 · 按任意键或点一下画面就停在当前这一拍', 4200, { local: true });
-    if (Director.beat < 0) { Director.next(); t = setTimeout(step, dur(BEATS[0])); } else t = setTimeout(step, 400);
+  function set(v) {
+    v = !!v; if (v === on) return;
+    on = v; document.body.classList.toggle('demo', on);
+    subs.forEach(f => f(on));
+    if (on) { if (Director.beat < 0) { Director.next(); } arm(); toast('自动演出：开 · 字幕按排练语速走，页面自动翻；再点 ∞（或按 A）关闭', 3600, { local: true }); }
+    else { clearTimeout(t); toast('自动演出：关 · 全部手动（字幕每按一次走一句）', 2400, { local: true }); }
+    if (Director.beat >= 0) Captions.show(Director.beat);
   }
-  function stop() { if (!on) return; on = false; clearTimeout(t); document.body.classList.remove('demo'); toast('已停止自动演示 · → 继续手动翻页', 2600, { local: true }); }
-  return { start, stop, get on() { return on; } };
+  return { set, toggle: () => set(!on), arm, listen: (f) => (subs.add(f), () => subs.delete(f)), get on() { return on; }, start: () => set(true), stop: () => set(false) };
 })();
+const Demo = Auto;   /* older entry points (#demo, the presenter) */
 
 /* ═══ PERF — watches the frames after each page turn; if the show keeps stuttering, the quality drops a tier ═══
    Two slow page turns in a row (median frame > 26 ms, or one frame in ten > 60 ms) are needed, so a single hiccup
@@ -7240,8 +7492,9 @@ const App = (() => {
       case 'video': Video.vkey(); break;
       case 'video-close': if (MV.isOpen) MV.close(); else Video.stopBeat(); break;
       case 'subs': { const v = !Settings.get().subs; Settings.set('subs', v); toast(v ? '中韩字幕：开' : '中韩字幕：关', 1200); break; }
-      case 'next': if (Overview.open) Overview.close(); MV.close(); Director.next(); break;
-      case 'prev': if (Overview.open) Overview.close(); MV.close(); Director.prev(); break;
+      case 'next': if (Overview.open) Overview.close(); MV.close(); if (!Captions.step(1)) { Director.next(); Auto.arm(); } break;
+      case 'prev': if (Overview.open) Overview.close(); MV.close(); if (!Captions.step(-1)) { Director.prev(); Auto.arm(); } break;
+      case 'auto': Auto.toggle(); break;
       case 'go': Director.go(m.beat, 'jump'); break;
       case 'black': Director.toggleBlack(); break;
       case 'mute': { const v = !Music.muted; Music.setMuted(v); Video.muteAll(v); toast(v ? '已静音' : '取消静音', 1200); break; }
@@ -7265,6 +7518,18 @@ const App = (() => {
   }
 
   /* a preview that cannot embed YouTube: say once that MVs open on YouTube itself */
+  /* the ∞ in the top-right corner: auto mode, off by default; light runs along the curve while it is on */
+  function autoButton() {
+    if ($('#autobtn')) return;
+    const P = 'M50 20 C 60 4, 88 4, 88 20 C 88 36, 60 36, 50 20 C 40 4, 12 4, 12 20 C 12 36, 40 36, 50 20 Z';
+    const b = h('button#autobtn', { type: 'button', 'aria-pressed': 'false', title: '自动演出（A）· 默认关闭', 'aria-label': '自动演出' });
+    b.innerHTML = `<svg viewBox="0 0 100 40" aria-hidden="true"><defs><linearGradient id="infg" x1="0" x2="1"><stop offset="0" stop-color="#fff2d6" stop-opacity="0"/><stop offset=".5" stop-color="#ffe2a8"/><stop offset="1" stop-color="#fff2d6" stop-opacity="0"/></linearGradient></defs>
+      <path class="inf-base" d="${P}" pathLength="100"/><path class="inf-flow" d="${P}" pathLength="100"/><path class="inf-flow f2" d="${P}" pathLength="100"/></svg>`;
+    b.addEventListener('click', (e) => { e.stopPropagation(); SFX.ensure(); cmd('auto'); });
+    b.addEventListener('pointerdown', (e) => e.stopPropagation());
+    Auto.listen((v) => { b.classList.toggle('on', v); b.setAttribute('aria-pressed', String(v)); });
+    stage.append(b);
+  }
   function fullBanner() {
     if ($('#fullbar')) return;
     const bar = h('div#fullbar', {}, h('span', { text: '这个预览窗口按平台规定不能嵌入 YouTube：点 MV 开关或按 V 会直接在 YouTube 打开对应的官方视频' }),
@@ -7273,7 +7538,6 @@ const App = (() => {
     setTimeout(() => bar.remove(), 12000);
   }
   function onKey(e) {
-    if (Demo.on && !['Shift', 'Control', 'Alt', 'Meta'].includes(e.key)) { Demo.stop(); e.preventDefault(); return; }
     if (e.key === 'F5' || (e.key === 'r' && (e.ctrlKey || e.metaKey) && document.body.classList.contains('started'))) { e.preventDefault(); toast('已屏蔽刷新（F5），防止翻页器误触', 1600); return; }
     const t = e.target;
     if (t && t.closest && t.closest('input, textarea, select, [contenteditable]')) { if (e.key === 'Escape') t.blur(); return; }
@@ -7292,6 +7556,7 @@ const App = (() => {
       case 'k': case 'K': cmd('toggle'); break;
       case 'v': case 'V': cmd('video'); break;
       case 'u': case 'U': cmd('subs'); break;
+      case 'a': case 'A': cmd('auto'); break;
       case 'c': case 'C': cmd('capture'); break;
       case 'g': case 'G': cmd('overview'); break;
       case 't': case 'T': if (VIEW === 'stage') { const v = Torch.toggle(); toast(v ? '手电筒：开（移动鼠标照亮暗处）' : '手电筒：关', 1600, { local: true }); } break;
@@ -7323,8 +7588,7 @@ const App = (() => {
       : k('→', '开始') + k('P', '演讲者视图') + k('S', '设置与课前预检') + k('F', '全屏') + k('G', '总览') + k('L', '语言') +
         '<br><span class="hk">鼠标可以探索：移动是手电筒，人物、卡片、旋钮可以点或拖（<kbd>T</kbd> 关掉手电筒）</span>' +
         (window.self !== window.top ? '<br><span class="hk">先点一下画面，让键盘生效</span>' : '')) +
-      '<br><button type="button" class="hint-demo">▶ 自动演示整场</button>';
-    $('.hint-demo', el).addEventListener('click', (e) => { e.stopPropagation(); SFX.ensure(); Demo.start(); });
+      '<br><span class="hk">全部手动：每按一次 → 走一句字幕或一页；右上角的 ∞（或 <kbd>A</kbd>）打开自动演出</span>';
   }
   /* touch: tap the right side for next, the left third for previous (mouse clicks never advance) */
   function touchNav() {
@@ -7334,7 +7598,6 @@ const App = (() => {
       if (e.pointerType !== 'touch') return;
       if (MV.isOpen) { if (!e.target.closest('#vs-mv')) MV.close(); return; }
       if (Panel.isOpen() || Overview.open || e.target.closest('#fullbar') || e.target.closest(TOUCH ? 'a, button, .ov-card' : 'a, button, .ov-card, .int, .drag, .tilt')) return;
-      if (Demo.on) { Demo.stop(); return; }
       const dx = e.clientX - sx, dy = e.clientY - sy;
       if (now() - st > 900 || Math.abs(dy) > 80) return;
       if (dx < -50) cmd('next'); else if (dx > 50) cmd('prev');
@@ -7347,7 +7610,7 @@ const App = (() => {
     stage.classList.toggle('touch', TOUCH); stage.classList.toggle('lite', LITE);
     Q.pick(); let qPref = Settings.get().quality || 'auto';
     Settings.on((s) => { const p = s.quality || 'auto'; if (p !== qPref) { qPref = p; if (p === 'auto') Q.forget(); Q.pick(); Director.publish(); } });
-    Director.onTurn(() => Perf.watch()); Captions.init();
+    Director.onTurn(() => Perf.watch()); Captions.init(); autoButton();
     Scenes.build();
     Director.setReduced();
     Director.setLang(Settings.get().lang, { rerun: false });
@@ -7355,7 +7618,7 @@ const App = (() => {
     Session.load(); Runs.load();
     hint(); idle();
     document.addEventListener('keydown', onKey);
-    vp.addEventListener('click', () => { if (Demo.on) Demo.stop(); SFX.ensure(); if (Music.pendingGesture) { Music.pendingGesture = false; Music.retry(); } });
+    vp.addEventListener('click', () => { SFX.ensure(); if (Music.pendingGesture) { Music.pendingGesture = false; Music.retry(); } });
     touchNav();
     document.addEventListener('fullscreenchange', () => document.body.classList.toggle('fs', !!document.fullscreenElement));
     if (/^#?demo$/.test(location.hash)) setTimeout(() => Demo.start(), 1800);
