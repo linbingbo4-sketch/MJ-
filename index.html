@@ -320,23 +320,35 @@ body.fs #hint .hint-demo, body.started #hint .hint-demo { pointer-events: none; 
 .fd::after { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 2px; margin-top: -1px; background: rgba(0,0,0,.65); z-index: 3; }
 .fd .t1::after, .fd .f1::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(255,255,255,.05), rgba(0,0,0,.12)); }
 
-.np { left: 96px; bottom: 54px; display: flex; align-items: center; gap: 18px; opacity: 0; transform: translateY(16px); }
+.np { right: 96px; top: 40px; display: flex; align-items: center; gap: 20px; padding: 14px 24px 14px 14px; border-radius: 10px;
+  background: linear-gradient(100deg, rgba(14, 12, 10, .78), rgba(14, 12, 10, .55)); box-shadow: 0 14px 40px rgba(0, 0, 0, .45), inset 0 0 0 1px rgba(255, 255, 255, .07);
+  border-left: 3px solid var(--np-c, var(--acc)); opacity: 0; transform: translateY(-14px); }
 .np.on { opacity: 1; transform: none; }
-.np-art { position: relative; width: 78px; height: 78px; flex: none; }
-.np-vinyl { position: absolute; left: 22px; top: 3px; width: 72px; height: 72px; border-radius: 50%;
+.np-art { position: relative; width: 86px; height: 86px; flex: none; }
+.np-vinyl { position: absolute; left: 20px; top: 4px; width: 84px; height: 84px; border-radius: 50%;
   background: radial-gradient(circle, var(--np-c, #c33) 0 15%, #111 16% 18%, transparent 18.5%), repeating-radial-gradient(circle, #0c0c0c 0 1.5px, #1d1d1d 2px 3px); box-shadow: 0 2px 10px rgba(0,0,0,.6);
-  transition: left 1.2s var(--e-stage) .3s; animation: spin 1.8s linear infinite; animation-play-state: paused; }
-.np.on .np-vinyl { left: 40px; animation-play-state: running; }
+  animation: spin 2.4s linear infinite; animation-play-state: paused; transition: left .9s var(--e-stage); }
+.np.live .np-vinyl { left: 44px; animation-play-state: running; }
 .np-vinyl::after { content: ''; position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(from 30deg, transparent 0 10%, rgba(255,255,255,.12) 14%, transparent 20% 60%, rgba(255,255,255,.08) 66%, transparent 72%); }
 .np-cover { position: absolute; inset: 0; border-radius: 3px; overflow: hidden; box-shadow: 0 6px 18px rgba(0,0,0,.6); z-index: 2; display: grid; place-items: center; }
-.np-cover b { font: italic 600 30px/1 var(--f-en); letter-spacing: -.02em; }
+.np-cover b { font: italic 600 34px/1 var(--f-en); letter-spacing: -.02em; }
 .np-cover i { position: absolute; right: 6px; bottom: 5px; font: 600 11px/1 var(--f-num); letter-spacing: .12em; font-style: normal; opacity: .8; }
-.np-meta { padding-left: 22px; }
-.np-k { font: 600 14px/1 var(--f-num); letter-spacing: .34em; color: var(--acc); }
-.np-k::before { content: ''; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--acc); margin-right: 9px; vertical-align: 1px; }
-.np.on .np-k::before { animation: pulse 1.2s ease-in-out infinite; }
-.np-t { margin-top: 8px; font: italic 500 26px/1.1 var(--f-en); color: var(--ink); white-space: nowrap; }
-.np-a { margin-top: 6px; font: 500 15px/1 var(--f-num); letter-spacing: .18em; color: var(--dim); text-transform: uppercase; }
+.np-meta { padding-left: 24px; max-width: 420px; }
+.np-k { display: flex; align-items: center; gap: 10px; font: 600 14px/1 var(--f-num); letter-spacing: .32em; color: var(--np-c, var(--acc)); }
+.np-k .ko, .np-k .zh { letter-spacing: .1em; }
+.np-eq { display: inline-flex; align-items: flex-end; gap: 2px; height: 13px; }
+.np-eq i { width: 3px; height: 30%; background: currentColor; border-radius: 1px; }
+.np.live .np-eq i { animation: eq .9s ease-in-out infinite; }
+.np.live .np-eq i:nth-child(2) { animation-delay: -.3s; } .np.live .np-eq i:nth-child(3) { animation-delay: -.6s; } .np.live .np-eq i:nth-child(4) { animation-delay: -.45s; }
+@keyframes eq { 0%, 100% { height: 25%; } 50% { height: 100%; } }
+.np-t { margin-top: 9px; font: italic 500 28px/1.08 var(--f-en); color: var(--ink); white-space: nowrap; }
+.np-g { margin-top: 8px; display: inline-flex; align-items: center; gap: 8px; padding: 5px 10px 5px 9px; border-radius: 4px; background: var(--np-c, var(--acc)); color: #140e08; font: 700 14px/1 var(--f-num); letter-spacing: .16em; white-space: nowrap; }
+.np-g .zh { font: 600 14px/1 var(--f-zh); letter-spacing: .06em; }
+.np-g .ko { font: 600 14px/1 var(--f-ko); letter-spacing: .04em; }
+.np-a { margin-top: 8px; font: 500 15px/1.3 var(--f-num); letter-spacing: .16em; color: rgba(239, 232, 218, .72); white-space: nowrap; }
+.np-a b { font: 600 17px/1 var(--f-num); color: var(--ink); letter-spacing: .12em; margin-right: 4px; }
+.np-a .ko { font-family: var(--f-ko); letter-spacing: .04em; }
+.np-a .zh { font-family: var(--f-zh); letter-spacing: .04em; opacity: .85; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes pulse { 50% { opacity: .3; } }
 
@@ -1389,21 +1401,20 @@ const ACTS = [
 
 /* file: the local copy (media/music/, not in the public repo) · yt: official uploads on YouTube, tried in order when the file is missing */
 const TRACKS = {
-  iwyb:       { title: 'I Want You Back', artist: 'The Jackson 5', year: 1969, file: 'media/music/01-i-want-you-back.mp3', cue: '前奏钢琴滑音', yt: ['79eyuz8z6Cg', 's3Q80mk7bxE'] },
-  dstyge:     { title: "Don't Stop 'Til You Get Enough", artist: 'Michael Jackson', year: 1979, file: 'media/music/02-dont-stop-til-you-get-enough.mp3', cue: '贝斯律动', yt: ['yURRmWtbTbo'] },
-  billiejean: { title: 'Billie Jean', artist: 'Michael Jackson', year: 1983, file: 'media/music/03-billie-jean.mp3', cue: '鼓与贝斯前奏', yt: ['OZGtRvYF-A4', 'Zi_XLOBDo_Y'] },
-  bad:        { title: 'Bad', artist: 'Michael Jackson', year: 1987, file: 'media/music/04-bad.mp3', cue: '前奏', yt: ['-DlMoJ2V6uk', 'dsUXAEzaC3Q'] },
-  bow:        { title: 'Black or White', artist: 'Michael Jackson', year: 1991, file: 'media/music/05-black-or-white.mp3', cue: '吉他前奏', yt: ['YP3W-E0OamU', 'F2AitTPI5U0'] },
-  moscow:     { title: 'Stranger in Moscow', artist: 'Michael Jackson', year: 1996, file: 'media/music/06-stranger-in-moscow.mp3', cue: '雨声与前奏', yt: ['pEEMi2j6lYE'] },
-  earth:      { title: 'Earth Song', artist: 'Michael Jackson', year: 1995, file: 'media/music/07-earth-song.mp3', cue: '钢琴前奏', yt: ['XAi3VTSdTxU'] },
-  human:      { title: 'Human Nature', artist: 'Michael Jackson', year: 1982, file: 'media/music/08-human-nature.mp3', cue: '合成器前奏', yt: ['_n9HhmX36Gk', 'ElN_4vUvTPs'] },
-  rtt:        { title: 'Remember the Time', artist: 'Michael Jackson', year: 1992, file: 'media/music/09-remember-the-time.mp3', cue: '鼓点前奏', yt: ['qM19eRgOK1Q', 'LeiFF0gvqcc'] },
-  wbss:       { title: "Wanna Be Startin' Somethin'", artist: 'Michael Jackson', year: 1982, file: 'media/music/00-wanna-be-startin-somethin.mp3', cue: '鼓与贝斯前奏', yt: ['1XMvPTFzgVU', '6QIf6hkYFAo', 'BNaae82bq8s'] },
-  mitm:       { title: 'Man in the Mirror', artist: 'Michael Jackson', year: 1988, file: 'media/music/10-man-in-the-mirror.mp3', cue: '键盘前奏', yt: ['8gqMRlN6mAA', 'PivWY9wn5ps'] },
+  iwyb:       { title: 'I Want You Back', artist: 'The Jackson 5', year: 1969, file: 'media/music/01-i-want-you-back.mp3', cue: '前奏钢琴滑音', yt: ['79eyuz8z6Cg', 's3Q80mk7bxE'], genre: L('모타운 소울 · 팝', '摩城灵魂乐 · 流行'), group: L('잭슨 5', '杰克逊五人组') },
+  dstyge:     { title: "Don't Stop 'Til You Get Enough", artist: 'Michael Jackson', year: 1979, file: 'media/music/02-dont-stop-til-you-get-enough.mp3', cue: '贝斯律动', yt: ['yURRmWtbTbo'], genre: L('디스코 · 펑크', '迪斯科 · 放克') },
+  billiejean: { title: 'Billie Jean', artist: 'Michael Jackson', year: 1983, file: 'media/music/03-billie-jean.mp3', cue: '鼓与贝斯前奏', yt: ['OZGtRvYF-A4', 'Zi_XLOBDo_Y'], genre: L('포스트 디스코 · 댄스 팝', '后迪斯科 · 舞曲流行') },
+  bad:        { title: 'Bad', artist: 'Michael Jackson', year: 1987, file: 'media/music/04-bad.mp3', cue: '前奏', yt: ['-DlMoJ2V6uk', 'dsUXAEzaC3Q'], genre: L('팝 · 펑크', '流行 · 放克') },
+  bow:        { title: 'Black or White', artist: 'Michael Jackson', year: 1991, file: 'media/music/05-black-or-white.mp3', cue: '吉他前奏', yt: ['YP3W-E0OamU', 'F2AitTPI5U0'], genre: L('팝 록 · 댄스', '流行摇滚 · 舞曲') },
+  moscow:     { title: 'Stranger in Moscow', artist: 'Michael Jackson', year: 1996, file: 'media/music/06-stranger-in-moscow.mp3', cue: '雨声与前奏', yt: ['pEEMi2j6lYE'], genre: L('R&B 발라드', 'R&B 抒情') },
+  earth:      { title: 'Earth Song', artist: 'Michael Jackson', year: 1995, file: 'media/music/07-earth-song.mp3', cue: '钢琴前奏', yt: ['XAi3VTSdTxU'], genre: L('가스펠 팝 발라드', '福音流行抒情') },
+  human:      { title: 'Human Nature', artist: 'Michael Jackson', year: 1982, file: 'media/music/08-human-nature.mp3', cue: '合成器前奏', yt: ['_n9HhmX36Gk', 'ElN_4vUvTPs'], genre: L('소프트 록 · R&B', '软摇滚 · R&B') },
+  rtt:        { title: 'Remember the Time', artist: 'Michael Jackson', year: 1992, file: 'media/music/09-remember-the-time.mp3', cue: '鼓点前奏', yt: ['qM19eRgOK1Q', 'LeiFF0gvqcc'], genre: L('뉴 잭 스윙', '新杰克摇摆') },
+  wbss:       { title: "Wanna Be Startin' Somethin'", artist: 'Michael Jackson', year: 1982, file: 'media/music/00-wanna-be-startin-somethin.mp3', cue: '鼓与贝斯前奏', yt: ['1XMvPTFzgVU', '6QIf6hkYFAo', 'BNaae82bq8s'], genre: L('포스트 디스코 · 펑크', '后迪斯科 · 放克') },
+  mitm:       { title: 'Man in the Mirror', artist: 'Michael Jackson', year: 1988, file: 'media/music/10-man-in-the-mirror.mp3', cue: '键盘前奏', yt: ['8gqMRlN6mAA', 'PivWY9wn5ps'], genre: L('가스펠 팝', '福音流行') },
 };
 
-/* the published copy of this page that can play YouTube (the claude.ai preview cannot: its security policy blocks every player) */
-const FULL_URL = 'https://raw.githack.com/linbingbo4-sketch/MJ-/claude/webpage-design-30s4a0/index.html';
+/* inside an embedding preview (the claude.ai preview blocks every YouTube player) */
 const IN_FRAME = (() => { try { return window.top !== window.self; } catch (e) { return true; } })();
 
 /* every work the stage shows, with its official video (or official audio / live film) on YouTube, tried in order */
@@ -2742,6 +2753,33 @@ const SFX = (() => {
     g.gain.setValueAtTime(g.peak, t0); g.gain.linearRampToValueAtTime(0, t0 + dur);
     s.connect(bp); bp.connect(g); s.start();
   }
+  /* the clapperboard closing: a dry wooden crack with a short ring and the hall behind it */
+  function clap(gain = .75) {
+    if (!ready('clap')) return;
+    const t0 = ctx.currentTime + .005;
+    const c = noiseSrc(t0, .09), bp = filt('bandpass', 2600, .9), gc = voice(gain, { send: .35 }); env(gc.gain, t0, gc.peak, .0008, .003, .055); c.connect(bp); bp.connect(gc);
+    const lo = noiseSrc(t0, .12), lp = filt('lowpass', 900, .7), gl = voice(gain * .55, { send: .4 }); env(gl.gain, t0, gl.peak, .001, .004, .08); lo.connect(lp); lp.connect(gl);
+    [[1180, .2], [1960, .12], [3100, .07]].forEach(([f, g]) => {
+      const o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.value = f;
+      const gv = voice(gain * g, { send: .3 }); env(gv.gain, t0, gv.peak, .001, .002, .07); o.connect(gv); o.start(t0); o.stop(t0 + .12);
+    });
+  }
+  /* a footstep on a wooden stage: heel, then the sole; wet = a rainy street, slide = the moonwalk's glide */
+  function step({ gain = .3, pan = 0, wet = false, slide = false } = {}) {
+    if (!ready(slide ? 'slide' : 'step')) return;
+    const t0 = ctx.currentTime + .005, r = .85 + Math.random() * .3, P = { pan: clamp(pan, -.8, .8), send: .25 };
+    if (slide) {
+      const n = noiseSrc(t0, .4), bp = filt('bandpass', 1500 * r, .8), g = voice(gain * .55, P);
+      g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(g.peak, t0 + .08); g.gain.exponentialRampToValueAtTime(.0001, t0 + .36);
+      n.connect(bp); bp.connect(g); return;
+    }
+    const o = ctx.createOscillator(); o.type = 'sine';
+    o.frequency.setValueAtTime(110 * r, t0); o.frequency.exponentialRampToValueAtTime(52, t0 + .07);
+    const gh = voice(gain, P); env(gh.gain, t0, gh.peak, .002, .004, .09); o.connect(gh); o.start(t0); o.stop(t0 + .14);
+    const n = noiseSrc(t0, .16), lp = filt(wet ? 'bandpass' : 'lowpass', wet ? 2600 : 1400 * r, wet ? 1.2 : .7), gn = voice(gain * (wet ? .7 : .55), P);
+    env(gn.gain, t0 + .012, gn.peak, .003, .01, wet ? .14 : .07); n.connect(lp); lp.connect(gn);
+    if (!wet) { const s2 = noiseSrc(t0 + .07, .1), l2 = filt('lowpass', 900, .6), g2 = voice(gain * .3, P); env(g2.gain, t0 + .07, g2.peak, .004, .01, .06); s2.connect(l2); l2.connect(g2); }
+  }
   function staticBurst(dur = .55) {
     if (!ready('staticBurst')) return;
     const t0 = ctx.currentTime;
@@ -2768,7 +2806,7 @@ const SFX = (() => {
       return g;
     } catch (e) { return null; }
   }
-  return { fired, ensure, route, transition, whoosh, lampOff, lampOn, house, boom, projector, runout, staticBurst, get state() { return ctx ? ctx.state : 'none'; } };
+  return { fired, ensure, route, transition, clap, step, whoosh, lampOff, lampOn, house, boom, projector, runout, staticBurst, get state() { return ctx ? ctx.state : 'none'; } };
 })();
 
 /* ── 07-video ── */
@@ -2864,7 +2902,6 @@ function makeSlot(name, host, opt = {}) {
       h('div.fb-play'),
       h('div.fb-t', {}, T(v.name || L('영상', '视频'))),
       info.id ? h('a', { href: 'https://www.youtube.com/watch?v=' + info.id + (info.start ? '&t=' + Math.floor(info.start) + 's' : ''), target: '_blank', rel: 'noopener' }, T(L('YouTube에서 보기 ↗', '在 YouTube 打开 ↗'))) : null,
-      YTAPI.state === 'failed' && IN_FRAME ? h('a', { href: FULL_URL, target: '_blank', rel: 'noopener' }, T(L('전체 버전 열기 ↗', '打开完整版（可播放视频与音乐）↗'))) : null,
     ].filter(Boolean));
     el.classList.add('fallback');
   }
@@ -3166,7 +3203,7 @@ const Video = (() => {
     const b = BEATS[Director.beat];
     if (b && b.video && configured(b.video.key)) { startBeatVideo(b, ++beatToken); return; }
     const sw = MV.visible();
-    if (sw) { MV.open(sw.dataset.work, sw); return; }
+    if (sw) { if (!MV.direct(sw.dataset.work)) MV.open(sw.dataset.work, sw); return; }
     toast('这一页没有可播放的视频', 1400, { local: true });
   }
 
@@ -3231,7 +3268,7 @@ function mvSwitch(work, o = {}) {
   const b = h('button.mvs', { type: 'button', 'data-work': work, 'aria-label': `${w.t} — MV`, title: `${w.t} (${w.y}) · MV`, cls: o.sm ? 'sm' : '' },
     h('span', { text: o.label || 'MV' }), o.year === false ? null : h('span.mv-y', { text: String(w.y) }));
   if (o.color) b.style.setProperty('--mv', o.color);
-  b.addEventListener('click', (e) => { e.stopPropagation(); e.preventDefault(); MV.toggle(work, b); });
+  b.addEventListener('click', (e) => { e.stopPropagation(); e.preventDefault(); if (!MV.direct(work)) MV.toggle(work, b); });
   b.addEventListener('pointerdown', (e) => e.stopPropagation());
   return b;
 }
@@ -3295,12 +3332,22 @@ const MV = (() => {
     Video.emit();
   }
   const toggle = (work, el) => (cur === work ? close() : open(work, el));
+  /* where YouTube cannot be embedded (a sandboxed preview), the official video opens on youtube.com itself —
+     called straight from the click or key press, so the browser lets the new tab open */
+  function direct(work) {
+    if (YTAPI.state !== 'failed') return false;
+    const w = WORKS[work]; if (!w) return false;
+    const tab = window.open('https://www.youtube.com/watch?v=' + w.ids[0], '_blank');   /* ('noopener' would make this return null) */
+    if (tab) { try { tab.opener = null; } catch (e) { /* ignore */ } }
+    else toast('浏览器拦截了新窗口：请允许弹出窗口，或用 Chrome / Safari 直接打开这个网页', 3000, { local: true });
+    return true;
+  }
   /* the first switch you can see on stage right now */
   function visible() {
     const sc = $('.scene.active'); if (!sc) return null;
     return $$('.mvs', sc).find(b => { const r = b.getBoundingClientRect(); if (r.width < 4) return false; for (let e = b; e && e !== sc; e = e.parentElement) { const cs = getComputedStyle(e); if (cs.visibility === 'hidden' || +cs.opacity < .3 || cs.display === 'none') return false; } return true; }) || null;
   }
-  return { open, close, toggle, visible, get cur() { return cur; }, get isOpen() { return !!cur; } };
+  return { open, close, toggle, direct, visible, get cur() { return cur; }, get isOpen() { return !!cur; } };
 })();
 
 /* ── 08-hud ── */
@@ -3322,7 +3369,8 @@ const HUD = (() => {
   const hud = $('#hud');
   const am = h('div.am', {}, h('div.am-k'), h('div.am-t'));
   const yr = h('div.yr');
-  const np = h('div.np', {}, h('div.np-art', {}, h('div.np-vinyl'), h('div.np-cover')), h('div.np-meta', {}, h('div.np-k', { text: 'NOW PLAYING' }), h('div.np-t'), h('div.np-a')));
+  const np = h('div.np', {}, h('div.np-art', {}, h('div.np-vinyl'), h('div.np-cover')),
+    h('div.np-meta', {}, h('div.np-k', {}, h('span.np-eq', {}, h('i'), h('i'), h('i'), h('i')), h('span.np-kt')), h('div.np-t'), h('div.np-g'), h('div.np-a')));
   hud.append(am, yr, np);
 
   /* act · chapter */
@@ -3383,23 +3431,37 @@ const HUD = (() => {
   }
 
   /* now playing */
-  let npTimer = 0, npKey = null;
+  /* the era's song stays in the corner for the whole scene: title, group, year, style; the disc spins while it sounds */
+  let npKey = null;
   function showNP(key) {
-    if (!key || !TRACKS[key] || key === npKey) return;
+    if (!key || !TRACKS[key]) { hideNP(); return; }
+    if (key === npKey) { np.classList.add('on'); return; }
     npKey = key; const tr = TRACKS[key], cv = COVERS[key] || {};
     const cover = np.querySelector('.np-cover');
-    cover.style.background = cv.bg; cover.innerHTML = ''; cover.append(h('b', { text: cv.mark || '', style: { color: cv.fg } }), h('i', { text: String(tr.year), style: { color: cv.fg } }));
-    np.querySelector('.np-vinyl').style.setProperty('--np-c', cv.c || '#c33');
+    cover.style.background = cv.bg || '#222'; cover.innerHTML = ''; cover.append(h('b', { text: cv.mark || '♪', style: { color: cv.fg || '#fff' } }), h('i', { text: String(tr.year), style: { color: cv.fg || '#fff' } }));
+    np.style.setProperty('--np-c', cv.c || 'var(--acc)');
     np.querySelector('.np-t').textContent = tr.title;
-    np.querySelector('.np-a').textContent = `${tr.artist} · ${tr.year}`;
+    const g = np.querySelector('.np-g'); g.innerHTML = '';
+    if (tr.group) { g.append(h('span', { text: 'THE JACKSON 5' }), h('span.ko', { lang: 'ko', text: tr.group.ko }), h('span.zh', { lang: 'zh-Hans', text: tr.group.zh })); g.style.display = ''; }
+    else g.style.display = 'none';
+    const a = np.querySelector('.np-a'); a.innerHTML = '';
+    a.append(h('b', { text: String(tr.year) }), document.createTextNode(' · '));
+    if (tr.genre) a.append(h('span.ko', { lang: 'ko', text: tr.genre.ko }), document.createTextNode(' / '), h('span.zh', { lang: 'zh-Hans', text: tr.genre.zh }));
+    if (!tr.group) a.append(document.createTextNode(' · ' + tr.artist.toUpperCase()));
     np.classList.remove('on'); void np.offsetWidth; np.classList.add('on');
-    clearTimeout(npTimer); npTimer = setTimeout(() => np.classList.remove('on'), 7000);
+    setLive(np.classList.contains('live'));
   }
-  function hideNP() { clearTimeout(npTimer); np.classList.remove('on'); npKey = null; }
+  function setLive(live) {
+    np.classList.toggle('live', !!live);
+    const k = np.querySelector('.np-kt'); k.innerHTML = '';
+    if (live) k.textContent = 'NOW PLAYING';
+    else k.append(h('span.ko', { lang: 'ko', text: '이 시대의 노래' }), document.createTextNode(' · '), h('span.zh', { lang: 'zh-Hans', text: '本章代表作' }));
+  }
+  function hideNP() { np.classList.remove('on'); npKey = null; }
   function visible(v) { hud.classList.toggle('off', !v); }
-  return { setAct, setYear, showNP, hideNP, visible, resetNP() { npKey = null; } };
+  return { setAct, setYear, showNP, hideNP, setLive, visible, resetNP() { npKey = null; }, get npKey() { return npKey; } };
 })();
-const NowPlaying = { show: (k) => HUD.showNP(k) };
+const NowPlaying = { show: () => {} };   /* the card follows the scene now (Director), not the moment a track starts */
 
 /* ── 08b-captions ── */
 /* ═══ CAPTIONS — the script of each beat as stacked Korean / Chinese subtitles ═══
@@ -4101,11 +4163,19 @@ const Figure = (() => {
       const t0 = now(); let last = -1;
       const off = Loop.add(() => {
         const t = now() - t0, s = pose(Math.min(t, total));
-        if (s !== last) { last = s; onStep && onStep(s); }
+        if (s !== last) { last = s; onStep && onStep(s); this.stepSound({ slide: true }); }
         if (t >= total) { off(); this._cyc = null; const keep = Object.assign({}, this.p); this.ik = null; this.p = keep; done && done(); }
       });
       this._cyc = off;
       return this;
+    }
+    /* a footstep, only for a figure that is on stage and big enough to be heard (not the miniatures) */
+    stepSound(o = {}) {
+      if (this.scale < .45 || !this.el.isConnected) return;
+      const sc = this.el.closest('.scene'); if (!sc || !sc.classList.contains('active')) return;
+      const r = this.el.getBoundingClientRect(), sr = $('#stage').getBoundingClientRect();
+      const pan = sr.width ? ((r.left + r.width / 2 - sr.left) / sr.width - .5) * 1.3 : 0;
+      SFX.step(Object.assign({ pan, gain: .22 + Math.min(.16, (this.scale - .45) * .25) }, o));
     }
     /* a plain walk; dir -1 walks backward */
     walk({ dir = 1, stride = 60, stepMs = 700, steps = 6, done } = {}) {
@@ -4129,8 +4199,11 @@ const Figure = (() => {
         this.render();
       };
       if (Director.reduced) { pose(total); this.ik = null; done && done(); return this; }
+      let lastStep = -1;
       const off = Loop.add(() => {
         const t = Math.min(now() - t0, total); pose(t);
+        const k = Math.floor(t / stepMs + .02);
+        if (k !== lastStep && k < steps) { lastStep = k; this.stepSound({ wet: !!keepUmb }); }
         if (t >= total) { off(); this._cyc = null; const keep = Object.assign({}, this.p); this.ik = null; this.p = keep; done && done(); }
       });
       this._cyc = off;
@@ -4336,7 +4409,8 @@ function slate(o) {
       h('div.sl-cell', {}, h('div.sl-k', { text: 'ROLL' }), h('div.sl-v.chalk', { text: o.roll || 'A' })),
       h('div.sl-cell.two', {}, h('div.sl-k', { text: 'LOCATION' }), h('div.sl-v.chalk', { html: o.loc })),
       h('div.sl-cell', {}, h('div.sl-k', { text: 'DATE' }), h('div.sl-v', { html: o.date, style: { fontSize: '30px' } })))));
-  el.clap = () => { el.classList.remove('clap'); void el.offsetWidth; setTimeout(() => el.classList.add('clap'), 650); };
+  /* the sticks close .32 s after the class lands, accelerating: the crack sounds as they meet */
+  el.clap = () => { el.classList.remove('clap'); void el.offsetWidth; setTimeout(() => { el.classList.add('clap'); setTimeout(() => { if (el.isConnected && el.closest('.scene.active')) SFX.clap(); }, 290); }, 650); };
   el.open = () => el.classList.remove('clap');
   return el;
 }
@@ -5411,7 +5485,7 @@ Scenes.define('thriller', {
       stg.append(A('div', x, y, { show: '5-5' }, g)); return g;
     });
     back.append(A('div.t-8', 1420, 560, { show: '5-5', cls: 'zoom slow' }, '8'));
-    mid.append(A('div.lab.nowrap', 1840, 150, { anchor: 'ar', show: '5-5', cls: 'down' }, T(L('1980 · 그래미 1 → 1984 · 그래미 8', '1980 · 格莱美 1 → 1984 · 格莱美 8'))),
+    mid.append(A('div.lab.nowrap', 1840, 214, { anchor: 'ar', show: '5-5', cls: 'down' }, T(L('1980 · 그래미 1 → 1984 · 그래미 8', '1980 · 格莱美 1 → 1984 · 格莱美 8'))),
       this.g8 = A('div.h-s.nowrap', 1420, 930, { anchor: 'ax', show: '5-5', d: 2 }, T(L('하룻밤에, 여덟 개', '一夜之间，八座'))));
     /* 6 · fourteen minutes: the dance, frame by frame */
     const Z = {
@@ -5571,8 +5645,8 @@ Scenes.define('bad', {
     this.sleeves = sl;
     sl.forEach((s, k) => mid.append(A('div.casc', 640 + k * 238, 320 + k * 112, { show: '1-1', cls: 'drop', d: .2 + k * .15, style: `rotate:${-6 + k * 3}deg` }, s)));
     back.append(A('div.b-5', 250, 560, { show: '1-1', cls: 'zoom slow' }, '5'));
-    mid.append(A('div.b-m.nowrap', 1840, 170, { anchor: 'ar', show: '1-1', d: 1 }, T(L('한 앨범에서 빌보드 1위 싱글 다섯 곡', '一张专辑，五支公告牌冠军单曲'))),
-      A('div.tag', 1840, 250, { anchor: 'ar', show: '1-1', d: 3.4 }, T(L('역사상 처음', '史上首次'))));
+    mid.append(A('div.b-m.nowrap', 1840, 212, { anchor: 'ar', show: '1-1', d: 1 }, T(L('한 앨범에서 빌보드 1위 싱글 다섯 곡', '一张专辑，五支公告牌冠军单曲'))),
+      A('div.tag', 1840, 292, { anchor: 'ar', show: '1-1', d: 3.4 }, T(L('역사상 처음', '史上首次'))));
     /* 2–4 · the film frame (the video plays here) */
     const FR = { x: 400, y: 172, w: 1120, h: 630 };
     Scenes.setRect('scFrame', FR);
@@ -6346,7 +6420,7 @@ Scenes.define('finale', {
 const Director = (() => {
   const stage = $('#stage'), black = $('#black'), flashEl = $('#flash');
   let beat = -1, token = 0, lastFlash = 0, blackout = false, reduced = false, enteredAt = 0, sceneEnteredAt = 0;
-  let shown = null;                 /* the scene actually on stage — a cancelled blackout may not have swapped yet */
+  let shown = null, npLater = 0;                 /* the scene actually on stage — a cancelled blackout may not have swapped yet */
   const timers = [];
   const later = (ms, fn) => { const t = setTimeout(fn, ms); timers.push(t); return t; };
   const clearLater = () => { while (timers.length) clearTimeout(timers.pop()); };
@@ -6416,6 +6490,10 @@ const Director = (() => {
     HUD.visible(true);
     HUD.setAct(sc, { instant });
     HUD.setYear(b.year ?? sc.year, { instant, show: sc.hud });
+    /* the corner card waits for a chapter card to clear */
+    clearTimeout(npLater);
+    if (first && sc.chapter && b.local === 0 && dir > 0 && !instant) { HUD.hideNP(); npLater = setTimeout(() => { if (shown === sc) HUD.showNP(sc.track); }, 3400); }
+    else HUD.showNP(sc.track);
     Scenes.run(sc, b.local, { dir, instant, first, enterDur });
     if (VIEW === 'stage') {
       Music.apply(sc.track, b.mus || 'speech', { dir, instant, enter });
@@ -7112,11 +7190,13 @@ const App = (() => {
     else exec(c, m);
   }
 
+  /* a preview that cannot embed YouTube: say once that MVs open on YouTube itself */
   function fullBanner() {
     if ($('#fullbar')) return;
-    const bar = h('div#fullbar', {}, h('span', { text: '这个预览窗口按平台规定不能播放 YouTube（视频、MV、背景音乐）和外部照片' }),
-      h('a', { href: FULL_URL, target: '_blank', rel: 'noopener', text: '打开完整版 ↗' }), h('button', { type: 'button', text: '×', 'aria-label': '关闭', on: { click: () => bar.remove() } }));
+    const bar = h('div#fullbar', {}, h('span', { text: '这个预览窗口按平台规定不能嵌入 YouTube：点 MV 开关或按 V 会直接在 YouTube 打开对应的官方视频' }),
+      h('button', { type: 'button', text: '×', 'aria-label': '关闭', on: { click: () => bar.remove() } }));
     $('#ui').append(bar);
+    setTimeout(() => bar.remove(), 12000);
   }
   function onKey(e) {
     if (Demo.on && !['Shift', 'Control', 'Alt', 'Meta'].includes(e.key)) { Demo.stop(); e.preventDefault(); return; }
@@ -7221,6 +7301,7 @@ const App = (() => {
       else if (m.type === 'state' && m.sid && m.sid !== SID && !warnedTwin && m.view === 'stage') { warnedTwin = true; toast('检测到另一个舞台窗口也开着：请只保留一个，否则翻页会被执行两次', 8000); }
     });
     Music.on(() => Director.publish()); Video.on(() => Director.publish());
+    Music.on((st) => HUD.setLive(st.track && st.track === HUD.npKey && st.state === 'playing' && st.level > 0));
     setInterval(() => Director.publish(), 1000);
     if (Session.beat >= 0) {
       Director.go(Session.beat, 'jump');
