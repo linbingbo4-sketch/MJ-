@@ -36,6 +36,7 @@
   color-scheme: dark;
 }
 *, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 html, body { margin: 0; height: 100%; background: #000; color: var(--ink); }
 body { overflow: hidden; font-family: var(--f-ko); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; }
 button, input, select, textarea { font: inherit; color: inherit; }
@@ -50,20 +51,24 @@ button, input, select, textarea { font: inherit; color: inherit; }
 #scenes { z-index: 2; }
 #mask { z-index: 3; width: 1920px; height: 1080px; pointer-events: none; }
 #glow { z-index: 4; width: 1920px; height: 1080px; pointer-events: none; mix-blend-mode: screen; }
+#fx { z-index: 4; width: 1920px; height: 1080px; pointer-events: none; mix-blend-mode: screen; }
 #overlays { z-index: 5; pointer-events: none; }
-#grain { z-index: 6; pointer-events: none; mix-blend-mode: overlay; opacity: .08; background-size: 256px 256px; animation: grain .6s steps(6) infinite; transition: opacity 1.8s linear; }
-#vignette { z-index: 7; pointer-events: none; background: radial-gradient(ellipse 72% 70% at 50% 48%, transparent 58%, rgba(0,0,0,.55) 100%); }
+/* the grain moves by transform (compositor only, no repaint); oversized so its edges never show */
+#stage > #grain { inset: -128px; z-index: 6; pointer-events: none; mix-blend-mode: overlay; opacity: .08; visibility: hidden; background-size: 256px 256px; animation: grain .6s steps(6) infinite; transition: opacity 1.8s linear; }
+#vignette { display: none; }   /* drawn into the darkness canvas instead */
 #video { z-index: 8; pointer-events: none; }
 #subs { z-index: 9; pointer-events: none; }
 #hud { z-index: 10; pointer-events: none; }
 #overview { z-index: 11; }
 #flash { z-index: 12; pointer-events: none; background: #f4f7ff; opacity: 0; }
-#black { z-index: 13; pointer-events: none; background: #000; opacity: 0; }
-#bkey { z-index: 14; pointer-events: none; background: #000; opacity: 0; transition: opacity .45s ease; }
-#bkey.on { opacity: 1; }
+/* full-screen layers that are only sometimes on are hidden while transparent, so they need no backing store */
+#black { z-index: 13; pointer-events: none; background: #000; opacity: 0; visibility: hidden; }
+#flash { visibility: hidden; }
+#bkey { z-index: 14; pointer-events: none; background: #000; opacity: 0; visibility: hidden; transition: opacity .45s ease, visibility 0s linear .45s; }
+#bkey.on { opacity: 1; visibility: visible; transition: opacity .45s ease, visibility 0s; }
 @keyframes grain {
-  0% { background-position: 0 0; } 17% { background-position: -61px 37px; } 33% { background-position: 83px -21px; }
-  50% { background-position: -17px -94px; } 67% { background-position: 49px 71px; } 83% { background-position: -88px 12px; } 100% { background-position: 0 0; }
+  0% { transform: translate(0, 0); } 17% { transform: translate(-61px, 37px); } 33% { transform: translate(83px, -21px); }
+  50% { transform: translate(-17px, -94px); } 67% { transform: translate(49px, 71px); } 83% { transform: translate(-88px, 12px); } 100% { transform: translate(0, 0); }
 }
 
 /* era background plates crossfade (A/B) */
@@ -78,6 +83,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .scene { position: absolute; inset: 0; visibility: hidden; opacity: 0; }
 .scene.active { visibility: visible; opacity: 1; }
 .scene.leaving { visibility: visible; }
+/* scenes that are neither on stage nor fading out are out of the render tree: no style, no layers, no animations */
+.scene:not(.active):not(.leaving) { display: none; }
 .a { position: absolute; }
 .ac { translate: -50% -50%; }
 .ax { translate: -50% 0; }
@@ -150,21 +157,29 @@ body.fs #hint .hint-demo, body.started #hint .hint-demo { pointer-events: none; 
 @media (prefers-reduced-motion: reduce) {
   #grain { animation: none; }
 }
-/* phone mode: iOS kills a page whose layers need too many backing stores, so on phones there are no filters,
-   no blend modes and no full-screen animated layers (the light itself still works: it is two small canvases) */
-#stage.lite #grain, #stage.lite .ov, #stage.lite #ytbg { display: none !important; }
-#stage.lite *, #stage.lite *::before, #stage.lite *::after { filter: none !important; backdrop-filter: none !important; mix-blend-mode: normal !important; }
-#stage.lite #glow { opacity: .8; }
 #stage.reduced .rv { transition-duration: .2s !important; transition-delay: 0s !important; transform: none !important; filter: none !important; }
 #stage.reduced #grain { animation: none; }
 
+/* ── 03b-quality ── */
+/* ── quality tiers ──
+   high      every effect
+   standard  still film grain, no light-leak / scanline motion, half the particles, plain blending for the light layers
+   low       phones and previews: no filters, no blend modes, no particles, no full-screen overlays */
+#stage:not(.q-high) #grain, #stage:not(.q-high) #ov-leak::before, #stage:not(.q-high) #ov-leak::after, #stage:not(.q-high) #ov-scan::after { animation: none !important; }
+#stage:not(.q-high) #glow, #stage:not(.q-high) #fx { mix-blend-mode: normal; }
+#stage:not(.q-high) .smoke circle, #stage:not(.q-high) .twinkle circle { animation: none !important; }
+#stage.q-low #grain, #stage.q-low .ov, #stage.q-low #ytbg, #stage.q-low #fx, #stage.q-low #grade { display: none !important; }
+#stage.q-low *:not(.fg-fx), #stage.q-low *::before, #stage.q-low *::after { filter: none !important; backdrop-filter: none !important; mix-blend-mode: normal !important; }
+#stage.q-low #glow { opacity: .8; }
+
 /* ── 05-era ── */
 /* era films: overlays that change with the decade */
-.ov { position: absolute; inset: 0; opacity: 0; transition: opacity 1.8s linear; pointer-events: none; }
+.ov { position: absolute; inset: 0; opacity: 0; visibility: hidden; transition: opacity 1.8s linear; pointer-events: none; }
 #ov-leak { mix-blend-mode: screen; }
-#ov-leak::before, #ov-leak::after { content: ''; position: absolute; border-radius: 50%; filter: blur(60px); }
-#ov-leak::before { width: 900px; height: 1100px; left: -520px; top: -120px; background: radial-gradient(closest-side, rgba(255, 128, 40, .75), rgba(255, 70, 20, .25) 60%, transparent); animation: leakA 11s ease-in-out infinite alternate; }
-#ov-leak::after { width: 760px; height: 900px; right: -460px; bottom: -260px; background: radial-gradient(closest-side, rgba(255, 196, 80, .6), rgba(255, 90, 40, .2) 60%, transparent); animation: leakB 13s ease-in-out infinite alternate; }
+/* the leaks are soft radial gradients already; a 60px blur on top cost a full-screen filter every frame */
+#ov-leak::before, #ov-leak::after { content: ''; position: absolute; border-radius: 50%; }
+#ov-leak::before { width: 1020px; height: 1220px; left: -580px; top: -180px; background: radial-gradient(closest-side, rgba(255, 128, 40, .62), rgba(255, 90, 30, .3) 35%, rgba(255, 70, 20, .12) 62%, transparent); animation: leakA 11s ease-in-out infinite alternate; }
+#ov-leak::after { width: 880px; height: 1020px; right: -520px; bottom: -320px; background: radial-gradient(closest-side, rgba(255, 196, 80, .5), rgba(255, 140, 60, .24) 35%, rgba(255, 90, 40, .1) 62%, transparent); animation: leakB 13s ease-in-out infinite alternate; }
 @keyframes leakA { 0% { transform: translate(0, 0) scale(1); opacity: .65; } 45% { opacity: 1; } 100% { transform: translate(120px, 80px) scale(1.15); opacity: .5; } }
 @keyframes leakB { 0% { transform: translate(0, 0); opacity: .5; } 60% { opacity: .95; } 100% { transform: translate(-140px, -60px) scale(1.1); opacity: .7; } }
 #ov-scan { background: repeating-linear-gradient(to bottom, rgba(0, 0, 0, .28) 0 1px, transparent 1px 3px); }
@@ -178,8 +193,9 @@ body.fs #hint .hint-demo, body.started #hint .hint-demo { pointer-events: none; 
 
 /* ── 07-video ── */
 /* video layer: slots sit above the darkness, so a playing screen glows in the dark room */
-.vslot { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; opacity: 0; transition: opacity .6s ease, left .8s var(--e-stage), top .8s var(--e-stage), width .8s var(--e-stage), height .8s var(--e-stage); overflow: hidden; background: #000; }
-.vslot.on { opacity: 1; }
+/* a slot that is off is hidden once it has faded, so an idle 1920×1080 black box needs no layer */
+.vslot { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; opacity: 0; visibility: hidden; transition: opacity .6s ease, visibility 0s linear .6s, left .8s var(--e-stage), top .8s var(--e-stage), width .8s var(--e-stage), height .8s var(--e-stage); overflow: hidden; background: #000; }
+.vslot.on { opacity: 1; visibility: visible; transition: opacity .6s ease, visibility 0s, left .8s var(--e-stage), top .8s var(--e-stage), width .8s var(--e-stage), height .8s var(--e-stage); }
 .vslot .vs-yt, .vslot .vs-yt iframe, .vslot .vs-file { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; pointer-events: none; }
 .vslot .vs-yt { opacity: 0; transition: opacity .5s ease; }
 .vslot.playing .vs-yt { opacity: 1; }
@@ -211,13 +227,13 @@ body.fs #hint .hint-demo, body.started #hint .hint-demo { pointer-events: none; 
 #vs-pip { border: 3px solid rgba(241, 234, 214, .85); box-shadow: 0 20px 60px rgba(0,0,0,.6); }
 #vs-pip::before { content: '45°  ·  LOOP'; position: absolute; left: 14px; top: 10px; z-index: 2; font: 600 16px/1 var(--f-num); letter-spacing: .25em; color: rgba(241, 234, 214, .85); text-shadow: 0 1px 6px #000; }
 #vs-main.framed { box-shadow: 0 0 0 2px rgba(241, 234, 214, .25), 0 40px 120px rgba(0,0,0,.7); }
-#leader { position: absolute; inset: 0; width: 1920px; height: 1080px; opacity: 0; transition: opacity .25s linear; }
-#leader.on { opacity: 1; }
+#leader { position: absolute; inset: 0; width: 1920px; height: 1080px; opacity: 0; visibility: hidden; transition: opacity .25s linear, visibility 0s linear .25s; }
+#leader.on { opacity: 1; visibility: visible; transition: opacity .25s linear, visibility 0s; }
 /* subtitle strip for cue captions */
 #subs .sub { position: absolute; left: 50%; bottom: 74px; translate: -50% 0; max-width: 1500px; text-align: center; font: 500 40px/1.35 var(--f-ko); color: #fff;
-  text-shadow: 0 2px 4px rgba(0,0,0,.9), 0 0 24px rgba(0,0,0,.8); opacity: 0; transition: opacity .4s ease; }
+  text-shadow: 0 2px 4px rgba(0,0,0,.9), 0 0 24px rgba(0,0,0,.8); opacity: 0; visibility: hidden; transition: opacity .4s ease, visibility 0s linear .4s; }
 #subs .sub .zh { font-family: var(--f-zh); }
-#subs .sub.on { opacity: 1; }
+#subs .sub.on { opacity: 1; visibility: visible; transition: opacity .4s ease, visibility 0s; }
 
 /* ── 08-hud ── */
 /* three persistent audience elements: act·chapter, year flip-board, now playing */
@@ -261,7 +277,8 @@ body.fs #hint .hint-demo, body.started #hint .hint-demo { pointer-events: none; 
 .np-cover i { position: absolute; right: 6px; bottom: 5px; font: 600 11px/1 var(--f-num); letter-spacing: .12em; font-style: normal; opacity: .8; }
 .np-meta { padding-left: 22px; }
 .np-k { font: 600 14px/1 var(--f-num); letter-spacing: .34em; color: var(--acc); }
-.np-k::before { content: ''; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--acc); margin-right: 9px; vertical-align: 1px; animation: pulse 1.2s ease-in-out infinite; }
+.np-k::before { content: ''; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--acc); margin-right: 9px; vertical-align: 1px; }
+.np.on .np-k::before { animation: pulse 1.2s ease-in-out infinite; }
 .np-t { margin-top: 8px; font: italic 500 26px/1.1 var(--f-en); color: var(--ink); white-space: nowrap; }
 .np-a { margin-top: 6px; font: 500 15px/1 var(--f-num); letter-spacing: .18em; color: var(--dim); text-transform: uppercase; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -271,6 +288,7 @@ body.fs #hint .hint-demo, body.started #hint .hint-demo { pointer-events: none; 
 /* the rigged figure */
 .fig { position: absolute; display: block; overflow: visible; pointer-events: none; }
 .fig .tw { animation: tw 1.5s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+#stage:not(.q-high) .fig .tw { animation: none; opacity: .75; }
 .fig .tw-g:nth-child(2n) .tw { animation-delay: .5s; } .fig .tw-g:nth-child(3n) .tw { animation-delay: 1s; } .fig .tw-g:nth-child(5n) .tw { animation-delay: .25s; }
 .scene .fig .fg-hit { pointer-events: all; }
 
@@ -405,13 +423,15 @@ body.fs #hint .hint-demo, body.started #hint .hint-demo { pointer-events: none; 
 .figbox { width: 0; height: 0; }
 .pool { position: absolute; border-radius: 50%; translate: -50% -50%; background: radial-gradient(ellipse at 50% 50%, rgba(255, 214, 160, .2), rgba(255, 190, 120, .07) 48%, transparent 70%); }
 
-/* depth layers drift against the pointer */
-.layer { position: absolute; inset: 0; transform: translate3d(calc(var(--px, 0) * var(--dp, 0) * 28px), calc(var(--py, 0) * var(--dp, 0) * 16px), 0); }
-#stage.reduced .layer { transform: none; }
+/* depth layers drift against the pointer. They carry no transform at rest: a full-screen layer with a 3D
+   transform is its own composited layer, and on Safari each one costs (1920×1080 × pixel ratio²) of memory */
+.layer { position: absolute; inset: 0; }
+.scene.px-live > .layer { will-change: transform; }
+#stage.reduced .layer { transform: none !important; }
 
-/* cards that lean toward the pointer */
-.tilt { transform: perspective(1200px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateZ(0); transition: transform .7s var(--e-stage); transform-style: preserve-3d; }
-.tilt.hot { transition-duration: .16s; }
+/* cards that lean toward the pointer (3D only while the pointer is on them) */
+.tilt { transition: transform .7s var(--e-stage); }
+.tilt.hot { transform: perspective(1200px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition-duration: .16s; }
 .tilt > .glare { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 9; opacity: 0; transition: opacity .5s ease;
   background: radial-gradient(circle at var(--gx, 50%) var(--gy, 30%), rgba(255, 250, 240, .26), rgba(255, 250, 240, .06) 28%, transparent 58%); mix-blend-mode: screen; }
 .tilt.hot > .glare { opacity: 1; }
@@ -421,7 +441,8 @@ body.fs #hint .hint-demo, body.started #hint .hint-demo { pointer-events: none; 
 .itip { position: absolute; z-index: 30; padding: 7px 14px 7px 12px; border-radius: 999px; border: 1px solid rgba(255, 220, 170, .35); background: rgba(10, 8, 6, .62);
   font: 500 19px/1 var(--f-ko); color: rgba(255, 233, 200, .86); white-space: nowrap; opacity: 0; translate: -50% 8px; transition: opacity .5s ease, translate .5s var(--e-stage); pointer-events: none !important; }
 .itip .zh { font-family: var(--f-zh); }
-.itip::before { content: ''; display: inline-block; width: 8px; height: 8px; margin-right: 9px; border-radius: 50%; background: var(--acc); box-shadow: 0 0 10px var(--acc); vertical-align: 1px; animation: itipP 1.6s ease-in-out infinite; }
+.itip::before { content: ''; display: inline-block; width: 8px; height: 8px; margin-right: 9px; border-radius: 50%; background: var(--acc); box-shadow: 0 0 10px var(--acc); vertical-align: 1px; }
+#stage.pointing .scene.active .itip.on::before { animation: itipP 1.6s ease-in-out infinite; }
 @keyframes itipP { 50% { opacity: .35; } }
 #stage.pointing .scene.active .itip.on { opacity: 1; translate: -50% 0; }
 
@@ -430,10 +451,10 @@ body.fs #hint .hint-demo, body.started #hint .hint-demo { pointer-events: none; 
 .photo { padding: 12px 12px 0; background: #f2ebdd; box-shadow: 0 26px 60px rgba(0, 0, 0, .62), 0 2px 0 rgba(255, 255, 255, .12) inset; border-radius: 2px; }
 .photo .ph-img { position: relative; overflow: hidden; background: #1b1714; }
 .photo img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: var(--pos, 50% 25%); filter: contrast(1.04) saturate(.9); }
-.photo .ph-cap { padding: 11px 4px 4px; font: 500 21px/1.25 var(--f-ko); color: #2a221a; white-space: nowrap; }
+.photo .ph-cap { padding: 11px 4px 4px; font: 500 21px/1.25 var(--f-ko); color: #2a221a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .photo .ph-cap .zh { font-family: var(--f-zh); }
 [data-lang="bi"] .photo .ph-cap .zh { opacity: .75; }
-.photo .ph-cr { padding: 2px 4px 10px; font: 500 11px/1.3 var(--f-num); letter-spacing: .06em; color: rgba(42, 34, 26, .55); white-space: nowrap; }
+.photo .ph-cr { padding: 2px 4px 10px; font: 500 11px/1.3 var(--f-num); letter-spacing: .06em; color: rgba(42, 34, 26, .55); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .photo-w.nophoto { display: none; }
 
 /* ── 12-scenes-prologue ── */
@@ -756,6 +777,12 @@ body.fs #hint .hint-demo, body.started #hint .hint-demo { pointer-events: none; 
 
 /* dangerous · redesign */
 .morph.left { width: 900px; }
+/* below the high tier the gooey morph (a blur that changes every frame under a threshold filter) becomes a plain crossfade */
+.morph.xfade { filter: none; }
+.morph.xfade .m1 { animation: mxA 4.8s ease-in-out infinite; }
+.morph.xfade .m2 { animation: mxB 4.8s ease-in-out infinite; }
+@keyframes mxA { 0%, 27% { opacity: 1; } 50%, 77% { opacity: 0; } 100% { opacity: 1; } }
+@keyframes mxB { 0%, 27% { opacity: 0; } 50%, 77% { opacity: 1; } 100% { opacity: 0; } }
 .morph.left span { text-align: left; }
 .split { width: 760px; height: 660px; overflow: hidden; box-shadow: 0 40px 100px rgba(0, 0, 0, .55); }
 .split i { position: absolute; top: 0; bottom: 0; width: 50%; }
@@ -1090,6 +1117,7 @@ body.preview-mode #grain { animation: none; }
     <div id="scenes"></div>
     <canvas id="mask" width="1920" height="1080"></canvas>
     <canvas id="glow" width="1920" height="1080"></canvas>
+    <canvas id="fx" width="960" height="540"></canvas>
     <div id="overlays"></div>
     <div id="grain"></div>
     <div id="vignette"></div>
@@ -1261,6 +1289,14 @@ const Bus = (() => {
   return { ok: !!ch, send(msg) { try { ch && ch.postMessage(msg); } catch (e) { /* closed */ } }, on(f) { subs.add(f); return () => subs.delete(f); } };
 })();
 
+/* fade an element's opacity; once fully transparent it is also hidden, so it costs no layer at all */
+function fadeVis(el, op, dur = 0) {
+  if (!el) return;
+  clearTimeout(el._fv);
+  if (op > .001) { el.style.visibility = 'visible'; el.style.opacity = op; }
+  else { el.style.opacity = 0; el._fv = setTimeout(() => { if (+el.style.opacity <= .001) el.style.visibility = 'hidden'; }, dur * 1000 + 80); }
+}
+
 /* toasts (operator-facing). On the stage they go to the presenter window when it is open,
    so the projector never shows operator messages. */
 function toast(html, ms = 3200, opt = {}) {
@@ -1309,6 +1345,7 @@ const DEFAULTS = {
   trim: false,
   sfx: true,
   motion: 'auto',
+  quality: 'auto',
   vol: { master: 100, card: 45, speech: 18, low: 7, video: 0, max: 62 },
   name: L('林秉博', '林秉博'),
   course: L('글로벌 세미나', '全球研讨会'),
@@ -1579,18 +1616,71 @@ const Runs = {
   },
 };
 
+/* ── 03b-quality ── */
+/* ═══ QUALITY — what this device can afford ═══
+   Picked once at start (URL ?q=… · the setting · phone → low · Safari → standard · otherwise high, or what this
+   device was lowered to last time), then lowered one step at a time by the frame monitor if the show stutters. */
+const WEBKIT = /Apple/.test(navigator.vendor || '');
+/* WebKit sizes every composited layer by the device pixel ratio alone and ignores CSS transform scale, so on
+   Safari / iOS the stage is scaled with `zoom` (layers get the size they are drawn at). ?zoom=0 / ?zoom=1 forces it. */
+const ZOOMED = /[?&]zoom=1/.test(location.search) || (WEBKIT && !/[?&]zoom=0/.test(location.search));
+const Q = (() => {
+  const TIERS = ['high', 'standard', 'low'];
+  const P = {
+    high: { canvasMax: 1, fx: 1, fxRes: .6, fxFps: 30, disco: true },
+    standard: { canvasMax: .75, fx: .5, fxRes: .5, fxFps: 24, disco: false },
+    low: { canvasMax: .6, fx: 0, fxRes: .5, fxFps: 0, disco: false },
+  };
+  const NAME = { high: '高', standard: '标准', low: '省电' };
+  const url = (location.search.match(/[?&]q=(high|standard|low)/) || [])[1];
+  const subs = new Set();
+  let tier = 'high', why = '';
+  function pick() {
+    const pref = (Settings.get().quality || 'auto');
+    const saved = store.get('qauto', null);
+    if (url) { tier = url; why = '网址参数'; }
+    else if (VIEW === 'preview') { tier = 'low'; why = '预览窗口'; }
+    else if (pref !== 'auto' && TIERS.includes(pref)) { tier = pref; why = '手动设置'; }
+    else if (LITE) { tier = 'low'; why = '自动 · 手机 / 平板'; }
+    else if (saved && TIERS.includes(saved.tier)) { tier = saved.tier; why = `自动 · 这台电脑上次检测到约 ${saved.fps} fps`; }
+    else { tier = WEBKIT ? 'standard' : 'high'; why = WEBKIT ? '自动 · Safari' : '自动'; }
+    apply();
+  }
+  function apply() {
+    const st = $('#stage'); if (!st) return;
+    TIERS.forEach(t => st.classList.toggle('q-' + t, t === tier));
+    subs.forEach(f => { try { f(tier); } catch (e) { console.error(e); } });
+  }
+  return {
+    get tier() { return tier; }, get why() { return why; }, get p() { return P[tier]; }, get name() { return NAME[tier]; },
+    TIERS, NAME, pick, on(f) { subs.add(f); return () => subs.delete(f); },
+    /* may the frame monitor lower the tier on its own? */
+    auto: () => !url && VIEW === 'stage' && (Settings.get().quality || 'auto') === 'auto' && tier !== 'low',
+    step(fps) {
+      const i = TIERS.indexOf(tier); if (i >= TIERS.length - 1) return false;
+      tier = TIERS[i + 1]; why = `自动 · 检测到约 ${fps} fps，已降一级`;
+      store.set('qauto', { tier, fps, at: Date.now() });
+      apply(); return true;
+    },
+    forget() { store.del('qauto'); },
+  };
+})();
+
 /* ── 04-light ── */
 /* ═══ LIGHT ENGINE — the follow spot ═══
-   #mask (normal blend) = darkness with holes cut out, sitting ON TOP of the content,
+   #mask (normal blend) = darkness with holes cut out (and the vignette), sitting ON TOP of the content,
    so whatever is outside the light really is in the dark.
-   #glow (screen blend) = the visible beam in the haze, halos, dust, and era particles. */
+   #glow (screen blend) = the visible beam in the haze and the halos. Redrawn only when a light changes.
+   #fx   (screen blend, lower resolution, capped frame rate) = dust in the beams and the era particles.
+   Nothing here draws a frame when nothing on stage is moving. */
 const Light = (() => {
-  const mask = $('#mask'), glow = $('#glow');
-  const mc = mask.getContext('2d'), gc = glow.getContext('2d');
-  let k = 1;
+  const mask = $('#mask'), glow = $('#glow'), fxc = $('#fx');
+  const mc = mask.getContext('2d'), gc = glow.getContext('2d'), fc = fxc.getContext('2d');
+  let k = 1, fk = .5, lastScale = 1, lastFx = 0, fxShown = false;
   const S = { ambient: 1, warm: 1, haze: 0, dust: 0, wash: 0, bloom: 0, lights: new Map() };
   const tweens = [];
-  const glowLayers = new Set(), maskLayers = new Set();
+  const glowLayers = new Set(), maskLayers = new Set(), fxLayers = new Set();
+  const stats = { mask: 0, glow: 0, fx: 0 };   /* redraw counters, for diagnostics */
   let dirty = true, still = false, reduced = false, t0 = now();
   const NUM = ['x', 'y', 'rx', 'ry', 'soft', 'i', 'sx', 'sy', 'ang', 'spread', 'len', 'w', 'h', 'r', 'flick', 'rim'];
   const DEF = {
@@ -1600,12 +1690,15 @@ const Light = (() => {
   };
 
   function setScale(s) {
-    const nk = clamp(Math.round(s * 20) / 20, .5, LITE ? .6 : 1);
-    if (nk === k && mask.width === Math.round(W * nk)) return;
-    k = nk;
+    lastScale = s;
+    const nk = clamp(Math.round(s * 20) / 20, .5, Q.p.canvasMax), nf = Math.round(nk * Q.p.fxRes * 20) / 20;
+    if (nk === k && nf === fk && mask.width === Math.round(W * nk) && fxc.width === Math.round(W * nf)) return;
+    k = nk; fk = nf;
     for (const c of [mask, glow]) { c.width = Math.round(W * k); c.height = Math.round(H * k); }
-    dirty = true; Loop.kick();
+    fxc.width = Math.round(W * fk); fxc.height = Math.round(H * fk);
+    dirty = true; fxShown = true; Loop.kick();
   }
+  Q.on(() => setScale(lastScale));
 
   function to(o, key, b, dur, ez, delay = 0) {
     for (let i = tweens.length - 1; i >= 0; i--) if (tweens[i].o === o && tweens[i].k === key) tweens.splice(i, 1);
@@ -1769,6 +1862,14 @@ const Light = (() => {
     rrect(c, l.x - l.w / 2, l.y - l.h / 2, l.w, l.h, l.r); c.fill(); c.restore();
   }
 
+  /* the vignette, drawn into the darkness (one full-screen layer fewer) */
+  function vignette(c) {
+    c.save(); c.translate(W / 2, H * .48); c.scale(1, (H * .7) / (W * .72));
+    const r = W * .72, g = c.createRadialGradient(0, 0, 0, 0, 0, r);
+    g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(.58, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.55)');
+    c.fillStyle = g; c.fillRect(-W, -r * 2, W * 2, r * 4); c.restore();
+  }
+
   /* dust motes living in the beams */
   const dust = Array.from({ length: 220 }, (_, n) => {
     const r = Math.random;
@@ -1815,11 +1916,13 @@ const Light = (() => {
       if (p >= 1) tweens.splice(n, 1); else animating = true;
     }
     for (const [id, l] of S.lights) if (l.dead && l.i <= .001 && !tweens.some(tw => tw.o === l)) S.lights.delete(id);
-    const live = animating || dirty || maskLayers.size > 0;
+    const live = animating || dirty;
     const col = tint(S.warm);
     const time = (tn - t0) / 1000;
 
-    if (live) {
+    /* darkness: only when a light moved, or a mask layer (torch, disco ball) is running */
+    if (live || maskLayers.size) {
+      stats.mask++;
       mc.setTransform(k, 0, 0, k, 0, 0);
       mc.globalCompositeOperation = 'source-over'; mc.globalAlpha = 1;
       mc.clearRect(0, 0, W, H);
@@ -1831,42 +1934,63 @@ const Light = (() => {
         for (const f of maskLayers) f(mc, time, dt, S);
         mc.globalCompositeOperation = 'source-over';
       }
+      vignette(mc);
     }
 
-    gc.setTransform(k, 0, 0, k, 0, 0);
-    gc.globalCompositeOperation = 'source-over'; gc.globalAlpha = 1;
-    gc.clearRect(0, 0, W, H);
-    for (const l of S.lights.values()) { if (l.type === 'spot') glowSpot(gc, l, col); else if (l.type === 'beam') glowBeam(gc, l, col); else glowRect(gc, l, col); }
-    if (S.wash > .001) { gc.fillStyle = rgba(AMBER, .16 * S.wash); gc.fillRect(0, 0, W, H); }
-    if (S.bloom > .001) {
-      const g = gc.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, W * .75);
-      g.addColorStop(0, rgba([255, 244, 226], .9 * S.bloom)); g.addColorStop(.55, rgba([255, 226, 186], .55 * S.bloom)); g.addColorStop(1, rgba([255, 206, 150], .3 * S.bloom));
-      gc.fillStyle = g; gc.fillRect(0, 0, W, H);
-    }
-    if (S.dust > .01 && !reduced) {
-      gc.globalCompositeOperation = 'lighter';
-      for (const p of dust) {
-        if (!still) {
-          p.x += (p.vx + Math.sin(time * .3 + p.ph) * 4) * dt * p.sp; p.y += (p.vy + Math.cos(time * .23 + p.ph) * 3) * dt * p.sp;
-          if (p.x < -10) p.x = W + 10; if (p.x > W + 10) p.x = -10; if (p.y < -10) p.y = H + 10; if (p.y > H + 10) p.y = -10;
-        }
-        const f = litFactor(p.x, p.y); if (f <= .02) continue;
-        const tw = .55 + .45 * Math.sin(time * p.sp * 2.1 + p.ph);
-        const a = clamp(S.dust * f * tw * (.35 + p.z * .65), 0, 1);
-        const r = .7 + p.z * 1.9;
-        gc.fillStyle = rgba(col, a); gc.beginPath(); gc.arc(p.x, p.y, r, 0, TAU); gc.fill();
+    /* glow: the same rule */
+    if (live || glowLayers.size) {
+      stats.glow++;
+      gc.setTransform(k, 0, 0, k, 0, 0);
+      gc.globalCompositeOperation = 'source-over'; gc.globalAlpha = 1;
+      gc.clearRect(0, 0, W, H);
+      for (const l of S.lights.values()) { if (l.type === 'spot') glowSpot(gc, l, col); else if (l.type === 'beam') glowBeam(gc, l, col); else glowRect(gc, l, col); }
+      if (S.wash > .001) { gc.fillStyle = rgba(AMBER, .16 * S.wash); gc.fillRect(0, 0, W, H); }
+      if (S.bloom > .001) {
+        const g = gc.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, W * .75);
+        g.addColorStop(0, rgba([255, 244, 226], .9 * S.bloom)); g.addColorStop(.55, rgba([255, 226, 186], .55 * S.bloom)); g.addColorStop(1, rgba([255, 206, 150], .3 * S.bloom));
+        gc.fillStyle = g; gc.fillRect(0, 0, W, H);
       }
-      gc.globalCompositeOperation = 'source-over';
+      for (const f of glowLayers) f(gc, time, dt, S);
     }
-    for (const f of glowLayers) f(gc, time, dt, S);
+
+    /* particles: their own small canvas, at a capped frame rate, and only while there are any */
+    const P = Q.p, wantFx = P.fx > 0 && !reduced && (S.dust > .01 || [...fxLayers].some(l => l.active()));
+    if (wantFx) {
+      if (tn - lastFx >= 1000 / P.fxFps - 4) {
+        const fdt = Math.min(.15, lastFx ? (tn - lastFx) / 1000 : dt); lastFx = tn; stats.fx++;
+        fc.setTransform(fk, 0, 0, fk, 0, 0); fc.globalCompositeOperation = 'source-over'; fc.globalAlpha = 1;
+        fc.clearRect(0, 0, W, H);
+        if (S.dust > .01) {
+          fc.globalCompositeOperation = 'lighter';
+          const n = Math.ceil(dust.length * P.fx);
+          for (let q = 0; q < n; q++) {
+            const p = dust[q];
+            if (!still) {
+              p.x += (p.vx + Math.sin(time * .3 + p.ph) * 4) * fdt * p.sp; p.y += (p.vy + Math.cos(time * .23 + p.ph) * 3) * fdt * p.sp;
+              if (p.x < -10) p.x = W + 10; if (p.x > W + 10) p.x = -10; if (p.y < -10) p.y = H + 10; if (p.y > H + 10) p.y = -10;
+            }
+            const f = litFactor(p.x, p.y); if (f <= .02) continue;
+            const tw = .55 + .45 * Math.sin(time * p.sp * 2.1 + p.ph);
+            const a = clamp(S.dust * f * tw * (.35 + p.z * .65), 0, 1);
+            const r = .9 + p.z * 2.1;
+            fc.fillStyle = rgba(col, a); fc.beginPath(); fc.arc(p.x, p.y, r, 0, TAU); fc.fill();
+          }
+          fc.globalCompositeOperation = 'source-over';
+        }
+        for (const l of fxLayers) if (l.active()) l.draw(fc, time, fdt, P.fx);
+        fxShown = true;
+      }
+    } else if (fxShown) { fc.setTransform(1, 0, 0, 1, 0, 0); fc.clearRect(0, 0, fxc.width, fxc.height); fxShown = false; lastFx = 0; }
     dirty = false;
   }
   Loop.add(frame);
 
   return {
-    set, flicker, setScale, S,
+    set, flicker, setScale, S, stats, why: () => ({ tweens: tweens.length, dirty, maskLayers: maskLayers.size, glowLayers: glowLayers.size, fxLayers: [...fxLayers].filter(l => l.active()).length, dust: S.dust }),
     get: id => S.lights.get(id),
-    glowLayer(f) { glowLayers.add(f); Loop.kick(); return () => glowLayers.delete(f); },
+    glowLayer(f) { glowLayers.add(f); Loop.kick(); return () => { glowLayers.delete(f); dirty = true; }; },
+    /* particles: draw(ctx, time, dt, share) where share (0–1) is the part of the particles this device draws */
+    fxLayer(draw, active) { const l = { draw, active }; fxLayers.add(l); Loop.kick(); return () => fxLayers.delete(l); },
     maskLayer(f) { maskLayers.add(f); Loop.kick(); return () => { maskLayers.delete(f); dirty = true; }; },
     touch() { dirty = true; Loop.kick(); },
     setReduced(v) { reduced = !!v; },
@@ -1898,7 +2022,7 @@ const ERAS = {
   finale:    { bg: 'radial-gradient(ellipse 60% 45% at 50% 82%, #120d09 0%, #060504 60%, #030302 100%)', grain: .07, light: { ambient: .965, warm: 1, haze: .85, dust: 1 } },
 };
 
-/* ═══ FX — particles that belong to a decade (drawn into the glow layer) ═══ */
+/* ═══ FX — particles that belong to a decade (drawn into the particle canvas, at the share this device can afford) ═══ */
 const FX = (() => {
   const lv = { motes: 0, disco: 0, gold: 0, bokeh: 0, rise: 0, rain: 0, crowd: 0 };
   const stops = {};
@@ -1920,7 +2044,7 @@ const FX = (() => {
       if (a === target) continue;
       stops[k] = tween(dur * 1000, (e) => { lv[k] = lerp(a, target, e); }, ease.inOutSine);
     }
-    if ((cfg.disco || 0) > 0 && !discoOff) discoOff = Light.maskLayer(discoMask);
+    if ((cfg.disco || 0) > 0 && !discoOff && Q.p.disco) discoOff = Light.maskLayer(discoMask);
     if (!(cfg.disco > 0) && discoOff) setTimeout(() => { if (lv.disco <= .001 && discoOff) { discoOff(); discoOff = null; } }, dur * 1000 + 50);
   }
 
@@ -1940,34 +2064,35 @@ const FX = (() => {
     }
   }
 
-  Light.glowLayer((c, t, dt) => {
+  const take = (a, share) => (share >= 1 ? a : a.slice(0, Math.ceil(a.length * share)));
+  Light.fxLayer((c, t, dt, share) => {
     const live = !reduced;
     c.globalCompositeOperation = 'lighter';
-    if (lv.motes > .01) for (const p of motes) {
+    if (lv.motes > .01) for (const p of take(motes, share)) {
       if (live) { p.x += (p.vx + Math.sin(t * .4 + p.ph) * 5) * dt; p.y += p.vy * dt; if (p.y < -10) { p.y = H + 10; p.x = Math.random() * W; } if (p.x < -10) p.x = W + 10; if (p.x > W + 10) p.x = -10; }
       c.fillStyle = `rgba(255,214,150,${.16 * lv.motes * (.6 + .4 * Math.sin(t * 1.3 + p.ph))})`;
       c.beginPath(); c.arc(p.x, p.y, p.r, 0, TAU); c.fill();
     }
-    if (lv.disco > .01) for (const d of disco) {
+    if (lv.disco > .01) for (const d of take(disco, share)) {
       const p = discoPos(d, live ? t : 0); if (!p) continue;
       const g = c.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.rx * 1.6);
       g.addColorStop(0, `rgba(255,236,196,${.32 * lv.disco * p.f})`); g.addColorStop(1, 'rgba(255,236,196,0)');
       c.fillStyle = g; c.beginPath(); c.arc(p.x, p.y, p.rx * 1.6, 0, TAU); c.fill();
     }
-    if (lv.gold > .01) for (const p of gold) {
+    if (lv.gold > .01) for (const p of take(gold, share)) {
       if (live) { p.y += p.vy * dt; if (p.y < -12) { p.y = H + 12; p.x = Math.random() * W; } }
       const x = p.x + Math.sin(t * .5 + p.ph) * p.sw;
       const a = lv.gold * (.18 + .5 * Math.pow(Math.max(0, Math.sin(t * p.tw + p.ph)), 6));
       c.fillStyle = `rgba(236,196,104,${a})`; c.beginPath(); c.arc(x, p.y, p.r, 0, TAU); c.fill();
     }
-    if (lv.bokeh > .01) for (const b of bokeh) {
+    if (lv.bokeh > .01) for (const b of take(bokeh, share)) {
       if (live) { b.x += b.vx * dt; b.y += b.vy * dt; if (b.x < -120) b.x = W + 120; if (b.x > W + 120) b.x = -120; if (b.y < -120) b.y = H * .8; if (b.y > H * .85) b.y = -100; }
       const a = b.a * lv.bokeh * (.75 + .25 * Math.sin(t * .6 + b.ph));
       const g = c.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r);
       g.addColorStop(0, Light.rgba(b.c, a * .55)); g.addColorStop(.82, Light.rgba(b.c, a * .75)); g.addColorStop(.92, Light.rgba(b.c, a)); g.addColorStop(1, Light.rgba(b.c, 0));
       c.fillStyle = g; c.beginPath(); c.arc(b.x, b.y, b.r, 0, TAU); c.fill();
     }
-    if (lv.rise > .01) for (const p of rise) {
+    if (lv.rise > .01) for (const p of take(rise, share)) {
       if (live) { p.y -= p.vy * dt; if (p.y < -20) { p.y = H + 20 + Math.random() * 200; p.x = Math.random() * W; } }
       const x = p.x + Math.sin(t * .7 + p.ph) * p.sw, f = clamp(p.y / H, 0, 1);
       const a = lv.rise * .55 * f * (.6 + .4 * Math.sin(t * 2 + p.ph));
@@ -1977,13 +2102,13 @@ const FX = (() => {
     }
     if (lv.rain > .01) {
       c.lineWidth = 1.2; c.lineCap = 'round';
-      for (const r of rain) {
+      for (const r of take(rain, share)) {
         if (live) { r.y += r.v * dt; r.x -= r.v * .2 * dt; if (r.y > H + 60) { r.y = -60 - Math.random() * 200; r.x = Math.random() * (W + 300); } }
         c.strokeStyle = `rgba(200,214,232,${r.a * lv.rain})`;
         c.beginPath(); c.moveTo(r.x, r.y); c.lineTo(r.x + r.l * .2, r.y - r.l); c.stroke();
       }
     }
-    if (lv.crowd > .01) for (const p of crowd) {
+    if (lv.crowd > .01) for (const p of take(crowd, share)) {
       if (live) { if (p.f > 0) p.f = Math.max(0, p.f - dt * 3.2); else if (Math.random() < dt * .09) p.f = 1; }
       const base = .1 + .08 * Math.sin(t * 1.7 + p.ph);
       const a = lv.crowd * (base + p.f * .9);
@@ -1991,7 +2116,7 @@ const FX = (() => {
       c.beginPath(); c.arc(p.x, p.y, p.r * (1 + p.f * 1.4), 0, TAU); c.fill();
     }
     c.globalCompositeOperation = 'source-over';
-  });
+  }, () => Object.values(lv).some(v => v > .01));
 
   return { set, lv, setReduced(v) { reduced = !!v; } };
 })();
@@ -2028,11 +2153,11 @@ const Era = (() => {
       stage.dataset.era = key;
       cur = key;
     }
-    const g = $('#grain'); g.style.transitionDuration = d + 's'; g.style.opacity = e.grain ?? .07;
-    ['leak', 'scan', 'cold', 'warm'].forEach(k => { const el = $('#ov-' + k); el.style.transitionDuration = d + 's'; el.style.opacity = (e.over && e.over[k]) || 0; });
+    const g = $('#grain'); g.style.transitionDuration = d + 's'; fadeVis(g, e.grain ?? .07, d);
+    ['leak', 'scan', 'cold', 'warm'].forEach(k => { const el = $('#ov-' + k); el.style.transitionDuration = d + 's'; fadeVis(el, (e.over && e.over[k]) || 0, d); });
     const gr = $('#grade'); gr.style.transition = `opacity ${d}s linear`;
-    if (e.grade) { Object.assign(gr.style, { background: e.grade.background, mixBlendMode: e.grade.mixBlendMode || 'normal' }); gr.style.opacity = e.grade.opacity ?? 1; }
-    else gr.style.opacity = 0;
+    if (e.grade) { Object.assign(gr.style, { background: e.grade.background, mixBlendMode: e.grade.mixBlendMode || 'normal' }); fadeVis(gr, e.grade.opacity ?? 1, d); }
+    else fadeVis(gr, 0, d);
     stage.classList.toggle('desat', !!e.desat);
     FX.set(e.fx || {}, d);
   }
@@ -2539,7 +2664,9 @@ const Video = (() => {
         playRange('tv', 'motown', { start: +cfg.start || 0, end: cfg.end != null && cfg.end !== '' ? +cfg.end : null, rect, onEnd: () => { if (token !== beatToken) return; stop('tv'); Music.duck(false); } });
       }
     };
-    if (v.countdown && !skipCountdown) countdown(2.4).then(go);
+    /* no film leader when the video cannot play here (phone, or an embed-blocking preview): go straight to its card */
+    const playable = !!so.file || (YTAPI.state !== 'failed' && !LITE);
+    if (v.countdown && !skipCountdown && playable) countdown(2.4).then(go);
     else setTimeout(go, Music.status().level > 0 ? 900 : 0);
   }
 
@@ -2866,7 +2993,8 @@ const Figure = (() => {
       this.castK = o.castK ?? .55; this.castS = o.castS ?? .22;
       this.reflect = !!o.reflect;
       this.vb = o.vb || [-480, -980, 960, 1060];
-      this.useFx = o.fx !== false && !LITE;
+      /* the low tier drops the figure filters, except the rim of a silhouette: without it a dark figure on a dark stage disappears */
+      this.useFx = o.fx !== false && (Q.tier !== 'low' || (o.style || 'silhouette') === 'silhouette');
       this.scale = 1;
       this.p = Object.assign({}, BASE, POSES[o.pose || 'stand'] || {}, o.p || {});
       this.ik = null;
@@ -2947,9 +3075,11 @@ const Figure = (() => {
               <path class="p-fArm2"/><path class="p-fHand2"/>
               <path class="p-neck"/><path class="p-hair"/><path class="p-head"/><path class="p-hat"/><path class="p-band"/><path class="p-shP"/><path class="p-shF"/>
               <path class="p-aoA"/><path class="p-nArm"/><path class="p-nDet"/><path class="p-nHand"/><path class="p-mic"/>
-              <g class="p-tw"></g>
             </g>
           </g>
+          <!-- the twinkling glints live outside the parts: the parts are filtered and re-used by the shadow and the
+               reflection, so anything animating in there would re-render the whole figure three times a frame -->
+          <g class="p-tw"></g>
         </g>`;
       this.el = s;
       const q = {}; s.querySelectorAll('[class^="p-"], [class^="fg-"]').forEach(e => { q[e.getAttribute('class').split(' ')[0]] = e; });
@@ -2985,7 +3115,7 @@ const Figure = (() => {
         s.querySelector('defs').insertAdjacentHTML('beforeend', `<filter id="${id}-ol" x="-15%" y="-15%" width="130%" height="130%"><feMorphology class="ol-r" in="SourceAlpha" operator="dilate" radius="2" result="d"/><feComposite in="d" in2="SourceAlpha" operator="out" result="o"/><feFlood flood-color="${lc}" flood-opacity="${lo}"/><feComposite in2="o" operator="in" result="ln"/><feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="ln"/></feMerge></filter>`);
         s.querySelectorAll('.fg-parts > path').forEach(e => { if (e.getAttribute('fill') !== 'none') e.setAttribute('filter', `url(#${id}-ol)`); });
       }
-      if (this.styl === 'costume' && !LITE) {
+      if (this.styl === 'costume' && Q.tier !== 'low') {
         ['p-aoA', 'p-aoL'].forEach(k => { q[k].setAttribute('fill', '#000'); q[k].setAttribute('fill-opacity', this.c.light ? '.22' : '.42'); q[k].setAttribute('filter', `url(#${id}-aob)`); });
         q['p-aoA'].setAttribute('clip-path', `url(#${id}-clT)`); q['p-aoL'].setAttribute('clip-path', `url(#${id}-clL)`);
       } else { q['p-aoA'].style.display = q['p-aoL'].style.display = 'none'; }
@@ -3606,12 +3736,29 @@ function countUp(el, to, { dur = 2200, from = 0, fmtFn = (v) => Math.round(v).to
 }
 
 /* ── 10b-interact ── */
+/* where the stage sits in the window (written by App.fit). Pointer maths uses this rather than
+   getBoundingClientRect, whose meaning under CSS zoom differs between browsers and versions. */
+const StageFit = { s: 1, ox: 0, oy: 0 };
+/* an element's box in stage coordinates, from layout (offset* plus CSS translate; reveal transforms ignored).
+   Right under transform or zoom scaling alike. */
+function stageBox(el) {
+  const shift = (e) => {
+    const t = getComputedStyle(e).translate;
+    if (!t || t === 'none') return [0, 0];
+    const [a, b = '0px'] = t.split(' '), v = (s, size) => s.endsWith('%') ? parseFloat(s) / 100 * size : parseFloat(s) || 0;
+    return [v(a, e.offsetWidth), v(b, e.offsetHeight)];
+  };
+  let x = 0, y = 0;
+  for (let e = el; e && e.id !== 'stage' && !e.classList.contains('scene'); e = e.offsetParent) { const [sx, sy] = shift(e); x += e.offsetLeft + sx; y += e.offsetTop + sy; }
+  return { x, y, w: el.offsetWidth, h: el.offsetHeight };
+}
+
 /* ═══ POINTER — stage-space pointer, shared by parallax, tilt, torch and drag ═══ */
 const Pointer = (() => {
-  const stage = $('#stage'), scenes = $('#scenes');
+  const stage = $('#stage');
   const P = { x: W / 2, y: H / 2, nx: 0, ny: 0, px: 0, py: 0, t: -1e9, type: '', inside: false };
   const live = VIEW === 'stage';
-  const toStage = (cx, cy) => { const r = stage.getBoundingClientRect(); return [(cx - r.left) / r.width * W, (cy - r.top) / r.height * H]; };
+  const toStage = (cx, cy) => [(cx - StageFit.ox) / StageFit.s, (cy - StageFit.oy) / StageFit.s];
   function move(e) {
     const [x, y] = toStage(e.clientX, e.clientY);
     P.x = x; P.y = y; P.nx = clamp(x / W * 2 - 1, -1, 1); P.ny = clamp(y / H * 2 - 1, -1, 1);
@@ -3625,11 +3772,21 @@ const Pointer = (() => {
   }
   const blocked = () => (typeof Panel !== 'undefined' && Panel.isOpen()) || (typeof Overview !== 'undefined' && Overview.open);
   const active = (ms = 3000) => live && P.inside && P.type !== 'touch' && now() - P.t < ms && !Director.reduced && !blocked();
-  let lx = 0, ly = 0, wasPointing = false;
+  /* parallax: only the active scene's layers move, by an inline transform, and only while the pointer is about;
+     at rest they have no transform at all (no compositing, no style work on the other scenes) */
+  let lx = 0, ly = 0, wasPointing = false, curSc = null, layers = [];
+  const settle = () => { layers.forEach(([l]) => { l.style.transform = ''; }); if (curSc) curSc.classList.remove('px-live'); };
   Loop.add(() => {
-    const a = active(4000);
+    const a = active(4000) && Q.tier !== 'low';
     P.px += ((a ? P.nx : 0) - P.px) * .045; P.py += ((a ? P.ny : 0) - P.py) * .045;
-    if (Math.abs(P.px - lx) > .0004 || Math.abs(P.py - ly) > .0004) { lx = P.px; ly = P.py; scenes.style.setProperty('--px', P.px.toFixed(4)); scenes.style.setProperty('--py', P.py.toFixed(4)); }
+    const sc = $('.scene.active', stage);
+    if (sc !== curSc) { settle(); curSc = sc; layers = sc ? $$(':scope > .layer', sc).map(l => [l, parseFloat(l.style.getPropertyValue('--dp')) || 0]) : []; lx = ly = 0; }
+    const resting = Math.abs(P.px) < .0006 && Math.abs(P.py) < .0006;
+    if (resting) { if (lx || ly) { lx = ly = 0; settle(); } }
+    else if (Math.abs(P.px - lx) > .0004 || Math.abs(P.py - ly) > .0004) {
+      lx = P.px; ly = P.py; if (curSc) curSc.classList.add('px-live');
+      layers.forEach(([l, dp]) => { l.style.transform = `translate(${(P.px * dp * 28).toFixed(2)}px, ${(P.py * dp * 16).toFixed(2)}px)`; });
+    }
     const pointing = active(2600);
     if (pointing !== wasPointing) { wasPointing = pointing; stage.classList.toggle('pointing', pointing); }
   });
@@ -3642,12 +3799,14 @@ const Pointer = (() => {
   const root = $('#scenes');
   let cur = null;
   const reset = (t) => { t.classList.remove('hot'); t.style.setProperty('--rx', '0deg'); t.style.setProperty('--ry', '0deg'); };
+  let box = null;
   root.addEventListener('pointermove', (e) => {
     if (e.pointerType === 'touch' || Director.reduced) return;
     const t = e.target.closest && e.target.closest('.tilt');
-    if (t !== cur) { if (cur) reset(cur); cur = t; }
-    if (!t) return;
-    const r = t.getBoundingClientRect(), u = (e.clientX - r.left) / r.width, v = (e.clientY - r.top) / r.height, m = +(t.dataset.tilt || 10);
+    if (t !== cur) { if (cur) reset(cur); cur = t; box = t ? stageBox(t) : null; }
+    if (!t || !box || !box.w || !box.h) return;
+    const [sx, sy] = Pointer.toStage(e.clientX, e.clientY);
+    const u = clamp((sx - box.x) / box.w, 0, 1), v = clamp((sy - box.y) / box.h, 0, 1), m = +(t.dataset.tilt || 10);
     t.style.setProperty('--ry', ((u - .5) * 2 * m).toFixed(2) + 'deg'); t.style.setProperty('--rx', (-(v - .5) * 2 * m * .8).toFixed(2) + 'deg');
     t.style.setProperty('--gx', (u * 100).toFixed(1) + '%'); t.style.setProperty('--gy', (v * 100).toFixed(1) + '%');
     t.classList.add('hot');
@@ -3665,14 +3824,14 @@ const Torch = (() => {
   let on = store.get('torch', true);
   const enabled = () => Pointer.live && on;
   function cut(c) {
-    if (level < .005) return;
+    if (level < .02) return;
     const r = lerp(R0, R1, full), a = lerp(.7, 1, full) * level;
     const g = c.createRadialGradient(x, y, 0, x, y, r);
     g.addColorStop(0, `rgba(0,0,0,${a})`); g.addColorStop(.45, `rgba(0,0,0,${a * .82})`); g.addColorStop(.8, `rgba(0,0,0,${a * .3})`); g.addColorStop(1, 'rgba(0,0,0,0)');
     c.fillStyle = g; c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill();
   }
   function glow(c) {
-    if (level < .005) return;
+    if (level < .02) return;
     const r = lerp(R0, R1, full) * 1.25, col = Light.tint(Light.S.warm);
     const g = c.createRadialGradient(x, y, 0, x, y, r);
     g.addColorStop(0, Light.rgba(col, .07 * level * (1 + full))); g.addColorStop(.75, Light.rgba(col, .035 * level)); g.addColorStop(.82, Light.rgba(col, .05 * level * full)); g.addColorStop(1, Light.rgba(col, 0));
@@ -3680,12 +3839,13 @@ const Torch = (() => {
   }
   Loop.add(() => {
     const want = enabled() && Pointer.active(full > .5 ? 6000 : 2400) ? 1 : 0;
-    level += (want - level) * (want > level ? .12 : .035);
+    level += (want - level) * (want > level ? .12 : .06);
     full += (fullTarget - full) * .05;
     const P = Pointer.P;
     x += (P.x - x) * .2; y += (P.y - y) * .2;
-    if (level > .005 && !off) { off = Light.maskLayer(cut); glowOff = Light.glowLayer(glow); }
-    if (level <= .005 && off) { off(); glowOff(); off = glowOff = null; level = 0; Light.touch(); }
+    /* the torch's layers redraw the light every frame, so they are dropped as soon as it is too faint to see */
+    if (level > .02 && !off) { off = Light.maskLayer(cut); glowOff = Light.glowLayer(glow); }
+    if (level <= .02 && want === 0 && off) { off(); glowOff(); off = glowOff = null; level = 0; Light.touch(); }
   });
   return {
     setFull(v) { fullTarget = v ? 1 : 0; },
@@ -3746,7 +3906,8 @@ function photoPrint(slot, o) {
   const p = PHOTOS[slot];
   const img = h('img', { alt: '', decoding: 'async', loading: 'lazy', draggable: 'false', referrerpolicy: 'no-referrer' });
   /* the reveal moves the outer box; the print inside leans toward the pointer */
-  const print = h('div.photo', { style: { rotate: (o.rot || 0) + 'deg', '--pos': p.pos } },
+  /* the print is exactly as wide as its photo: small type under a browser's minimum font size must not widen it */
+  const print = h('div.photo', { style: { rotate: (o.rot || 0) + 'deg', '--pos': p.pos, width: (o.w + 24) + 'px' } },
     h('div.ph-img', { style: { width: o.w + 'px', height: o.h + 'px' } }, img),
     h('div.ph-cap', {}, T(p.cap)), h('div.ph-cr', { text: p.credit }));
   const el = A('div.photo-w', o.x, o.y, { show: o.show, d: o.d, cls: o.cls || 'drop' }, print);
@@ -3792,6 +3953,13 @@ const Scenes = (() => {
     const d = defs[key], sc = SCENES.find(s => s.key === key);
     if (d && d.build) { try { d.build(els[key], sc); } catch (e) { console.error('build failed:', key, e); } }
   }
+  /* phones keep only the scenes around the current one; the rest are emptied and rebuilt if the show returns */
+  function dispose(key) {
+    if (!built.has(key)) return;
+    const d = defs[key];
+    try { d && d.leave && d.leave(els[key]); } catch (e) { console.error(e); }
+    els[key].replaceChildren(); built.delete(key);
+  }
   function warm(from = 0) {
     const order = SCENES.map((s, k) => [Math.abs(k - from) + (k < from ? .5 : 0), s.key]).sort((a, b) => a[0] - b[0]).map(x => x[1]);
     const idle = window.requestIdleCallback ? (f) => requestIdleCallback(f, { timeout: 1500 }) : (f) => setTimeout(f, 120);
@@ -3806,8 +3974,15 @@ const Scenes = (() => {
   function run(sc, i, opt = {}) {
     clearTimers();
     ensure(sc.key);
-    /* phones build only what comes next */
-    if (LITE) { const n = SCENES[SCENES.indexOf(sc) + 1]; if (n && !built.has(n.key)) setTimeout(() => ensure(n.key), 400); }
+    /* a scene that was display:none until now needs its styles resolved before its reveals change,
+       or the reveal transitions would be skipped */
+    void els[sc.key].offsetWidth;
+    /* phones build only what comes next, and let go of what is two or more scenes away */
+    if (LITE) {
+      const at = SCENES.indexOf(sc), n = SCENES[at + 1];
+      SCENES.forEach((s, k) => { if (Math.abs(k - at) > 1 && built.has(s.key) && !els[s.key].classList.contains('leaving')) dispose(s.key); });
+      if (n && !built.has(n.key)) setTimeout(() => ensure(n.key), 400);
+    }
     const el = els[sc.key];
     shows(el, i);
     const d = defs[sc.key];
@@ -3908,15 +4083,7 @@ function stageFig(parent, o) {
 /* a soft rectangle of light fitted to a placed line of text. Measured from layout (CSS translate included,
    reveal transforms ignored), so the same call fits Korean, Chinese and the bilingual stack. */
 function textLight(id, el, o = {}) {
-  const shift = (e) => {
-    const t = getComputedStyle(e).translate;
-    if (!t || t === 'none') return [0, 0];
-    const [a, b = '0px'] = t.split(' '), v = (s, size) => s.endsWith('%') ? parseFloat(s) / 100 * size : parseFloat(s) || 0;
-    return [v(a, e.offsetWidth), v(b, e.offsetHeight)];
-  };
-  let x = 0, y = 0;
-  for (let e = el; e && !e.classList.contains('scene') && e.id !== 'stage'; e = e.offsetParent) { const [sx, sy] = shift(e); x += e.offsetLeft + sx; y += e.offsetTop + sy; }
-  const w = el.offsetWidth, hh = el.offsetHeight, px = o.pad ?? 30, py = o.padY ?? 16;
+  const { x, y, w, h: hh } = stageBox(el), px = o.pad ?? 30, py = o.padY ?? 16;
   return { id, type: 'rect', x: x + w / 2, y: y + hh / 2, w: w + px * 2, h: hh + py * 2, r: Math.min(40, hh / 2 + py), soft: o.soft ?? 46, i: o.i ?? .75, delay: o.delay || 0 };
 }
 
@@ -4014,7 +4181,9 @@ Scenes.define('cold', {
       const paths = this.ld.querySelectorAll('path'), dots = this.ld.querySelectorAll('circle');
       this.CO.forEach((c, i) => {
         const [ex, ey] = this.fig.anchor(c.k), sx = c.side === 'r' ? c.x + 20 : c.x - 20, kx = c.side === 'r' ? sx + 54 : sx - 54;
-        paths[i].setAttribute('d', `M${sx} ${c.y}H${kx}L${ex.toFixed(1)} ${ey.toFixed(1)}`);
+        const d = `M${sx} ${c.y}H${kx}L${ex.toFixed(1)} ${ey.toFixed(1)}`;
+        if (paths[i].getAttribute('d') === d) return;     /* unchanged: touching the SVG would repaint it every frame */
+        paths[i].setAttribute('d', d);
         dots[i].setAttribute('cx', ex.toFixed(1)); dots[i].setAttribute('cy', ey.toFixed(1));
       });
     });
@@ -4192,7 +4361,8 @@ Scenes.define('title', {
       return f;
     });
     this.fill();
-    Settings.on(() => this.fill());
+    if (this._offFill) this._offFill();          /* a rebuilt scene must not leave the old listener behind */
+    this._offFill = Settings.on(() => this.fill());
   },
   fill() {
     const s = Settings.get();
@@ -4969,11 +5139,14 @@ Scenes.define('dangerous', {
   morphRun(on) {
     if (this._m) { this._m(); this._m = null; }
     const a = $('.m1', this.morph), b = $('.m2', this.morph);
-    if (!on || Director.reduced) { a.style.filter = ''; a.style.opacity = 1; b.style.opacity = 0; return; }
-    const hold = 1.3, mt = 1.1; let t0 = now();
+    this.morph.classList.remove('xfade');
+    if (!on || Director.reduced) { a.style.filter = b.style.filter = ''; a.style.opacity = 1; b.style.opacity = 0; return; }
+    if (Q.tier !== 'high') { a.style.filter = b.style.filter = a.style.opacity = b.style.opacity = ''; this.morph.classList.add('xfade'); return; }
+    const hold = 1.3, mt = 1.1; let t0 = now(), last = 0;
     const set = (x, f) => { x.style.filter = `blur(${Math.min(8 / Math.max(f, .001) - 8, 100)}px)`; x.style.opacity = Math.pow(f, .4); };
     this._m = Loop.add(() => {
-      const t = ((now() - t0) / 1000) % ((hold + mt) * 2);
+      const n = now(); if (n - last < 33) return; last = n;   /* 30 fps is plenty for a morph */
+      const t = ((n - t0) / 1000) % ((hold + mt) * 2);
       const phase = t < hold ? 0 : t < hold + mt ? (t - hold) / mt : t < hold * 2 + mt ? 1 : 1 - (t - hold * 2 - mt) / mt;
       set(b, phase); set(a, 1 - phase);
     });
@@ -5463,7 +5636,7 @@ Scenes.define('finale', {
       R('credit center nowrap', '3', 2.4, 'BEYOND THE SPOTLIGHT'),
       this.creditName));
     const fill = () => { this.creditName.innerHTML = ''; this.creditName.append(T(Settings.get().name)); };
-    fill(); Settings.on(fill);
+    fill(); if (this._offFill) this._offFill(); this._offFill = Settings.on(fill);
     mid.append(itip(560, 760, L('빛은 이제, 당신의 손에', '这束光，现在在你手里'), '1-3'));
   },
   beat(i, ctx, el) {
@@ -5562,7 +5735,10 @@ const Director = (() => {
     black.getAnimations().forEach(a => a.cancel());
     const from = +getComputedStyle(black).opacity;
     black.style.opacity = to;
-    if (ms > 0) black.animate([{ opacity: from }, { opacity: to }], { duration: ms, easing: 'ease-in-out' });
+    if (to > 0 || from > 0) black.style.visibility = 'visible';
+    const hide = () => { if (+black.style.opacity <= .001) black.style.visibility = 'hidden'; };
+    if (ms > 0) black.animate([{ opacity: from }, { opacity: to }], { duration: ms, easing: 'ease-in-out' }).onfinish = hide;
+    else hide();
   }
 
   function showScene(sc, mode, ms) {
@@ -5607,8 +5783,11 @@ const Director = (() => {
     document.body.classList.remove('started');
   }
 
+  /* listeners told after every page turn (the frame monitor uses it) */
+  const turned = new Set();
+  function go(target, mode = 'jump') { goRaw(target, mode); turned.forEach(f => { try { f(beat, mode); } catch (e) { console.error(e); } }); }
   /* go to a beat. mode: next | prev | jump */
-  function go(target, mode = 'jump') {
+  function goRaw(target, mode = 'jump') {
     target = clamp(target, -1, BEATS.length - 1);
     const from = beat;
     if (target === from && mode !== 'jump') return;
@@ -5687,7 +5866,8 @@ const Director = (() => {
   function flash() {
     if (reduced) return;
     const t = now(); if (t - lastFlash < 1500) return; lastFlash = t;
-    flashEl.animate([{ opacity: 0 }, { opacity: .35, offset: .23 }, { opacity: 0 }], { duration: 520, easing: 'ease-out' });
+    flashEl.style.visibility = 'visible';
+    flashEl.animate([{ opacity: 0 }, { opacity: .35, offset: .23 }, { opacity: 0 }], { duration: 520, easing: 'ease-out' }).onfinish = () => { flashEl.style.visibility = ''; };
   }
   function toggleBlack(v) { blackout = v == null ? !blackout : !!v; $('#bkey').classList.toggle('on', blackout); publish(); }
 
@@ -5699,7 +5879,8 @@ const Director = (() => {
   function publish() { if (VIEW !== 'stage') return; clearTimeout(pubTimer); pubTimer = setTimeout(() => Bus.send(snapshot()), 0); }
 
   return {
-    go, next, prev, finish, jumpScene, flash, toggleBlack, setLang, setReduced, publish, snapshot, skippable, step,
+    go, onTurn(f) { turned.add(f); return () => turned.delete(f); },
+    next, prev, finish, jumpScene, flash, toggleBlack, setLang, setReduced, publish, snapshot, skippable, step,
     get beat() { return beat; }, get reduced() { return reduced; }, get blackout() { return blackout; },
   };
 })();
@@ -5923,6 +6104,8 @@ const Panel = (() => {
         h('div.field', {}, h('label', { text: '画面文字（L 键切换）' }), sel('lang', [['ko', '韩文（正式演讲）'], ['zh', '中文（排练 / 中文观众）'], ['bi', '双语字幕（韩文为主）']])),
         h('div.field', {}, h('label', { text: '语速假设（韩文音节/秒）· 用于时间预算和跟光节奏' }), h('div.row', {}, rate, measured ? h('button.btn.sm', { type: 'button', text: `用排练实测 ${measured.toFixed(2)}`, on: { click: () => { Settings.set('rate', Math.round(measured * 100) / 100); render(); } } }) : h('span.muted', { text: '排练后可一键换成实测语速' }))),
         h('div.field', {}, h('label', { text: '动态效果' }), sel('motion', [['auto', '跟随系统设置'], ['full', '完整动效'], ['reduce', '减少动态（0.2 秒淡入淡出，关闭闪光与粒子）']])),
+        h('div.field', {}, h('label', { text: `画质 · 当前「${Q.name}」（${Q.why}）` }), sel('quality', [['auto', '自动（推荐：卡顿时自动降一级）'], ['high', '高 · 全部效果'], ['standard', '标准 · 胶片颗粒静止、粒子减半'], ['low', '省电 · 关闭滤镜与粒子（手机默认）']]),
+          Perf.last ? h('p.note', { text: `最近一次翻页：中位帧间隔 ${Perf.last.med} ms（约 ${Perf.last.fps} fps），最慢一成 ${Perf.last.p90} ms` }) : null),
         h('div.field', {}, h('label', { text: '超时预案' }), h('div.row', {}, trim, h('label', { for: 'opt-trim', text: '跳过所有 ✂ 句子（翻页时直接越过）' }))))),
       h('div.sec', {}, h('h3', { text: '标题页署名' }), h('p.note', { text: '标题页底部的一行；中韩两份分别显示在对应语言模式下。' }), h('div.grid2', {},
         h('div.field', {}, h('label', { text: '姓名 · 한국어' }), txt('name.ko')), h('div.field', {}, h('label', { text: '姓名 · 中文' }), txt('name.zh')),
@@ -6151,15 +6334,45 @@ const Demo = (() => {
   return { start, stop, get on() { return on; } };
 })();
 
+/* ═══ PERF — watches the frames after each page turn; if the show keeps stuttering, the quality drops a tier ═══
+   Two slow page turns in a row (median frame > 26 ms, or one frame in ten > 60 ms) are needed, so a single hiccup
+   (a font arriving, a video starting) never changes anything. The choice is remembered for this device. */
+const Perf = (() => {
+  let strikes = 0, run = 0, last = null;
+  function watch() {
+    if (!Q.auto() || document.hidden || Director.reduced) return;
+    const my = ++run, t0 = now(); let prev = 0; const d = [];
+    const f = (t) => {
+      if (my !== run || document.hidden) return;
+      if (prev) d.push(t - prev); prev = t;
+      if (t - t0 < 2600) requestAnimationFrame(f); else judge(d);
+    };
+    requestAnimationFrame(f);
+  }
+  function judge(d) {
+    if (d.length < 4) return;
+    const s = d.slice().sort((a, b) => a - b), med = s[s.length >> 1], p90 = s[Math.floor(s.length * .9)];
+    last = { fps: Math.round(1000 / med), med: Math.round(med), p90: Math.round(p90), tier: Q.tier, at: Date.now() };
+    strikes = (med > 26 || p90 > 60) ? strikes + 1 : Math.max(0, strikes - 1);
+    /* silent on the projector: the note goes only to the presenter window (and the settings panel shows it) */
+    if (strikes >= 2 && Q.step(last.fps)) { strikes = 0; Director.publish(); if (Date.now() - (window.__pvSeen || 0) < 3500) toast(`画面有些卡：已自动切换到「${Q.name}」画质（设置 → 演讲 → 画质 可以改回）`, 6000); }
+  }
+  return { watch, get last() { return last; } };
+})();
+
 const App = (() => {
   const stage = $('#stage'), vp = $('#vp');
   const SID = Math.random().toString(36).slice(2, 8);
   let warnedTwin = false;
 
+  /* fit the 1920×1080 stage into the window. On WebKit the stage is scaled with `zoom`, so every layer is laid out
+     (and allocated) at the size it is shown; elsewhere a transform keeps sub-pixel text positioning exact. */
   function fit() {
     const vw = window.innerWidth, vh = window.innerHeight;
-    const s = Math.min(vw / W, vh / H);
-    stage.style.transform = `translate(${(vw - W * s) / 2}px, ${(vh - H * s) / 2}px) scale(${s})`;
+    const s = Math.min(vw / W, vh / H), ox = (vw - W * s) / 2, oy = (vh - H * s) / 2;
+    Object.assign(StageFit, { s, ox, oy });
+    if (ZOOMED) { stage.style.transform = 'none'; stage.style.zoom = s; stage.style.left = (ox / s) + 'px'; stage.style.top = (oy / s) + 'px'; }
+    else { stage.style.zoom = ''; stage.style.left = stage.style.top = ''; stage.style.transform = `translate(${ox}px, ${oy}px) scale(${s})`; }
     Light.setScale(s * (window.devicePixelRatio || 1));
   }
   function fullscreen() {
@@ -6277,6 +6490,9 @@ const App = (() => {
   function bootStage() {
     computePlan(Scenes.rate());
     stage.classList.toggle('touch', TOUCH); stage.classList.toggle('lite', LITE);
+    Q.pick(); let qPref = Settings.get().quality || 'auto';
+    Settings.on((s) => { const p = s.quality || 'auto'; if (p !== qPref) { qPref = p; if (p === 'auto') Q.forget(); Q.pick(); Director.publish(); } });
+    Director.onTurn(() => Perf.watch());
     Scenes.build();
     Director.setReduced();
     Director.setLang(Settings.get().lang, { rerun: false });
@@ -6316,6 +6532,7 @@ const App = (() => {
   function bootPreview() {
     document.body.classList.add('preview-mode');
     computePlan(Scenes.rate());
+    Q.pick();
     Scenes.build();
     stage.classList.add('reduced');
     Light.setReduced(false); Light.setStill(true); FX.setReduced(true);
@@ -6343,7 +6560,7 @@ const App = (() => {
 
 /* ── 99-boot ── */
 /* ═══ go ═══ */
-window.BTS = { BEATS, SCENES, Director, Settings, Session, Runs, Light, Video, Music, Scenes, Era, FX, HUD, Overview, Panel, Figure, h, Torch, Pointer };
+window.BTS = { BEATS, SCENES, Director, Settings, Session, Runs, Light, Video, Music, Scenes, Era, FX, HUD, Overview, Panel, Figure, h, Torch, Pointer, Loop };
 App.boot();
 })();
 </script>
