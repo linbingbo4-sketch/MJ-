@@ -78,6 +78,21 @@
 - Safari 和所有 iOS 浏览器上，舞台用 CSS `zoom` 缩放，不用 `transform`：WebKit 给每个合成图层分配显存时只看设备像素比、不看外层缩放，用 transform 时 iPhone 上一个铺满舞台的图层就要约 75 MB。`?zoom=0` / `?zoom=1` 可以强制切换。
 - 画面静止时，灯光画布不再重画；只有灰尘和年代粒子在一张低分辨率画布上以每秒 24–30 帧更新。
 
+## 在哪里打开才有视频和音乐
+
+- **完整版（推荐，能播放全部视频、MV、背景音乐，照片直接从维基共享资源加载）**：<https://raw.githack.com/linbingbo4-sketch/MJ-/claude/webpage-design-30s4a0/index.html>
+  （raw.githack 把这个公开仓库里的 `index.html` 原样当网页提供；分支更新后几分钟内生效。）
+- 也可以在仓库 Settings → Pages 里把这个分支设为来源，开启 GitHub Pages（目前仓库还没有开启）。
+- **claude.ai 预览页**只适合看排版：平台的安全策略禁止任何 YouTube 播放器和外部图片，页面顶部会提示并给出「打开完整版」的链接。
+- 手机上为了不崩溃，YouTube 播放器在第一次点击之后才加载，只用一个；iOS 不允许网页调节 YouTube 音量，背景音乐在 iPhone 上没有淡入淡出。
+
+## 视频开关、MV 与字幕
+
+- **V 键**：随时播放 / 关闭这一页的视频（预告片、Smooth Criminal 提示点等）；这一页没有排好的视频时，播放画面上第一个作品的 MV。**Esc** 关闭 MV。
+- **MV 开关**：舞台上出现的每部作品旁边都有一个小开关（唱片封套下方的小标签、榜单上的小胶囊，颜色取自作品本身），一共 23 部。点一下，MV 从开关的位置展开播放，音乐自动让位；再点一次、按 V / Esc、或点画面外面就收回。每部作品备有 1–3 个官方视频 ID，前一个被禁止嵌入时自动换下一个。
+- **中韩字幕（U 键开关，默认打开）**：讲稿逐句显示在画面底部，韩文在上、中文在下，按排练语速切换；视频的提示点字幕和可选的预告片字幕轨也一律是韩文在上、中文在下。
+- **背景音乐从标题页开始**：预告片之后的标题页响起《Wanna Be Startin' Somethin'》（预告片的最后一首），之后杰克逊五兄弟时期是 *I Want You Back*，个人时期依次是各时期代表作。
+
 ## 声音与预告片
 
 - **年代音乐**：每个年代有一首代表作（I 加里 *I Want You Back* · II *Don't Stop 'Til You Get Enough* · III *Billie Jean* · IV *Bad* · V *Black or White* · VI *Stranger in Moscow* · 间奏 *Earth Song* · VII *Human Nature* · VIII *Remember the Time* · 终幕 *Man in the Mirror*）。每首先找 `media/music/` 里的本地文件，没有就依次试 YouTube 上的官方音源（一首备一到两个视频 ID，被禁止嵌入时自动换下一个）。
