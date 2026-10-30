@@ -17,7 +17,7 @@
 | `09-remember-the-time.mp3` | Remember the Time（1992） | VIII 遗产 | 随场灯渐亮升起 |
 | `10-man-in-the-mirror.mp3` | Man in the Mirror（1988） | 终幕 | 光转向观众时推到最高 |
 
-这些文件是可选的：没有本地文件时，页面自动改用 YouTube 上的官方音源（ID 写在 `index.html` 的 `TRACKS` 里）。本地文件的好处是没有广告、不依赖教室网络。
+这些文件是可选的：没有本地文件时，页面先用 Apple 官方的 30 秒试听片段（循环），再不行才用 YouTube 上的官方音源（ID 写在 `index.html` 的 `TRACKS` 里）。本地文件的好处是完整歌曲、不依赖教室网络。
 
 每首歌的起点（秒）在 设置 → 视频与音乐 里填写；点「试听 8 秒」时可以用「记当前为起点」一键记录。
 

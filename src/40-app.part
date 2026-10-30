@@ -255,6 +255,7 @@ const App = (() => {
     YTAPI.load();
     /* inside an embedding preview that blocks YouTube: say so once, with the way out */
     setTimeout(() => { if (YTAPI.state === 'failed' && IN_FRAME && VIEW === 'stage') fullBanner(); }, 2500);
+    if (VIEW === 'stage') setTimeout(() => Previews.warm(), 900);
     if (!LITE) setTimeout(() => MediaCache.warmAll(), 2500);
     Bus.on((m) => {
       if (!m) return;

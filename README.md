@@ -82,7 +82,7 @@
 
 - **能内嵌播放全部视频、MV、背景音乐的地方**：GitHub Pages（仓库 Settings → Pages → Source 选「Deploy from a branch」，分支选 `claude/webpage-design-30s4a0`、目录 `/ (root)`，保存后地址是 `https://linbingbo4-sketch.github.io/MJ-/`），或者在本机文件夹里运行 `python3 -m http.server` 后打开 `http://localhost:8000`。
 - **claude.ai 预览页**：平台的安全策略禁止在线视频和外部图片。在这里点 MV 开关或按 V，播放窗口照样在页面里展开，但会显示「这里无法播放」；要真正播放，用本机或 GitHub Pages 打开。
-- 手机上为了不崩溃，YouTube 播放器在第一次点击之后才加载，只用一个；iOS 不允许网页调节 YouTube 音量，背景音乐在 iPhone 上没有淡入淡出。
+- 手机上为了不崩溃，YouTube 播放器在第一次点击之后才加载，只用一个。背景音乐默认用 Apple 试听片段，通过 Web Audio 调音量，iPhone 上也有淡入淡出（只有退到 YouTube 时，iOS 不允许网页调节它的音量）。
 
 ## 视频开关、MV 与字幕
 
@@ -103,7 +103,7 @@
 
 ## 声音与预告片
 
-- **年代音乐**：每个年代有一首代表作（I 加里 *I Want You Back* · II *Don't Stop 'Til You Get Enough* · III *Billie Jean* · IV *Bad* · V *Black or White* · VI *Stranger in Moscow* · 间奏 *Earth Song* · VII *Human Nature* · VIII *Remember the Time* · 终幕 *Man in the Mirror*）。每首先找 `media/music/` 里的本地文件，没有就依次试 YouTube 上的官方音源（一首备一到两个视频 ID，被禁止嵌入时自动换下一个）。
+- **年代音乐**：每个年代有一首代表作（I 加里 *I Want You Back* · II *Don't Stop 'Til You Get Enough* · III *Billie Jean* · IV *Bad* · V *Black or White* · VI *Stranger in Moscow* · 间奏 *Earth Song* · VII *Human Nature* · VIII *Remember the Time* · 终幕 *Man in the Mirror*）。每首按这个顺序找声音：① `media/music/` 里的本地文件（完整歌曲）；② Apple 官方的 30 秒试听片段（页面在浏览器里用 iTunes 检索接口找到录音室原版，不要 live / remix / 翻唱，地址记三天；两个播放器在接缝处交叉 3.2 秒，循环听不出断点）；③ YouTube 上的官方音源。试听片段是普通音频流，点下去零点几秒就响，没有广告，手机上第一次点击之后也能放，所以排在 YouTube 前面；连不上 Apple 时，一分钟内的换场直接改用 YouTube，不再等待。
 - **转场不留空档**：下一年代的歌在当前年代里就提前载好；转场时旧歌一直响到新歌真正出声，然后按等功率曲线交叉——年代溶解约 2.6 秒，场灯渐亮约 3.4 秒；幕间黑场时旧歌在 0.9 秒内收掉，新歌随灯光升起。
 - **效果音**（全部合成，不需要文件，设置 → 音量 里可调或关闭；「减少动态」时自动关闭）：年代溶解的气流声（最响的一刻正好落在两首歌交叉处）、幕间黑场的电闸声与追光灯点亮声、遗产一场的场灯渐亮、章节卡的一声低音、预告片的放映机倒数与胶片走完。
 - **预告片**：默认用环球影业的官方二版预告——韩文画面播环球影业韩国的〈마이클〉2차 예고편（`D5Wbzgi6Ivs`），中文画面播环球影业香港的《米高積遜》次回官方預告（`2eWMoPkRx0U`），同一版剪辑、各自带官方字幕；双语画面用韩文版。播放顺序：银幕转正 → 银幕上 3·2·1 → 画面从银幕放大到整个舞台 → 放完定格、缩回银幕 → 放映机停下。没有出点时完整播放，并在片尾前 0.35 秒停住，不会露出 YouTube 的推荐视频。

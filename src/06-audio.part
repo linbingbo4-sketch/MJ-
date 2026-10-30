@@ -34,6 +34,132 @@ const MediaCache = (() => {
   return { url, warmAll, ready: (src) => urls.has(src) };
 })();
 
+/* ═══ PREVIEWS — Apple's official 30-second clip of each era song, found in the visitor's browser ═══
+   The iTunes Search API (JSONP, no key) gives the clip's address; it is kept for three days. A plain audio
+   stream starts in a fraction of a second, has no ads, and plays on a phone after the first tap, which is
+   why it comes before the YouTube player for the background music. */
+const Previews = (() => {
+  const KEY = 'bts.previews', TTL = 3 * 864e5;
+  let store = {};
+  try { store = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { store = {}; }
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) { /* private mode */ } };
+  const pending = new Map();
+  let seq = 0, down = null;
+  function jsonp(url, ms = 7000) {
+    return new Promise((res, rej) => {
+      const cb = '__btsItunes' + (++seq), s = document.createElement('script');
+      const done = (v, err) => { clearTimeout(t); delete window[cb]; s.remove(); if (err) rej(err); else res(v); };
+      const t = setTimeout(() => done(null, new Error('Apple 查询超时')), ms);
+      window[cb] = (j) => done(j);
+      s.onerror = () => done(null, new Error('无法连接 Apple'));
+      s.src = url + '&callback=' + cb; document.head.append(s);
+    });
+  }
+  const norm = (s) => String(s || '').toLowerCase().replace(/[’'‘`]/g, '').replace(/^the\s+/, '').replace(/[^a-z0-9]+/g, ' ').trim();
+  const bare = (s) => norm(String(s || '').replace(/\(.*?\)|\[.*?\]/g, ''));
+  /* the studio recording by the artist: exact title, no live / remix / karaoke, the original year preferred */
+  function pick(results, tr) {
+    const title = bare(tr.title), artist = norm(tr.artist);
+    let best = null, top = -Infinity;
+    results.forEach((r, i) => {
+      if (!r.previewUrl || (r.kind && r.kind !== 'song') || !norm(r.artistName).includes(artist)) return;
+      const name = norm(r.trackName), album = norm(r.collectionName);
+      let sc = -i * .2;
+      if (bare(r.trackName) === title) sc += 10; else if (name.includes(title)) sc += 3; else return;
+      if (/\b(live|remix|mix|demo|instrumental|karaoke|acapella|cappella|medley|reprise)\b/.test(name)) sc -= 12;
+      if (/\b(edit|version|remaster(ed)?)\b/.test(name)) sc -= 2;
+      if (/\b(karaoke|tribute|made famous|in the style|cover)\b/.test(album)) sc -= 30;
+      if (/\blive\b/.test(album)) sc -= 6;
+      if (String(r.releaseDate || '').slice(0, 4) === String(tr.year)) sc += 3;
+      if (sc > top) { top = sc; best = r; }
+    });
+    return best;
+  }
+  function get(key) {
+    const tr = TRACKS[key]; if (!tr) return Promise.reject(new Error('没有这首歌'));
+    const hit = store[key];
+    if (hit && hit.url && Date.now() - hit.at < TTL) return Promise.resolve(hit.url);
+    if (pending.has(key)) return pending.get(key);
+    /* when Apple cannot be reached, the next scene change goes straight on to the next source instead of waiting again */
+    if (down && Date.now() - down.at < 60000) return Promise.reject(down.err);
+    const term = encodeURIComponent(`${tr.title} ${tr.artist}`.replace(/[’']/g, ''));
+    const p = jsonp(`https://itunes.apple.com/search?term=${term}&media=music&entity=song&limit=20&country=US`)
+      .then(j => {
+        const r = pick((j && j.results) || [], tr);
+        if (!r) throw new Error('Apple 没有找到这首歌的试听');
+        store[key] = { url: r.previewUrl, id: r.trackId, name: r.trackName, album: r.collectionName, at: Date.now() }; save();
+        down = null;
+        return r.previewUrl;
+      }, err => { if (/连接|超时/.test(err.message)) down = { at: Date.now(), err }; throw err; })
+      .finally(() => pending.delete(key));
+    pending.set(key, p);
+    return p;
+  }
+  function forget(key) { delete store[key]; save(); }
+  /* look every era song up in the background, one at a time, so the first scene change already has its address */
+  async function warm() { for (const k of Object.keys(TRACKS)) { try { await get(k); } catch (e) { /* reported by the pre-flight */ } } }
+  return { get, forget, warm, info: (key) => store[key] || null };
+})();
+
+/* a 30-second clip as an endless bed: two players overlap at the seam, so the loop never dips */
+function clipLoop() {
+  const XF = 3.2;
+  const A = [0, 1].map(() => { const a = new Audio(); a.preload = 'auto'; a.setAttribute('playsinline', ''); return a; });
+  const G = [null, null], mix = [1, 0];
+  let cur = 0, vol = 0, url = '', cors = true, tick = 0, xfAt = 0, playing = false;
+  const out = (i) => { const v = clamp(vol * mix[i], 0, 1); if (G[i]) G[i].gain.value = v; else A[i].volume = v; };
+  const outAll = () => { out(0); out(1); };
+  function load(u, withCors) {
+    url = u; cors = withCors;
+    A.forEach(a => { if (withCors) a.crossOrigin = 'anonymous'; else a.removeAttribute('crossorigin'); a.src = u; a.load(); });
+  }
+  function ready(a) {
+    return new Promise((res) => {
+      if (a.readyState >= 3) { res(true); return; }
+      const fin = (v) => { clearTimeout(t); a.removeEventListener('canplay', ok); a.removeEventListener('error', bad); res(v); };
+      const ok = () => fin(true), bad = () => fin(false), t = setTimeout(() => fin(false), 9000);
+      a.addEventListener('canplay', ok); a.addEventListener('error', bad);
+    });
+  }
+  /* with CORS the clip goes through Web Audio (volume that works on iOS); without it, straight from the element */
+  async function open(u) {
+    if (url === u && !A[0].error) return A[0].readyState >= 3 || ready(A[0]);
+    load(u, true);
+    if (await ready(A[0])) return true;
+    if (url !== u) return false;
+    if (cors && !G[0] && !G[1]) { load(u, false); return ready(A[0]); }
+    return false;
+  }
+  function route() { if (!cors) return; A.forEach((a, i) => { if (!G[i] && (G[i] = SFX.route(a))) a.volume = 1; }); }
+  function step() {
+    if (!playing) return;
+    const a = A[cur], b = A[1 - cur], d = a.duration;
+    if (!xfAt && isFinite(d) && d > XF * 3 && a.currentTime >= d - XF) {
+      xfAt = now(); try { b.currentTime = 0; } catch (e) { /* ignore */ }
+      b.play().catch(() => {});
+    }
+    if (xfAt) {
+      const p = clamp((now() - xfAt) / (XF * 1000), 0, 1);
+      mix[cur] = Math.cos(p * Math.PI / 2); mix[1 - cur] = Math.sin(p * Math.PI / 2); outAll();
+      if (p >= 1) { a.pause(); cur = 1 - cur; xfAt = 0; mix[cur] = 1; mix[1 - cur] = 0; outAll(); }
+    } else if (a.ended) { try { a.currentTime = 0; } catch (e) { /* ignore */ } a.play().catch(() => {}); }
+  }
+  function play() {
+    route(); outAll();
+    const p = A[cur].play();
+    return (p && p.then ? p : Promise.resolve()).then(() => { playing = true; clearInterval(tick); tick = setInterval(step, 100); return true; },
+      (err) => err && err.name === 'NotAllowedError' ? 'blocked' : false);
+  }
+  function pause() {
+    playing = false; clearInterval(tick);
+    if (xfAt) { cur = mix[1 - cur] > mix[cur] ? 1 - cur : cur; xfAt = 0; }
+    mix[cur] = 1; mix[1 - cur] = 0;
+    A.forEach(a => { try { a.pause(); } catch (e) { /* ignore */ } });
+    outAll();
+  }
+  return { open, play, pause, setVol(v) { vol = v; outAll(); }, time: () => A[cur].currentTime, get url() { return url; }, get routed() { return !!G[0]; } };
+}
+
 /* ═══ MUSIC — one deck per era track ═══
    A deck tries its sources in order: the configured one (normally the local file in media/music/), then the
    official uploads on YouTube. YouTube decks share a pool of three hidden players: the one fading out, the one
@@ -63,10 +189,11 @@ const Music = (() => {
   }
   const master = () => muted ? 0 : Settings.get().vol.master / 100;
 
-  /* the configured source first, then the official uploads (skipped when the user picked a YouTube link of their own) */
+  /* the configured source first (normally the local file), then Apple's official clip, then the official uploads on YouTube */
   function sourcesOf(key) {
     const cfg = Settings.get().tracks[key] || {}, src = (cfg.src || '').trim(), list = [];
     if (src) list.push(ytId(src) ? { kind: 'yt', id: ytId(src) } : { kind: 'file', src });
+    list.push({ kind: 'clip' });
     (TRACKS[key].yt || []).forEach(id => { if (!list.some(s => s.id === id)) list.push({ kind: 'yt', id }); });
     return list;
   }
@@ -92,12 +219,13 @@ const Music = (() => {
 
   function makeDeck(key) {
     const cfg = Settings.get().tracks[key] || {};
-    const d = { key, cfgSrc: (cfg.src || '').trim(), start: +cfg.start || 0, list: sourcesOf(key), at: 0, gain: 0, state: 'idle', error: null, stop: null, kind: null, el: null, node: null, slot: null, ready: false };
+    const d = { key, cfgSrc: (cfg.src || '').trim(), start: +cfg.start || 0, list: sourcesOf(key), at: 0, gain: 0, state: 'idle', error: null, stop: null, kind: null, el: null, node: null, slot: null, clip: null, ready: false };
     if (!d.list.length) d.state = 'unset';
     const cur = () => d.list[d.at];
     d.setVol = (g) => {
       const v = clamp(g, 0, 1);
       if (d.kind === 'file' && d.el) { if (d.node) d.node.gain.value = v; else d.el.volume = v; }
+      else if (d.kind === 'clip' && d.clip) d.clip.setVol(v);
       else if (d.kind === 'yt' && d.slot) d.slot.setVolume(Math.round(v * 100));
     };
     function audio() {
@@ -127,6 +255,21 @@ const Music = (() => {
         if (a.readyState >= 1) go(); else { a.addEventListener('loadedmetadata', go, { once: true }); a.addEventListener('error', () => { d.error = '文件格式无法播放'; res(false); }, { once: true }); }
       })).catch(err => { d.error = '文件无法加载：' + src + '（' + (err && err.message || err) + '）'; return false; });
     }
+    function playClip() {
+      d.kind = 'clip';
+      if (!d.clip) d.clip = clipLoop();
+      d.clip.setVol(d.gain * master());
+      return Previews.get(key)
+        .then(u => d.clip.open(u).then(ok => {
+          if (ok) return true;
+          /* the clip may have moved: look it up once more */
+          Previews.forget(key);
+          return Previews.get(key).then(u2 => u2 !== u && d.clip.open(u2));
+        }))
+        .then(ok => { if (!ok) { d.error = 'Apple 试听无法播放'; return false; } return d.clip.play(); })
+        .then(r => { if (r === 'blocked') { d.state = 'blocked'; Music.pendingGesture = true; } return r; })
+        .catch(err => { d.error = String(err && err.message || err); return false; });
+    }
     function playYt(id) {
       d.kind = 'yt';
       const slot = acquire(d);
@@ -142,8 +285,9 @@ const Music = (() => {
       }
       d.at = i; d.state = 'loading'; emit();
       const s = d.list[i];
-      if (s.kind === 'yt' && d.kind === 'file' && d.el) { try { d.el.pause(); } catch (e) { /* ignore */ } }
-      return (s.kind === 'file' ? playFile(s.src) : playYt(s.id)).then(r => {
+      if (s.kind !== 'file' && d.kind === 'file' && d.el) { try { d.el.pause(); } catch (e) { /* ignore */ } }
+      if (s.kind !== 'clip' && d.clip) d.clip.pause();
+      return (s.kind === 'file' ? playFile(s.src) : s.kind === 'clip' ? playClip() : playYt(s.id)).then(r => {
         if (r === 'blocked') { emit(); return false; }
         if (r) { d.state = 'playing'; d.error = null; emit(); return true; }
         if (s.kind === 'yt') release(d);
@@ -157,6 +301,10 @@ const Music = (() => {
       if (s.kind === 'file') {
         MediaCache.url(s.src).then(u => { const a = audio(); if (a.getAttribute('src') !== u) { a.src = u; a.load(); } const seek = () => { try { a.currentTime = d.start; } catch (e) { /* ignore */ } d.ready = true; }; if (a.readyState >= 1) seek(); else a.addEventListener('loadedmetadata', seek, { once: true }); })
           .catch(() => { if (d.at < d.list.length - 1) { d.at++; d.prime(); } });
+      } else if (s.kind === 'clip') {
+        if (!d.clip) d.clip = clipLoop();
+        Previews.get(key).then(u => d.clip.open(u)).then(ok => { if (!ok) throw new Error('clip'); })
+          .catch(() => { if (d.at < d.list.length - 1 && cur() === s) { d.at++; d.prime(); } });
       } else {
         if (LITE || YTAPI.state === 'failed') return;
         d.kind = 'yt';
@@ -164,7 +312,7 @@ const Music = (() => {
         slot.load({ id: s.id, start: d.start, muted: false, loop: true, autoplay: false }).then(ok => { if (ok && d.slot === slot) { d.ready = true; d.readyId = s.id; } });
       }
     };
-    d.pause = () => { if (d.kind === 'file' && d.el) { try { d.el.pause(); } catch (e) { /* ignore */ } } else if (d.slot) d.slot.pause(); };
+    d.pause = () => { if (d.kind === 'file' && d.el) { try { d.el.pause(); } catch (e) { /* ignore */ } } else if (d.kind === 'clip' && d.clip) d.clip.pause(); else if (d.slot) d.slot.pause(); };
     d.show = () => {};
     return d;
   }
@@ -254,7 +402,7 @@ const Music = (() => {
   function refreshVolumes() { Object.values(decks).forEach(d => d.setVol(d.gain * master())); }
   function retry() { const d = active && decks[active]; if (d && (d.state === 'blocked' || d.state === 'idle') && !SILENT.includes(mode)) { d.play().then(ok => ok && ramp(d, levelOf(mode), 1.2, null, 'in')); } }
   function stopAll() { Object.values(decks).forEach(d => { if (d.stop) d.stop(); d.stop = null; d.gain = 0; d.setVol(0); d.pause(); if (d.kind === 'yt') release(d); if (d.state === 'playing' || d.state === 'loading') d.state = 'idle'; }); active = null; primed = null; emit(); }
-  function srcLabel(d) { const s = d && d.list[d.at]; return !s ? '' : s.kind === 'file' ? '本地文件' : (d.at === 0 && d.cfgSrc ? 'YouTube' : 'YouTube 官方音源'); }
+  function srcLabel(d) { const s = d && d.list[d.at]; return !s ? '' : s.kind === 'file' ? '本地文件' : s.kind === 'clip' ? 'Apple 官方试听 · 30 秒循环' : (d.at === 0 && d.cfgSrc ? 'YouTube' : 'YouTube 官方音源'); }
   function status() {
     const d = active && decks[active];
     return { track: active, title: active ? TRACKS[active].title : null, mode, ducked, muted, level: d ? Math.round(d.gain * 100) : 0, state: d ? d.state : 'idle', error: d && d.error, kind: d && d.kind, source: srcLabel(d) };
@@ -264,12 +412,18 @@ const Music = (() => {
     const d = deck(key); stopAll(); active = key; d.gain = 0; d.setVol(0);
     return d.play().then(ok => { if (ok) { ramp(d, levelOf('card'), .5); setTimeout(() => { if (active === key) { active = null; stopDeck(d, 1); } emit(); }, secs * 1000); } return ok; });
   }
-  function position(key) { const d = decks[key]; if (!d) return null; if (d.kind === 'file' && d.el) return d.el.currentTime; if (d.kind === 'yt' && d.slot) return d.slot.time(); return null; }
+  function position(key) { const d = decks[key]; if (!d) return null; if (d.kind === 'file' && d.el) return d.el.currentTime; if (d.kind === 'clip' && d.clip) return d.clip.time(); if (d.kind === 'yt' && d.slot) return d.slot.time(); return null; }
   /* pre-flight: the first source that would play */
   async function probe(key) {
     const list = sourcesOf(key); if (!list.length) return { ok: false, why: '未设置' };
     const notes = [];
     for (const s of list) {
+      if (s.kind === 'clip') {
+        const r = await Previews.get(key).then(u => clipLoop().open(u).then(ok => ok ? { ok: true, why: 'Apple 官方试听 · ' + ((Previews.info(key) || {}).name || '') } : { ok: false, why: 'Apple 试听无法播放' }), err => ({ ok: false, why: String(err && err.message || err) }));
+        if (r.ok) return { ok: true, why: (notes.length ? notes.join(' · ') + ' → ' : '') + r.why };
+        notes.push(r.why);
+        continue;
+      }
       if (s.kind === 'yt') {
         const r = await Video.probe(s.id);
         if (r.ok) return { ok: true, why: (notes.length ? notes.join(' · ') + ' → ' : '') + 'YouTube · ' + r.why + ' · ' + s.id };
