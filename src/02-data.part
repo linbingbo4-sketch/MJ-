@@ -1,0 +1,261 @@
+<script>
+/* ═══ DATA — one source for the stage, the presenter view and the timing model ═══
+   Script lines (ko/zh) are the blueprint's speech, verbatim. On-stage keywords live in the scene builders. */
+
+const ACTS = [
+  { n: 0, label: L('프롤로그', '序幕') },
+  { n: 1, label: L('1막', '第一幕'), name: L('빛 속에서', '光中'), years: L('1958 — 1988', '1958 — 1988') },
+  { n: 2, label: L('2막', '第二幕'), name: L('빛의 가장자리', '光的边缘'), years: L('1991 — 2005', '1991 — 2005') },
+  { n: 3, label: L('3막', '第三幕'), name: L('빛 너머', '光之外'), years: L('2009 — 오늘', '2009 — 今天') },
+  { n: 4, label: L('피날레', '终幕') },
+];
+
+/* file: the local copy (media/music/, not in the public repo) · yt: official uploads on YouTube, tried in order when the file is missing */
+const TRACKS = {
+  iwyb:       { title: 'I Want You Back', artist: 'The Jackson 5', year: 1969, file: 'media/music/01-i-want-you-back.mp3', cue: '前奏钢琴滑音', yt: ['79eyuz8z6Cg', 's3Q80mk7bxE'], genre: L('모타운 소울 · 팝', '摩城灵魂乐 · 流行'), group: L('잭슨 5', '杰克逊五人组') },
+  dstyge:     { title: "Don't Stop 'Til You Get Enough", artist: 'Michael Jackson', year: 1979, file: 'media/music/02-dont-stop-til-you-get-enough.mp3', cue: '贝斯律动', yt: ['yURRmWtbTbo'], genre: L('디스코 · 펑크', '迪斯科 · 放克') },
+  billiejean: { title: 'Billie Jean', artist: 'Michael Jackson', year: 1983, file: 'media/music/03-billie-jean.mp3', cue: '鼓与贝斯前奏', yt: ['OZGtRvYF-A4', 'Zi_XLOBDo_Y'], genre: L('포스트 디스코 · 댄스 팝', '后迪斯科 · 舞曲流行') },
+  bad:        { title: 'Bad', artist: 'Michael Jackson', year: 1987, file: 'media/music/04-bad.mp3', cue: '前奏', yt: ['-DlMoJ2V6uk', 'dsUXAEzaC3Q'], genre: L('팝 · 펑크', '流行 · 放克') },
+  bow:        { title: 'Black or White', artist: 'Michael Jackson', year: 1991, file: 'media/music/05-black-or-white.mp3', cue: '吉他前奏', yt: ['YP3W-E0OamU', 'F2AitTPI5U0'], genre: L('팝 록 · 댄스', '流行摇滚 · 舞曲') },
+  moscow:     { title: 'Stranger in Moscow', artist: 'Michael Jackson', year: 1996, file: 'media/music/06-stranger-in-moscow.mp3', cue: '雨声与前奏', yt: ['pEEMi2j6lYE'], genre: L('R&B 발라드', 'R&B 抒情') },
+  earth:      { title: 'Earth Song', artist: 'Michael Jackson', year: 1995, file: 'media/music/07-earth-song.mp3', cue: '钢琴前奏', yt: ['XAi3VTSdTxU'], genre: L('가스펠 팝 발라드', '福音流行抒情') },
+  human:      { title: 'Human Nature', artist: 'Michael Jackson', year: 1982, file: 'media/music/08-human-nature.mp3', cue: '合成器前奏', yt: ['_n9HhmX36Gk', 'ElN_4vUvTPs'], genre: L('소프트 록 · R&B', '软摇滚 · R&B') },
+  rtt:        { title: 'Remember the Time', artist: 'Michael Jackson', year: 1992, file: 'media/music/09-remember-the-time.mp3', cue: '鼓点前奏', yt: ['qM19eRgOK1Q', 'LeiFF0gvqcc'], genre: L('뉴 잭 스윙', '新杰克摇摆') },
+  wbss:       { title: "Wanna Be Startin' Somethin'", artist: 'Michael Jackson', year: 1982, file: 'media/music/00-wanna-be-startin-somethin.mp3', cue: '鼓与贝斯前奏', yt: ['1XMvPTFzgVU', '6QIf6hkYFAo', 'BNaae82bq8s'], genre: L('포스트 디스코 · 펑크', '后迪斯科 · 放克') },
+  mitm:       { title: 'Man in the Mirror', artist: 'Michael Jackson', year: 1988, file: 'media/music/10-man-in-the-mirror.mp3', cue: '键盘前奏', yt: ['8gqMRlN6mAA', 'PivWY9wn5ps'], genre: L('가스펠 팝', '福音流行') },
+};
+
+/* inside an embedding preview (the claude.ai preview blocks every YouTube player) */
+const IN_FRAME = (() => { try { return window.top !== window.self; } catch (e) { return true; } })();
+
+/* every work the stage shows, with its official video (or official audio / live film) on YouTube, tried in order */
+const WORKS = {
+  iwyb:        { t: 'I Want You Back', by: 'The Jackson 5', y: 1969, ids: ['4fUjiNFSwAk', '79eyuz8z6Cg', 's3Q80mk7bxE'] },
+  abc:         { t: 'ABC', by: 'The Jackson 5', y: 1970, ids: ['GjgoKqXd0QI', 'oWLFsMDawLY', 'ISqzbbZVIiU'] },
+  loveyousave: { t: 'The Love You Save', by: 'The Jackson 5', y: 1970, ids: ['BIZWIJwHiaU', 'AU3geksaNAw', 'GDi0GgFhXtw'] },
+  illbethere:  { t: "I'll Be There", by: 'The Jackson 5', y: 1970, ids: ['VRdG9vEJOKY', 'kBhSh7y_IkM', 'MdsvL5C_c1w'] },
+  dstyge:      { t: "Don't Stop 'Til You Get Enough", by: 'Michael Jackson', y: 1979, ids: ['yURRmWtbTbo', 'HHm-PIUd1tQ'] },
+  rockwithyou: { t: 'Rock with You', by: 'Michael Jackson', y: 1979, ids: ['5X-Mrc2l1d0', 'YyNoDC_FfRw', 'OvzJZTkWYoY'] },
+  offthewall:  { t: 'Off the Wall', by: 'Michael Jackson', y: 1979, ids: ['g0ViBH7m4XA', 'Xrd3lSn5FqQ'] },
+  shesout:     { t: "She's Out of My Life", by: 'Michael Jackson', y: 1979, ids: ['6DQJPL9Yuq0', 'TTOSyuHKlo4', 'BtjO1gyBzPg'] },
+  wbss:        { t: "Wanna Be Startin' Somethin'", by: 'Michael Jackson', y: 1982, ids: ['1XMvPTFzgVU', '6QIf6hkYFAo', 'BNaae82bq8s'] },
+  thriller:    { t: 'Thriller', by: 'Michael Jackson', y: 1983, ids: ['sOnqjkJTMaA', 'VgQ9qlD1ToQ'] },
+  billiejean:  { t: 'Billie Jean', by: 'Michael Jackson', y: 1983, ids: ['Zi_XLOBDo_Y', 'OZGtRvYF-A4'] },
+  beatit:      { t: 'Beat It', by: 'Michael Jackson', y: 1983, ids: ['oRdxUFDoQe0'] },
+  motown25:    { t: 'Billie Jean · Motown 25', by: 'Michael Jackson', y: 1983, ids: ['iQrjmTrVx4Q', 'CauNjt2j-BM', '0Ljx7GCJRFA'] },
+  ijcslu:      { t: "I Just Can't Stop Loving You", by: 'Michael Jackson, Siedah Garrett', y: 1987, ids: ['GAmVuYEeSSg', 'PHZ1Bii7Uwk', 'lNPVS2v4-PE'] },
+  bad:         { t: 'Bad', by: 'Michael Jackson', y: 1987, ids: ['dsUXAEzaC3Q', '-DlMoJ2V6uk'] },
+  twymmf:      { t: 'The Way You Make Me Feel', by: 'Michael Jackson', y: 1987, ids: ['HzZ_urpj4As', '2BMpq8Br8Jo'] },
+  mitm:        { t: 'Man in the Mirror', by: 'Michael Jackson', y: 1988, ids: ['PivWY9wn5ps', '8gqMRlN6mAA'] },
+  dirtydiana:  { t: 'Dirty Diana', by: 'Michael Jackson', y: 1988, ids: ['yUi_S6YWjZw'] },
+  smooth:      { t: 'Smooth Criminal', by: 'Michael Jackson', y: 1988, ids: ['h_D3VFfhvs4'] },
+  bow:         { t: 'Black or White', by: 'Michael Jackson', y: 1991, ids: ['F2AitTPI5U0', 'pTFE8cirkdQ', 'YP3W-E0OamU'] },
+  rtt:         { t: 'Remember the Time', by: 'Michael Jackson', y: 1992, ids: ['LeiFF0gvqcc', 'qM19eRgOK1Q'] },
+  superbowl:   { t: 'Super Bowl XXVII Halftime', by: 'Michael Jackson', y: 1993, ids: ['siS94qFinqg', 'cRiCgRj0p0I', 'vkJBVmnf_bI'] },
+  earth:       { t: 'Earth Song', by: 'Michael Jackson', y: 1995, ids: ['XAi3VTSdTxU', 'gbAd62jzrNI'] },
+  moscow:      { t: 'Stranger in Moscow', by: 'Michael Jackson', y: 1996, ids: ['pEEMi2j6lYE', 'TUAiQ1y1_l0'] },
+  tdcau:       { t: "They Don't Care About Us", by: 'Michael Jackson', y: 1996, ids: ['QNJL6nfu__Q'] },
+  human:       { t: 'Human Nature', by: 'Michael Jackson', y: 1982, ids: ['_n9HhmX36Gk', 'ElN_4vUvTPs'] },
+  thisisit:    { t: "Michael Jackson's This Is It", by: 'Sony Pictures', y: 2009, ids: ['H68ik5DtBpM', 'EdFASKi42xg', 'ly9AtI4Kjjs'] },
+  michael:     { t: 'Michael (2026) — Official Trailer', by: 'Universal Pictures', y: 2026, ids: ['D5Wbzgi6Ivs', '2eWMoPkRx0U'] },
+};
+
+const VIDEOS = {
+  trailer: { name: L('〈마이클〉 공식 예고편', '《迈克尔》官方预告片'), title: 'Michael (2026) — Official Trailer', year: 2026 },
+  sc:      { name: L('〈Smooth Criminal〉 공식 영상', '《Smooth Criminal》官方视频'), title: 'Smooth Criminal', year: 1988 },
+  bj:      { name: L('모타운 25 · 〈Billie Jean〉 — 첫 문워크', '摩城 25 ·《Billie Jean》——第一次太空步'), title: 'Billie Jean — Motown 25', year: 1983 },
+  motown:  { name: L('모타운 25 · 〈Billie Jean〉', '摩城 25 ·《Billie Jean》'), title: 'Motown 25 — Billie Jean', year: 1983 },
+};
+
+const DEFAULTS = {
+  mver: 4,          /* media defaults version: settings saved before the trailer had a default link are brought up to date */
+  lang: 'ko',
+  rate: 3.5,
+  trim: false,
+  sfx: true,
+  motion: 'auto',
+  quality: 'auto',
+  subs: true,       /* stacked Korean / Chinese subtitles of what is being said */
+  vol: { master: 100, card: 45, speech: 18, low: 7, video: 0, max: 62, sfx: 70 },
+  name: L('林秉博', '林秉博'),
+  course: L('글로벌 세미나', '全球研讨会'),
+  org: L('경희대학교 포스트모던음악학과', '庆熙大学 后现代音乐系'),
+  tracks: Object.fromEntries(Object.entries(TRACKS).map(([k, t]) => [k, { src: t.file, start: 0 }])),
+  videos: {
+    /* official 2nd trailer, Universal Pictures Korea (Korean subtitles) / Universal Pictures Hong Kong (Chinese subtitles) — the same cut */
+    trailer: { src: 'https://www.youtube.com/watch?v=D5Wbzgi6Ivs', srcZh: 'https://www.youtube.com/watch?v=2eWMoPkRx0U', start: 0, end: null, dur: null, subs: [], subPos: 'bottom' },
+    sc: { src: 'https://www.youtube.com/watch?v=h_D3VFfhvs4', cues: [
+      { start: null, end: null, label: L('클럽에 들어서다', '走进俱乐部') },
+      { start: null, end: null, label: L('45° — 앞으로 기울다', '45° — 向前倾斜') },
+      { start: null, end: null, label: L('', '') },
+      { start: null, end: null, label: L('', '') },
+    ] },
+    /* the CRT and the optional broadcast beat both show the night of the first moonwalk, not the music video */
+    bj: { src: 'https://www.youtube.com/watch?v=iQrjmTrVx4Q', start: 0 },
+    motown: { src: 'https://www.youtube.com/watch?v=iQrjmTrVx4Q', start: 0, end: 15 },
+  },
+};
+
+/* Scenes. Each beat = one press of the clicker.
+   mus: card | speech | low | off | cut | cut6 | video | max | rise | fadeout   (default speech)
+   media: fixed seconds that are not speech (video, held silence, music-only card) */
+const SCENES = [
+  { key: 'cold', era: 'cold', act: 0, budget: 50, year: 1983, hud: false, enter: 'dissolve',
+    title: L('콜드 오픈', '冷开场'), short: L('콜드 오픈', '冷开场'), track: null,
+    beats: [
+      { ko: '1983년 3월 25일, 미국 캘리포니아의 한 공연장.', zh: '1983年3月25日，美国加州的一座剧场。', vis: '暗场，场记板「1983. 3. 25 — PASADENA」', note: '舞台全黑，只有一盏硬边跟光；不放音乐' },
+      { ko: '무대 위에 한 남자가 서 있습니다.', zh: '舞台上站着一个男人。', vis: '跟光打开：「무대 위, 한 남자」' },
+      { ko: '검은 페도라, 한쪽 손에만 낀 반짝이는 장갑, 그리고 발목 위로 드러난 흰 양말.', zh: '黑色软呢帽，只戴在一只手上的闪亮手套，还有露出脚踝的白袜子。', vis: '三条线索依次浮现，跟光按语速逐个移动' },
+      { ko: '노래가 절정에 이르자, 그는 앞으로 걷는 것처럼 보이는데, 몸은 뒤로 미끄러집니다.', zh: '歌曲来到高潮，他看起来像在往前走，身体却向后滑去。', vis: '太空步滑移：句子向前迈步、整行向后滑' },
+      { ko: '불과 몇 초. 그런데 그 몇 초가 대중음악의 역사를 바꿉니다.', zh: '不过几秒钟，却改变了流行音乐的历史。', vis: '「그 몇 초가」' },
+      { ko: '오늘은 질문 하나로 시작하겠습니다. 스포트라이트 밖의 그는, 과연 누구였을까요?', zh: '今天我想用一个问题开始：聚光灯之外的他，究竟是谁？', vis: '光移开，问题出现在暗处' },
+    ] },
+  { key: 'trailer', era: 'cinema', act: 0, budget: 187, year: 2026, hud: true, enter: 'dissolve',
+    title: L('예고편', '预告片'), short: L('예고편', '预告片'), track: null,
+    beats: [
+      { ko: '올해 5월 한국에서도 개봉한 영화가 있습니다. 혹시 보신 분 계신가요?', zh: '今年5月，有一部电影也在韩国上映了。有人看过吗？', vis: '电影卡「2026 · 〈마이클〉」' },
+      { silent: true, ko: '（말하지 않음）', zh: '（不说话）', vis: '银幕转正 → 银幕里 3·2·1 → 预告片从银幕放大到整屏，放完缩回银幕（时长按设置的入点出点）', media: 144, video: { key: 'trailer', slot: 'main', countdown: true }, note: '预告片放完自动缩回银幕，再按下一页；中途按下一页会直接收回' },
+      { ko: '영화 〈마이클〉. 그의 친조카 자파 잭슨이 주연을 맡았고, 전기 영화로는 처음으로 전 세계 흥행 수익 10억 달러를 넘었습니다. 그런데 이 영화의 이야기는 1988년에서 멈춥니다.', zh: '电影《迈克尔》由他的亲侄子贾法尔·杰克逊主演，是第一部全球票房突破10亿美元的传记片。但这部电影的故事，停在了1988年。', vis: '电影信息 + 覆盖条亮到 1988' },
+      { ko: '오늘 저는 그 너머, 스포트라이트가 닿지 않았던 곳까지 가 보려고 합니다.', zh: '今天，我想走得更远，走到聚光灯照不到的地方。', vis: '光越过 1988，进入黑暗段' },
+    ] },
+  { key: 'title', era: 'title', act: 0, budget: 25, year: 2026, hud: false, enter: 'dissolve',
+    title: L('타이틀', '标题'), short: L('타이틀', '标题'), track: 'wbss',
+    beats: [
+      { ko: '제 발표 제목은 ‘비욘드 더 스포트라이트’, 스포트라이트 너머의 마이클 잭슨입니다.', zh: '我的演讲题目是「Beyond the Spotlight」——聚光灯之外的迈克尔·杰克逊。', vis: '标题：光像探照灯扫过名字；《Wanna Be Startin\' Somethin\'》升起（预告片的最后一首）', mus: 'rise' },
+      { ko: '빛 속에서, 빛의 가장자리에서, 그리고 빛 너머에서. 세 막으로 그의 50년을 따라가 보겠습니다.', zh: '光中、光的边缘、光之外——我会用三幕，走完他的五十年。', vis: '三幕路线图展开' },
+    ] },
+  { key: 'gary', era: 'gary', act: 1, budget: 65, year: 1958, hud: true, enter: 'blackout', chapter: 'I',
+    title: L('게리, 인디애나', '加里，印第安纳'), short: L('I 게리', 'I 加里'), track: 'iwyb',
+    beats: [
+      { ko: '1958년 8월 29일, 미국 인디애나주의 공업 도시 게리. 그는 제철소 노동자의 집에서 열 남매 중 여덟째로 태어납니다.', zh: '1958年8月29日，美国印第安纳州的工业城市加里。他出生在钢铁厂工人的家里，十个孩子中排行第八。', vis: '「1막 · 빛 속에서」→ 章节卡 I 게리, 인디애나 1958 — 1975', mus: 'card', media: 2 },
+      { ko: '아버지는 다섯 형제를 밴드로 묶어 매일 혹독하게 연습시켰습니다. 마이클은 훗날, 실수하면 맞았던 기억을 털어놓기도 했습니다. 무대 위에서는 신동이었지만, 무대 밖에는 어린 시절이 없었습니다.', zh: '父亲把五个兄弟组成乐队，每天严苛地训练。迈克尔后来也坦言，出错就会挨打。台上他是神童，台下却没有童年。', vis: '「혹독한 리허설 · 사라진 어린 시절」' },
+      { ko: '1969년, 잭슨 파이브는 모타운에서 데뷔합니다. 모타운에서 낸 첫 싱글 네 곡이 모두 빌보드 1위. 이런 기록은 그들이 처음이었습니다.', zh: '1969年，杰克逊五兄弟在摩城唱片出道。在摩城发行的前四支单曲全部登上公告牌榜首——他们是第一个创下这项纪录的组合。', vis: '冠军唱片条：四张封套，「No.1」印章逐一落下', year: 1969 },
+      { cut: true, cont: true, ko: '그때 마이클은 열한 살이었습니다.', zh: '那时迈克尔才十一岁。', vis: '续：「11세」标签', year: 1969 },
+    ] },
+  { key: 'otw', era: 'otw', act: 1, budget: 60, year: 1979, hud: true, enter: 'dissolve', chapter: 'II',
+    title: L('오프 더 월', '《Off the Wall》'), short: L('II Off the Wall', 'II Off the Wall'), track: 'dstyge',
+    beats: [
+      { ko: '1978년 개봉한 영화 〈위즈〉 작업에서, 그는 프로듀서 퀸시 존스를 만납니다.', zh: '在1978年上映的电影《新绿野仙踪》的拍摄中，他结识了制作人昆西·琼斯。', vis: '年代溶解 1975→1979，章节卡 II；两盏光相遇', mus: 'card', year: 1978 },
+      { ko: '그리고 1979년 솔로 앨범 〈Off the Wall〉. 솔로 앨범으로는 처음으로 미국 톱10 싱글이 네 곡이나 나옵니다. 소년 가수가 어른 아티스트가 된 순간이었죠.', zh: '1979年，个人专辑《Off the Wall》发行，成为第一张诞生四支美国前十单曲的个人专辑。少年歌手，就此蜕变为真正的艺术家。', vis: '大号「4」+ 四首前十单曲' },
+      { cont: true, ko: '이 앨범에서 그는 가성과 숨소리, 딸꾹질 같은 짧은 소리까지 리듬 악기처럼 씁니다. 지금도 그의 목소리를 듣자마자 알아보는 이유죠.', zh: '在这张专辑里，他把假声、呼吸声，甚至像打嗝一样的短促音，都当成节奏乐器来用——这也是今天我们一听就能认出他声音的原因。', vis: '声音纹理：示意声波上标出「가성 · 숨소리 · 딸꾹질」' },
+      { ko: '하지만 그래미상은 단 하나뿐이었습니다. 그는 이 실망을 잊지 않았고, 다음 앨범에서 그대로 되갚아 줍니다.', zh: '但格莱美只给了他一个奖。他没有忘记这份失望，并在下一张专辑里加倍奉还。', vis: '「그래미 1」', year: 1980 },
+    ] },
+  { key: 'thriller', era: 'thriller', act: 1, budget: 105, year: 1982, hud: true, enter: 'dissolve', chapter: 'III',
+    title: L('스릴러', '《Thriller》'), short: L('III Thriller', 'III Thriller'), track: 'billiejean',
+    beats: [
+      { silent: true, ko: '（말하지 않음 · 음악 2초）', zh: '（不说话，音乐上扬 2 秒）', vis: '章节卡 III 스릴러 1982 — 1984', mus: 'card', media: 2 },
+      { ko: '1982년 11월, 〈Thriller〉. 전 세계 약 7천만 장, 역사상 가장 많이 팔린 앨범으로 꼽힙니다. 미국에서 공식 인증된 것만 3,400만 장입니다.', zh: '1982年11月，《Thriller》。全球约7000万张，被认为是史上最畅销的专辑；仅美国官方认证就有3400万张。', vis: '白金唱片矩阵 + 计数器 70,000,000' },
+      { ko: '개국한 지 2년도 안 된 MTV는 흑인 아티스트의 뮤직비디오를 거의 틀지 않았습니다. 〈Billie Jean〉은 그 벽을 넘어 집중적으로 방영된 첫 사례들 가운데 하나가 됩니다.', zh: '开播还不到两年的 MTV 几乎不播黑人艺人的 MV。《Billie Jean》成为最早突破这道墙、被高频播放的作品之一。', vis: '显像管电视：换台雪花 →〈Billie Jean〉1983', year: 1983 },
+      { ko: '그리고 처음에 말씀드린 그 밤. 1983년 3월 25일, 모타운 25주년 기념 공연이었습니다. 그날 그가 부른 〈Billie Jean〉은 공연 전체에서 유일하게 모타운 곡이 아니었고, 바로 그 무대에서 문워크가 처음 등장합니다.', zh: '还有开场说的那一晚——1983年3月25日，摩城唱片25周年纪念演出。那天他唱的《Billie Jean》是整场唯一一首非摩城歌曲，太空步也正是在这个舞台上首次登场。', vis: '场记板回扣「1983. 3. 25 — 모타운 25」+ 太空步滑移', year: 1983 },
+      { optional: 'motown', ko: '5월 16일 방송, 4,700만 명이 넘는 사람들이 이 장면을 봤습니다.', zh: '5月16日播出，超过4700万人看到了这一幕。', vis: '（可选）摩城 25 片段约 15 秒；没设置视频就自动跳过', media: 15, video: { key: 'motown', slot: 'tv' }, mus: 'video', year: 1983 },
+      { ko: '이듬해 그래미에서 그는 하룻밤에 트로피 여덟 개를 가져갑니다.', zh: '第二年的格莱美，他一夜捧走八座奖杯。', vis: '「그래미 8」', year: 1984 },
+      { cut: true, cont: true, ko: '14분짜리 쇼트 필름 〈Thriller〉로 뮤직비디오를 영화의 영역까지 끌어올리면서요.', zh: '同时，14分钟的短片《Thriller》把 MV 提升到了电影的层次。', vis: '续：14 分钟短片胶片条', year: 1984 },
+    ] },
+  { key: 'bad', era: 'bad', act: 1, budget: 105, year: 1987, hud: true, enter: 'dissolve', chapter: 'IV',
+    title: L('배드', '《Bad》'), short: L('IV Bad', 'IV Bad'), track: 'bad',
+    beats: [
+      { silent: true, ko: '（말하지 않음 · 음악 2초）', zh: '（不说话，音乐上扬 2 秒）', vis: '章节卡 IV 배드 1987 — 1988（Limelight「CLUB 30\'s」）', mus: 'card', media: 2 },
+      { ko: '1987년 〈Bad〉. 이번에는 한 앨범에서 빌보드 1위 싱글이 다섯 곡. 이것도 역사상 처음이었습니다.', zh: '1987年《Bad》。这一次，一张专辑诞生了五支公告牌冠军单曲——同样是史上首次。', vis: '大号「5」+ 五张冠军封套' },
+      { ko: '1988년 영화 〈문워커〉의 중심에는 이 작품이 있습니다. 1930년대 갱스터 클럽을 무대로 한 〈Smooth Criminal〉. 영화 〈마이클〉이 멈추는 바로 그해죠. 직접 보시죠.', zh: '1988年电影《月球漫步》的核心，就是这部作品——以1930年代黑帮俱乐部为舞台的《Smooth Criminal》。也正是电影《迈克尔》停下的那一年。我们直接来看。', vis: '电影画框就位「1988 · 〈문워커〉」；灯光开始变冷', year: 1988 },
+      { silent: true, ko: '（영상 · 말하지 않음）', zh: '（播放视频，不说话）', vis: '提示点①：俱乐部登场（约 10 秒，到点自动停）', media: 10, video: { key: 'sc', slot: 'main', cue: 1 }, mus: 'video', year: 1988 },
+      { silent: true, ko: '（영상 · 말하지 않음）', zh: '（播放视频，不说话）', vis: '提示点②：45° 倾斜（约 8 秒，到点自动停）', media: 8, video: { key: 'sc', slot: 'main', cue: 2 }, mus: 'video', year: 1988 },
+      { ko: '방금 그 장면, 몸 전체가 앞으로 45도 기울어집니다. 숙련된 댄서도 30도 안팎이 한계라고 합니다.', zh: '刚才那个镜头，整个身体向前倾斜了45度。据说专业舞者的极限也只有30度左右。', vis: '45° 量角器 + 右侧画中画静音循环；↑↓ 现场调角度', year: 1988, keys: 'angle' },
+      { ko: '뮤직비디오에서는 와이어를 썼지만, 라이브 무대에서는 그럴 수 없었죠. 그래서 그와 의상 디자이너들은 신발 뒤꿈치의 홈이 바닥에서 솟아오른 고정 장치에 걸리는 방식을 고안했고, 1993년 미국 특허를 받습니다.', zh: 'MV 里用了钢丝，但现场演出不行。于是他和服装设计师们想出一种方法：鞋跟的凹槽卡住从地面升起的固定钉，并在1993年拿到了美国专利。', vis: '专利示意：鞋跟凹槽 + 地面固定钉', year: 1988 },
+      { cut: true, cont: true, ko: '그는 노래하는 사람이면서, 무대를 설계하는 사람이었습니다.', zh: '他是歌手，也是舞台的设计者。', vis: '续：发明人一栏', year: 1988 },
+    ] },
+  { key: 'dangerous', era: 'dangerous', act: 2, budget: 70, year: 1991, hud: true, enter: 'blackout', chapter: 'V',
+    title: L('데인저러스', '《Dangerous》'), short: L('V Dangerous', 'V Dangerous'), track: 'bow',
+    beats: [
+      { ko: '1991년 〈Black or White〉의 뮤직비디오는 여러 나라에서 동시에 공개됩니다. 한 사람의 얼굴이 다른 사람의 얼굴로 자연스럽게 바뀌는 모핑 기술이 세상을 놀라게 했죠.', zh: '1991年，《Black or White》的 MV 在多个国家同步首播。一张脸自然变成另一张脸的「变形」特效，震惊了世界。', vis: '「2막 · 빛의 가장자리」→ 章节卡 V 데인저러스 1991 — 1993', mus: 'card', media: 2 },
+      { ko: '1993년 1월, 슈퍼볼 하프타임. 그는 무대에 나타난 뒤, 이렇게 서 있었습니다.', zh: '1993年1月，超级碗中场秀。他登场之后，就这样站着——', vis: '超级碗：音乐切断，静止计时器开始走', mus: 'cut', media: 4, note: '说完后一动不动，停顿 3–4 秒', year: 1993 },
+      { cont: true, ko: '2분 가까이. 아무것도 하지 않고, 함성만으로 무대를 채웠습니다.', zh: '将近两分钟。什么都不做，只用欢呼声填满了整个体育场。', vis: '（停顿 3~4 秒后）秒表快进到将近两分钟', mus: 'off', year: 1993 },
+      { ko: '미국에서만 1억 3,340만 명이 봤습니다. 전반전보다 하프타임 시청률이 오히려 높았던 건 슈퍼볼 역사상 처음이었고, 이 무대 이후 하프타임 쇼는 최고의 스타만 설 수 있는 무대가 됩니다.', zh: '仅美国就有1.334亿人观看。中场秀收视率反超上半场，这在超级碗史上是第一次；从此，中场秀成为只有顶级巨星才能登上的舞台。', vis: '大号「133,400,000」', mus: 'off', year: 1993 },
+    ] },
+  { key: 'shadow', era: 'shadow', act: 2, budget: 85, year: 1993, hud: true, enter: 'dissolve', chapter: 'VI',
+    title: L('그림자', '阴影'), short: L('VI 그림자', 'VI 阴影'), track: 'moscow',
+    beats: [
+      { ko: '그런데 바로 그해부터, 그를 비추는 빛의 성격이 바뀝니다.', zh: '然而就从那一年起，照在他身上的光，变了性质。', vis: '跟光熄灭，冷环境光；章节卡 VI 그림자 1993 — 2005', mus: 'low' },
+      { ko: '1993년 2월, 그는 인터뷰에서 백반증을 앓고 있다고 밝힙니다. 피부색이 왜 변했는지를 두고 오랫동안 조롱과 추측이 쏟아졌습니다.', zh: '1993年2月，他在采访中公开自己患有白癜风。关于肤色为何改变，嘲讽和猜测持续了很多年。', vis: '闪光灯 +「1993. 2 — 백반증 공개」', mus: 'low' },
+      { ko: '같은 해, 아동 성추행 의혹이 제기됩니다. 형사 기소는 없었고, 1994년 민사 합의로 끝났습니다. 2003년 다시 기소되었지만, 2005년 재판에서 배심원단은 모든 혐의에 무죄를 평결했습니다.', zh: '同年，儿童性侵指控出现。当时没有被提起刑事诉讼，1994年以民事和解告终。2003年他再次被起诉，而在2005年的审判中，陪审团裁定所有指控均不成立。', vis: '记录卡：1993 · 1994 · 2005（背景是模糊的小报）', mus: 'low', year: 2005 },
+      { cont: true, ko: '그가 세상을 떠난 뒤인 2019년, 한 다큐멘터리로 논쟁은 다시 불붙었고, 유족 측은 이를 강하게 반박하고 있습니다. 저는 오늘 판단 대신, 확인된 사실까지만 말씀드리겠습니다.', zh: '他去世后的2019年，一部纪录片让争议再度升温，家属方面对此强烈反驳。今天我不下判断，只讲到已确认的事实为止。', vis: '续：第四张记录卡 2019', mus: 'low', year: 2019 },
+      { ko: '이 시기에 그는 〈Earth Song〉과 〈Stranger in Moscow〉 같은 노래를 남깁니다. 가장 강한 빛 속에 서 있던 사람이, 가장 외로운 노래를 부르고 있었던 거죠.', zh: '这一时期，他留下了《Earth Song》《Stranger in Moscow》这样的歌。站在最强光芒里的人，却唱着最孤独的歌。', vis: '「그 시기의 노래」', mus: 'low', year: 1996 },
+    ] },
+  { key: 'seoul', era: 'seoul', act: 2, budget: 45, year: 1996, hud: true, enter: 'dissolve', chapter: '간주',
+    title: L('서울', '首尔'), short: L('간주 서울', '间奏 首尔'), track: 'earth',
+    beats: [
+      { ko: '그리고 그는, 이곳 한국에도 왔습니다.', zh: '而他，也来过这里——韩国。', vis: '汉江线条地图，蚕室亮起「그리고, 서울」', mus: 'card' },
+      { ko: '1996년 10월, 잠실 올림픽 주경기장. 그의 첫 내한 공연이었습니다. 무대 장비만 430톤, 〈Earth Song〉에서는 실물 크기의 탱크가 무대에 올라왔습니다.', zh: '1996年10月，蚕室奥林匹克主体育场，他的首次访韩演出。光舞台设备就有430吨，《Earth Song》时，一辆真实大小的坦克开上了舞台。', vis: '票根 1996. 10. 11 · 13' },
+      { cut: true, ko: '1998년에는 김대중 대통령의 취임식에도 참석했습니다.', zh: '1998年，他还出席了金大中总统的就职典礼。', vis: '1998：汝矣岛国会标记', year: 1998 },
+      { ko: '그리고 1999년 6월 25일, 그는 다시 잠실에서 자선 공연 무대에 섭니다. 이 날짜를, 잠시만 기억해 주세요.', zh: '1999年6月25日，他再次站上蚕室的慈善演唱会舞台。这个日期，请大家先记住。', vis: '票根 1999. 6. 25 发光', year: 1999 },
+    ] },
+  { key: 'tii', era: 'tii', act: 3, budget: 60, year: 2009, hud: true, enter: 'blackout', chapter: 'VII',
+    title: L('디스 이즈 잇', '《This Is It》'), short: L('VII This Is It', 'VII This Is It'), track: 'human',
+    beats: [
+      { ko: '2009년 3월, 그는 런던에서 50회 공연을 발표합니다. 스스로 ‘마지막 커튼콜’이라고 부른 무대였습니다.', zh: '2009年3月，他宣布在伦敦举行50场演出，他自己称之为「最后的谢幕」。', vis: '「3막 · 빛 너머」→ 章节卡 VII 2009，50 场方格全亮', mus: 'card', media: 2 },
+      { ko: '그리고 리허설이 한창이던 6월 25일, 그는 쉰 살의 나이로 세상을 떠납니다. 50번의 공연은 단 한 번도 열리지 못했습니다.', zh: '就在排练最紧张的6月25日，他以五十岁的年纪离开了人世。那50场演出，一场也没能举行。', vis: '音乐 0.6 秒切断，50 个方格熄灭，「2009. 6. 25」', mus: 'cut6', media: 4, note: '「2009. 6. 25」出现后留 4 秒全静' },
+      { ko: '6월 25일. 기억하시나요? 서울 잠실 공연이 1999년 6월 25일이었습니다. 정확히 10년 뒤였습니다.', zh: '6月25日。还记得吗？首尔蚕室的那场演出，是1999年6月25日——整整十年之后。', vis: '十年红线：1999 票根飞来，「10년 · 3,653일」', mus: 'off' },
+      { ko: '그해 10월, 리허설 영상은 영화 〈This Is It〉으로 공개됩니다. 우리가 볼 수 있는 그의 마지막 무대는, 결국 ‘연습’이었습니다.', zh: '同年10月，排练影像以电影《This Is It》的形式公开。我们能看到的他最后的舞台，终究是一场「排练」。', vis: '工作灯下：「This Is It · 2009. 10」', mus: 'off' },
+    ] },
+  { key: 'legacy', era: 'legacy', act: 3, budget: 60, year: 2026, hud: true, enter: 'houselights', chapter: 'VIII',
+    title: L('유산', '遗产'), short: L('VIII 유산', 'VIII 遗产'), track: 'rtt',
+    beats: [
+      { ko: '기네스북은 그를 ‘역사상 가장 성공한 엔터테이너’로 기록했고, 그는 로큰롤 명예의 전당에 두 번 이름을 올렸습니다.', zh: '吉尼斯世界纪录称他为「史上最成功的艺人」，他也两度入选摇滚名人堂。', vis: '场灯 3 秒渐亮，章节卡 VIII 유산 · 오늘', mus: 'rise' },
+      { ko: '하지만 제가 생각하는 가장 큰 유산은 숫자가 아닙니다. 그는 음악을 ‘보는 것’으로 바꿨습니다. 뮤직비디오는 영화가 되고, 춤은 언어가 되고, 공연은 사건이 됐습니다. 오늘 우리가 보는 K-pop 무대에서도, 저는 그 문법을 봅니다.', zh: '但我认为他最大的遗产不是数字。他把音乐变成了「看」的艺术：MV 成了电影，舞蹈成了语言，演出成了事件。在今天的 K-pop 舞台上，我也能看到这套语法。', vis: '遗产三联画逐格亮起' },
+      { ko: '그리고 2026년, 그의 이야기는 다시 극장에서 기록을 세웠습니다. 동시에, 영화가 다루지 않은 이야기들을 두고 질문도 다시 시작됐습니다.', zh: '2026年，他的故事再次在影院创下纪录；与此同时，围绕电影没有讲的那些事，追问也再次开始。', vis: '票房计停在 $1,000,000,000' },
+    ] },
+  { key: 'finale', era: 'finale', act: 4, budget: 45, year: 2026, hud: true, enter: 'dissolve',
+    title: L('피날레', '终幕'), short: L('피날레', '终幕'), track: 'mitm',
+    beats: [
+      { ko: '스포트라이트 안의 그는, 팝의 황제였습니다.', zh: '聚光灯下的他，是流行之王。', vis: '跟光回到舞台中央', mus: 'speech' },
+      { ko: '스포트라이트 밖의 그는, 어린 시절을 잃은 아이였고, 천재였고, 거대한 산업이었고, 피고인이었고, 세 아이의 아버지였고, 그리고 한 사람이었습니다.', zh: '聚光灯之外的他，是失去童年的孩子，是天才，是庞大的产业，是被告，是三个孩子的父亲，也是一个人。', vis: '词语星座：六个词在暗处，跟光按语速逐个照亮' },
+      { ko: '그렇다면, 그 스포트라이트를 들고 있던 건 누구였을까요? 바로 우리였습니다.', zh: '那么，举着那盏聚光灯的是谁？正是我们。', vis: '光转向观众，整屏亮起', mus: 'max' },
+      { ko: '무엇을 비추고 무엇을 보지 않을지는, 지금도 우리가 정합니다. 감사합니다.', zh: '照亮什么、忽略什么，今天依然由我们决定。谢谢大家。', vis: '「감사합니다」；谢幕后音乐缓慢淡出', mus: 'fadeout' },
+    ] },
+];
+
+/* flatten to a global beat list */
+const BEATS = [];
+SCENES.forEach((sc, si) => {
+  sc.index = si;
+  sc.first = BEATS.length;
+  sc.beats.forEach((b, bi) => {
+    b.scene = si; b.local = bi; b.index = BEATS.length;
+    b.syl = b.silent ? 0 : syllables(b.ko);
+    BEATS.push(b);
+  });
+  sc.last = BEATS.length - 1;
+});
+/* human labels like the blueprint (③续, ②b) */
+SCENES.forEach(sc => {
+  let n = 0;
+  sc.beats.forEach((b) => { if (!b.cont) n++; b.tag = '①②③④⑤⑥⑦⑧⑨'[n - 1] + (b.cont ? '续' : ''); });
+});
+/* the trailer plays to its out point: its scene budget follows the clip (talk 42.6 s + leader and zoom 4 s + the clip) */
+const TRAILER_TALK = 42.6, TRAILER_DEFAULT = 140;
+function trailerSeconds(cfg) {
+  if (!cfg) return TRAILER_DEFAULT;
+  const a = +cfg.start || 0, b = cfg.end != null && cfg.end !== '' ? +cfg.end : null;
+  if (b != null && b > a) return b - a;
+  return cfg.dur ? Math.max(1, cfg.dur - a) : TRAILER_DEFAULT;
+}
+function syncTrailerBudget(cfg) {
+  const sc = SCENES.find(s => s.key === 'trailer'), b = sc.beats.find(x => x.video && x.video.key === 'trailer'), len = trailerSeconds(cfg);
+  b.media = Math.round((len + 4) * 10) / 10; sc.budget = Math.round(TRAILER_TALK + b.media);
+  TOTAL_PLAN = SCENES.reduce((s, x) => s + x.budget, 0);
+}
+let TOTAL_PLAN = SCENES.reduce((s, sc) => s + sc.budget, 0);   /* 962 s with the full 2:20 trailer; 865 s with a 45 s cut */
+const HARD_LIMIT = 900;
+
+/* planned timeline: inside each scene, split the budget by estimated beat length */
+function computePlan(rate) {
+  if (typeof Settings !== 'undefined') syncTrailerBudget(Settings.get().videos.trailer);
+  let t = 0;
+  SCENES.forEach(sc => {
+    const raw = sc.beats.map(b => (b.syl / rate) + (b.media || 0) + .5);
+    const sum = raw.reduce((a, b) => a + b, 0);
+    sc.planStart = t;
+    sc.beats.forEach((b, i) => { b.planDur = sc.budget * raw[i] / sum; b.planStart = t; b.estDur = raw[i]; t += b.planDur; });
+  });
+  return t;
+}
+</script>

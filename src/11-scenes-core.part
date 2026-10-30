@@ -1,0 +1,168 @@
+<script>
+/* ═══ SCENES — registry, declarative reveals, per-beat context ═══ */
+function showState(spec, i) {
+  let on = false, after = false;
+  for (const part of String(spec).split(',')) {
+    const [a, b] = part.split('-');
+    const lo = +a, hi = b === undefined ? Infinity : (b === '' ? Infinity : +b);
+    if (i >= lo && i <= hi) on = true; else if (i > hi) after = true;
+  }
+  return on ? 'on' : (after ? 'gone' : 'off');
+}
+/* toggle a reveal element by hand: 'on' | 'off' | 'gone' */
+function vis(el, st) { if (!el) return; el.classList.toggle('on', st === 'on' || st === true); el.classList.toggle('gone', st === 'gone'); }
+
+const Scenes = (() => {
+  const root = $('#scenes');
+  const defs = {}, els = {}, rects = {};
+  let timers = [];
+  const define = (key, def) => { defs[key] = def; };
+  /* every scene gets its (empty) section at boot; its contents are built the first time it is needed,
+     and the rest are filled in during idle time, so a phone is not asked to draw 50 figures before the first frame */
+  const built = new Set();
+  function build() {
+    SCENES.forEach(sc => { const el = h('section.scene', { 'data-scene': sc.key, 'data-era': sc.era }); root.append(el); els[sc.key] = el; });
+  }
+  function ensure(key) {
+    if (built.has(key) || !els[key]) return;
+    built.add(key);
+    const d = defs[key], sc = SCENES.find(s => s.key === key);
+    if (d && d.build) { try { d.build(els[key], sc); } catch (e) { console.error('build failed:', key, e); } }
+  }
+  /* phones keep only the scenes around the current one; the rest are emptied and rebuilt if the show returns */
+  function dispose(key) {
+    if (!built.has(key)) return;
+    const d = defs[key];
+    try { d && d.leave && d.leave(els[key]); } catch (e) { console.error(e); }
+    els[key].replaceChildren(); built.delete(key);
+  }
+  function warm(from = 0) {
+    const order = SCENES.map((s, k) => [Math.abs(k - from) + (k < from ? .5 : 0), s.key]).sort((a, b) => a[0] - b[0]).map(x => x[1]);
+    const idle = window.requestIdleCallback ? (f) => requestIdleCallback(f, { timeout: 1500 }) : (f) => setTimeout(f, 120);
+    const step = () => { const k = order.find(key => !built.has(key)); if (!k) return; ensure(k); idle(step); };
+    idle(step);
+  }
+  function shows(el, i) {
+    $$('[data-show]', el).forEach(n => { const st = showState(n.dataset.show, i); n.classList.toggle('on', st === 'on'); n.classList.toggle('gone', st === 'gone'); });
+  }
+  function clearTimers() { timers.forEach(t => clearTimeout(t)); timers = []; }
+  function rate() { return clamp(+Settings.get().rate || 3.5, 2, 7); }
+  function run(sc, i, opt = {}) {
+    clearTimers();
+    ensure(sc.key);
+    /* a scene that was display:none until now needs its styles resolved before its reveals change,
+       or the reveal transitions would be skipped */
+    void els[sc.key].offsetWidth;
+    /* phones build only what comes next, and let go of what is two or more scenes away */
+    if (LITE) {
+      const at = SCENES.indexOf(sc), n = SCENES[at + 1];
+      SCENES.forEach((s, k) => { if (Math.abs(k - at) > 1 && built.has(s.key) && !els[s.key].classList.contains('leaving')) dispose(s.key); });
+      if (n && !built.has(n.key)) setTimeout(() => ensure(n.key), 400);
+    }
+    const el = els[sc.key];
+    shows(el, i);
+    const d = defs[sc.key];
+    const ctx = {
+      i, sc, el, dir: opt.dir ?? 1, instant: !!opt.instant, first: !!opt.first,
+      get fwd() { return this.dir > 0 && !this.instant; },
+      light(spec, o = {}) {
+        const base = Era.light(sc.era);
+        const dur = ctx.instant ? 0 : (ctx.dir < 0 ? .4 : (o.dur ?? (ctx.first ? (opt.enterDur ?? 1.8) : .9)));
+        Light.set(Object.assign({ wash: 0, bloom: 0, lights: [] }, base, spec), { instant: ctx.instant, dur, ease: o.ease, fadeOut: o.fadeOut });
+      },
+      fx(extra = {}) { const e = ERAS[sc.era] || {}; FX.set(Object.assign({}, e.fx || {}, extra), ctx.instant ? 0 : 1.2); },
+      after(ms, fn) {
+        if (!ctx.fwd) { try { fn(true); } catch (e) { console.error(e); } return; }
+        timers.push(setTimeout(() => { try { fn(false); } catch (e) { console.error(e); } }, ms));
+      },
+      /* time (ms) to reach a phrase of this beat's script at the configured speech rate */
+      say(phrase, extra = 0) {
+        const b = sc.beats[i]; const k = b.ko.indexOf(phrase);
+        const syl = k < 0 ? 0 : syllables(b.ko.slice(0, k));
+        return Math.round((syl / rate() + extra) * 1000);
+      },
+      rate,
+    };
+    if (d && d.beat) { try { d.beat(i, ctx, el); } catch (e) { console.error('beat failed:', sc.key, i, e); } }
+    return ctx;
+  }
+  function leave(sc) { const d = defs[sc.key]; if (d && d.leave) { try { d.leave(els[sc.key]); } catch (e) { console.error(e); } } }
+  const key = (sceneKey, k) => { const d = defs[sceneKey]; return !!(d && d.key && d.key(k)); };
+  return { define, build, ensure, warm, run, leave, key, el: k => (ensure(k), els[k]), rect: n => rects[n], setRect: (n, r) => { rects[n] = r; }, clearTimers, rate };
+})();
+
+/* the chapter opener used by every chapter: [act card + roadmap] → chapter card → dock */
+function opener(el, sc, o) {
+  const g = {};
+  if (o.act) {
+    g.act = A('div', 960, 430, { cls: 'rv blur slow' }, actCard(o.act));
+    g.road = A('div', 960, 800, { cls: 'rv up slow', d: .5 }, roadmap());
+    el.append(g.act, g.road);
+  }
+  g.card = A('div', o.cardX ?? 960, o.cardY ?? 500, { cls: 'rv zoom slow card3d' }, chapterCard(o.card));
+  el.append(g.card);
+  g.cc = $('.cc', g.card);
+  g.dock = () => {
+    const hgt = g.card.offsetHeight || 480, top = (o.cardY ?? 500) - hgt / 2;
+    g.cc.style.setProperty('--dock-y', Math.round((o.dockTop ?? 58) - top) + 'px');
+    g.cc.classList.add('docked');
+  };
+  /* run(ctx): plays the opener on beat 0; returns ms when the content may enter */
+  g.run = (ctx, { dock = true } = {}) => {
+    const actMs = o.act ? 2600 : 0;
+    const dockMs = actMs + (o.hold ?? 2600);
+    if (!ctx.fwd) {
+      if (g.act) { vis(g.act, 'off'); vis(g.road, 'off'); }
+      vis(g.card, 'on'); if (dock) g.dock(); else g.cc.classList.remove('docked');
+      return 0;
+    }
+    g.cc.classList.remove('docked'); vis(g.card, 'off');
+    if (g.act) {
+      vis(g.act, 'on'); vis(g.road, 'on'); g.road.firstChild.focusOn(null, { instant: true });
+      ctx.after(300, () => g.road.firstChild.focusOn(sc.key));
+      ctx.after(actMs, () => { vis(g.act, 'gone'); vis(g.road, 'gone'); });
+      ctx.after(actMs + 350, () => vis(g.card, 'on'));
+    } else vis(g.card, 'on');
+    if (dock) ctx.after(dockMs, () => g.dock());
+    return dock ? dockMs + 300 : actMs + 600;
+  };
+  g.hide = () => { if (g.act) { vis(g.act, 'off'); vis(g.road, 'off'); } vis(g.card, 'gone'); };
+  return g;
+}
+
+/* a column of lines positioned as one block, so bilingual lines never collide */
+function stack(x, y, opt = {}, ...rows) {
+  const { gap = 16, align = 'center', ...rest } = opt;
+  const el = A('div.stack', x, y, rest);
+  Object.assign(el.style, { display: 'flex', flexDirection: 'column', gap: gap + 'px', alignItems: align === 'left' ? 'flex-start' : 'center', textAlign: align });
+  el.append(...rows.filter(Boolean));
+  return el;
+}
+/* one revealing row inside a stack */
+function R(cls, show, d, content, rv = 'up', style) {
+  const el = h('div', { cls: cls + ' rv ' + rv, 'data-show': show, style: Object.assign({ '--d': (d || 0) + 's' }, style || {}) });
+  if (content != null) el.append(content);
+  return el;
+}
+
+/* a rigged figure standing on the stage, inside a reveal box (o: Figure options + x, y, h, show, d, cls) */
+function stageFig(parent, o) {
+  const f = new Figure.Fig(o);
+  f.place(o.x, o.y, o.h);
+  const box = A('div.figbox', 0, 0, { anchor: '', show: o.show, cls: o.cls || 'slow', d: o.d });
+  if (o.show == null) box.classList.add('rv');
+  box.append(f.el); parent.append(box);
+  f.box = box;
+  return f;
+}
+
+/* a soft rectangle of light fitted to a placed line of text. Measured from layout (CSS translate included,
+   reveal transforms ignored), so the same call fits Korean, Chinese and the bilingual stack. */
+function textLight(id, el, o = {}) {
+  const { x, y, w, h: hh } = stageBox(el), px = o.pad ?? 30, py = o.padY ?? 16;
+  return { id, type: 'rect', x: x + w / 2, y: y + hh / 2, w: w + px * 2, h: hh + py * 2, r: Math.min(40, hh / 2 + py), soft: o.soft ?? 46, i: o.i ?? .75, delay: o.delay || 0 };
+}
+
+/* little helper for svg markup inside A() */
+const S = (markup) => svgEl(markup);
+</script>

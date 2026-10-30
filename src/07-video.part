@@ -1,0 +1,511 @@
+<style>
+/* video layer: slots sit above the darkness, so a playing screen glows in the dark room */
+/* a slot that is off is hidden once it has faded, so an idle 1920×1080 black box needs no layer */
+.vslot { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; opacity: 0; visibility: hidden; transition: opacity .6s ease, visibility 0s linear .6s, left .8s var(--e-stage), top .8s var(--e-stage), width .8s var(--e-stage), height .8s var(--e-stage); overflow: hidden; background: #000; }
+.vslot.on { opacity: 1; visibility: visible; transition: opacity .6s ease, visibility 0s, left .8s var(--e-stage), top .8s var(--e-stage), width .8s var(--e-stage), height .8s var(--e-stage); }
+.vslot .vs-yt, .vslot .vs-yt iframe, .vslot .vs-file { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; pointer-events: none; }
+.vslot .vs-yt { opacity: 0; transition: opacity .5s ease; }
+.vslot.playing .vs-yt { opacity: 1; }
+.vslot .vs-file { object-fit: cover; opacity: 0; transition: opacity .5s ease; background: #000; }
+.vslot.file .vs-file { opacity: 1; }
+.vslot .vs-fb { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 22px; text-align: center; color: #efe8da;
+  background: radial-gradient(ellipse at 50% 45%, #1d1a16, #0a0908 70%); pointer-events: auto; padding: 40px; }
+.vslot.fallback .vs-fb { display: flex; }
+.vslot.fallback .vs-yt, .vslot.fallback .vs-file { opacity: 0 !important; }
+.vs-fb .fb-k { font: 600 22px/1 var(--f-num); letter-spacing: .4em; color: rgba(239, 232, 218, .5); text-transform: uppercase; }
+.vs-fb .fb-t { font: 500 64px/1.2 var(--f-ko-h); }
+.vs-fb .fb-t .zh { font-family: var(--f-zh-h); }
+.vs-fb .fb-y { font: 500 30px/1 var(--f-num); letter-spacing: .3em; color: rgba(239, 232, 218, .6); }
+.vs-fb a { font: 500 24px/1 var(--f-ko); color: #ffd08a; text-decoration: none; border-bottom: 1px solid rgba(255, 208, 138, .4); padding-bottom: 4px; }
+.vs-fb .fb-play { width: 120px; height: 120px; border-radius: 50%; border: 2px solid rgba(239, 232, 218, .5); position: relative; }
+.vs-fb .fb-play::after { content: ''; position: absolute; left: 50%; top: 50%; translate: -38% -50%; border-left: 34px solid rgba(239, 232, 218, .8); border-top: 22px solid transparent; border-bottom: 22px solid transparent; }
+#vs-tv .vs-fb, #vs-pip .vs-fb { gap: 10px; padding: 16px; }
+#vs-tv .fb-t, #vs-pip .fb-t { font-size: 30px; }
+#vs-tv .fb-k, #vs-pip .fb-k { font-size: 14px; }
+#vs-tv .fb-play, #vs-pip .fb-play { width: 60px; height: 60px; }
+#vs-tv .fb-play::after, #vs-pip .fb-play::after { border-left-width: 18px; border-top-width: 12px; border-bottom-width: 12px; }
+#vs-tv .vs-fb a, #vs-pip .vs-fb a { font-size: 16px; }
+/* CRT glass on the TV slot */
+#vs-tv { border-radius: 46px / 40px; background: #050505; }
+#vs-tv::after { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: repeating-linear-gradient(to bottom, rgba(0,0,0,.32) 0 2px, transparent 2px 4px), radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(0,0,0,.65) 100%), linear-gradient(135deg, rgba(255,255,255,.1), transparent 35%);
+  box-shadow: inset 0 0 60px rgba(0,0,0,.8); }
+#vs-tv .vs-yt { filter: saturate(1.15) contrast(1.1); }
+#vs-pip { border: 3px solid rgba(241, 234, 214, .85); box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+#vs-pip::before { content: '45°  ·  LOOP'; position: absolute; left: 14px; top: 10px; z-index: 2; font: 600 16px/1 var(--f-num); letter-spacing: .25em; color: rgba(241, 234, 214, .85); text-shadow: 0 1px 6px #000; }
+#vs-main.framed { box-shadow: 0 0 0 2px rgba(241, 234, 214, .25), 0 40px 120px rgba(0,0,0,.7); }
+#leader { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; opacity: 0; visibility: hidden; transition: opacity .25s linear, visibility 0s linear .25s; }
+/* the trailer is projected: it lives on the cinema screen, grows to the whole stage and goes back.
+   Moved with a transform only, so the player is never re-laid out while it plays. */
+#vs-main.zoomer { transform-origin: 0 0; background: transparent; }
+#vs-main.zoomer.on { transition: opacity .7s ease, visibility 0s, transform 1.25s cubic-bezier(.62, 0, .3, 1); }
+#vs-main.zoomer:not(.on) { transition: opacity .7s ease, visibility 0s linear .7s, transform 1.25s cubic-bezier(.62, 0, .3, 1); }
+#vs-main.zoomer .vs-yt, #vs-main.zoomer .vs-file { background: #000; }
+/* while the film fills the stage, the act label and year step aside */
+#stage.film #hud > * { opacity: 0 !important; }
+/* music players: tiny, transparent and never display:none (hidden frames get throttled) */
+#bgm { position: absolute; left: 0; top: 0; width: 320px; height: 180px; opacity: 0; pointer-events: none; overflow: hidden; z-index: -1; }
+#bgm .vslot { width: 320px; height: 180px; transition: none; }
+#leader.on { opacity: 1; visibility: visible; transition: opacity .25s linear, visibility 0s; }
+/* subtitle strip for cue captions */
+#subs .sub { position: absolute; left: 50%; bottom: 74px; translate: -50% 0; max-width: 1500px; text-align: center; font: 500 40px/1.35 var(--f-ko); color: #fff;
+  text-shadow: 0 2px 4px rgba(0,0,0,.9), 0 0 24px rgba(0,0,0,.8); opacity: 0; visibility: hidden; transition: opacity .4s ease, visibility 0s linear .4s; }
+#subs .sub .zh { font-family: var(--f-zh); }
+#subs .sub.on { opacity: 1; visibility: visible; transition: opacity .4s ease, visibility 0s; }
+#subs .sub.top { bottom: auto; top: 64px; }
+#subs .sub .sk { font: 500 38px/1.3 var(--f-ko); }
+#subs .sub .sz { margin-top: 6px; font: 400 29px/1.35 var(--f-zh); color: rgba(255, 255, 255, .86); }
+</style>
+
+<script>
+/* ═══ VIDEO — YouTube IFrame API (or local files) behind one interface; precise cues, loops, fallback cards ═══ */
+const YTAPI = (() => {
+  let state = 'idle', reason = '', unlocked = false;
+  const waiters = [];
+  const flush = () => { while (waiters.length) waiters.shift()(state === 'ready'); };
+  function load() {
+    if (state !== 'idle') return;
+    if (VIEW === 'preview') { state = 'failed'; reason = 'preview'; return flush(); }
+    /* phones load the player only once someone taps or presses for sound (a page turn, an MV switch) */
+    if (LITE && !unlocked) { reason = '等待第一次点击'; return; }
+    state = 'loading';
+    window.onYouTubeIframeAPIReady = () => { state = 'ready'; flush(); };
+    const s = document.createElement('script'); s.src = 'https://www.youtube.com/iframe_api'; s.async = true;
+    s.onerror = () => { state = 'failed'; reason = '无法加载 YouTube 接口（网络或环境阻止）'; flush(); };
+    document.head.append(s);
+    setTimeout(() => { if (state === 'loading') { state = 'failed'; reason = 'YouTube 接口加载超时'; flush(); } }, 12000);
+  }
+  return {
+    ready() {
+      return new Promise(res => {
+        if (state === 'ready' || state === 'failed') { res(state === 'ready'); return; }
+        if (LITE && !unlocked) { res(false); return; }
+        waiters.push(res); load();
+      });
+    },
+    unlock() { if (unlocked) return; unlocked = true; if (state === 'idle') load(); },
+    get state() { return state; }, get reason() { return reason; }, get unlocked() { return unlocked; }, load,
+  };
+})();
+
+const YT_ERR = { 2: '视频 ID 无效', 5: '播放器 HTML5 错误', 100: '视频不存在或已设为私密', 101: '视频所有者禁止嵌入', 150: '视频所有者禁止嵌入', 153: '缺少来源信息（请用 http(s) 打开页面）' };
+
+function makeSlot(name, host, opt = {}) {
+  const el = h('div.vslot', { id: 'vs-' + name });
+  const ytWrap = h('div.vs-yt'), hold = h('div'); ytWrap.append(hold);
+  const vid = h('video.vs-file', { playsinline: true, preload: 'auto' });
+  const fb = h('div.vs-fb');
+  el.append(ytWrap, vid, fb); host.append(el);
+  const s = { name, el, kind: null, id: null, player: null, error: null, want: null, vol: 100, muted: false, playing: false, onEnd: null, endAt: null, loop: null, pending: null, watch: null, bg: !!opt.bg };
+
+  function ensurePlayer() {
+    if (s.player) return Promise.resolve(s.player);
+    if (s.creating) return s.creating;
+    s.creating = YTAPI.ready().then(ok => {
+      if (!ok) throw new Error(YTAPI.reason || 'YouTube 不可用');
+      return new Promise((res, rej) => {
+        let done = false;
+        const p = new YT.Player(hold, {
+          width: '100%', height: '100%',
+          playerVars: { autoplay: 0, controls: 0, disablekb: 1, fs: 0, iv_load_policy: 3, modestbranding: 1, playsinline: 1, rel: 0, cc_load_policy: 0, origin: location.origin, enablejsapi: 1 },
+          events: {
+            onReady: () => { done = true; s.player = p; try { const f = p.getIframe(); f.setAttribute('tabindex', '-1'); f.setAttribute('allow', 'autoplay; encrypted-media; picture-in-picture'); } catch (e) { /* ignore */ } res(p); },
+            onError: (e) => onErr(e.data),
+            onStateChange: (e) => onState(e.data),
+          },
+        });
+        setTimeout(() => { if (!done) rej(new Error('YouTube 播放器创建超时')); }, 15000);
+      });
+    });
+    s.creating.catch(() => { s.creating = null; });
+    return s.creating;
+  }
+  function settle(ok) { const p = s.pending; s.pending = null; clearTimeout(s.loadTimer); clearTimeout(s.kickTimer); if (p) p(ok); }
+  function onErr(code) {
+    s.error = YT_ERR[code] || ('YouTube 错误 ' + code); s.playing = false; el.classList.remove('playing');
+    showFallback(); settle(false); Video.emit();
+  }
+  function onState(st) {
+    if (st === 1) {          /* PLAYING */
+      s.playing = true; el.classList.add('playing'); el.classList.remove('fallback');
+      try { const vd = s.player.getVideoData && s.player.getVideoData(); if (vd && vd.title) s.title = vd.title; } catch (e) { /* optional API */ }
+      if (s.want && !s.want.muted && s.player.isMuted && s.player.isMuted() && !s.forcedMute) { /* keep */ }
+      if (s.forcedMute && s.want && !s.want.muted) { try { s.player.unMute(); s.player.setVolume(s.vol); } catch (e) { /* ignore */ } s.forcedMute = false; }
+      settle(true);
+    } else if (st === 2) { s.playing = false; }
+    else if (st === 0) {     /* ENDED */
+      s.playing = false;
+      if (s.loop) { try { s.player.seekTo(s.loop[0], true); s.player.playVideo(); } catch (e) { /* ignore */ } }
+      else if (s.onEnd) { const f = s.onEnd; s.onEnd = null; f(); }
+    }
+    Video.emit();
+  }
+  function showFallback() {
+    const info = s.want || {};
+    const wk = info.work && WORKS[info.work];
+    const v = VIDEOS[info.key] || (wk ? { name: wk.t, year: wk.y } : {});
+    fb.innerHTML = '';
+    fb.append(...[
+      h('div.fb-k', { text: 'VIDEO' + (v.year ? ' · ' + v.year : '') }),
+      h('div.fb-play'),
+      h('div.fb-t', {}, T(v.name || L('영상', '视频'))),
+      info.id ? h('a', { href: 'https://www.youtube.com/watch?v=' + info.id + (info.start ? '&t=' + Math.floor(info.start) + 's' : ''), target: '_blank', rel: 'noopener' }, T(L('YouTube에서 보기 ↗', '在 YouTube 打开 ↗'))) : null,
+    ].filter(Boolean));
+    el.classList.add('fallback');
+  }
+
+  s.load = (o) => {
+    s.want = o; s.error = null; s.loop = o.loop ? [o.loopA ?? o.start ?? 0, o.loopB ?? null] : null; s.endAt = o.loop ? null : (o.end ?? null); s.onEnd = o.onEnd || null;
+    el.classList.remove('fallback', 'playing'); s.playing = false;
+    if (o.file) {
+      s.kind = 'file'; el.classList.add('file');
+      return new Promise(res => {
+        vid.muted = !!o.muted; vid.loop = !!o.loop && o.loopB == null; vid.volume = s.vol / 100;
+        const fail = () => { s.error = '视频文件无法加载'; showFallback(); res(false); Video.emit(); };
+        vid.onerror = fail;
+        vid.onended = () => { if (s.onEnd) { const f = s.onEnd; s.onEnd = null; f(); } };
+        MediaCache.url(o.file).then(u => {
+          if (s.want !== o) { res(false); return; }
+          if (vid.getAttribute('src') !== u) vid.src = u;
+          const go = () => { try { vid.currentTime = o.start || 0; } catch (e) { /* ignore */ } if (o.autoplay) vid.play().then(() => { s.playing = true; el.classList.add('playing'); res(true); Video.emit(); }).catch(() => { vid.muted = true; vid.play().then(() => { s.playing = true; res(true); }).catch(fail); }); else res(true); };
+          if (vid.readyState >= 1) go(); else vid.addEventListener('loadedmetadata', go, { once: true });
+        }).catch(fail);
+      });
+    }
+    el.classList.remove('file'); s.kind = 'yt'; s.id = o.id;
+    if (!o.id) { s.error = '未设置视频'; showFallback(); return Promise.resolve(false); }
+    return ensurePlayer().then(p => new Promise(res => {
+      s.pending = res;
+      try {
+        if (o.muted) p.mute(); else { p.unMute(); p.setVolume(s.vol); }
+        const args = { videoId: o.id, startSeconds: o.start || 0 };
+        if (o.autoplay) p.loadVideoById(args); else { p.cueVideoById(args); settle(true); return; }
+      } catch (e) { s.error = String(e.message || e); showFallback(); settle(false); return; }
+      /* autoplay nudges: replay, then fall back to muted autoplay (always allowed) and unmute once it runs */
+      s.kickTimer = setTimeout(() => {
+        if (s.pending && !s.playing) { try { p.playVideo(); } catch (e) { /* ignore */ } }
+        s.kickTimer = setTimeout(() => { if (s.pending && !s.playing && !o.muted) { s.forcedMute = true; try { p.mute(); p.playVideo(); } catch (e) { /* ignore */ } } }, 2200);
+      }, 2200);
+      s.loadTimer = setTimeout(() => { if (s.pending) { s.error = s.error || '视频加载超时'; showFallback(); settle(false); Video.emit(); } }, 11000);
+    })).catch(err => { s.error = String(err && err.message || err); showFallback(); return false; });
+  };
+  s.play = () => { if (s.kind === 'file') return vid.play().catch(() => {}); try { s.player && s.player.playVideo(); } catch (e) { /* ignore */ } };
+  /* start a cued video; resolves once it is really playing */
+  s.resume = () => {
+    if (s.kind === 'file') return vid.play().then(() => { s.playing = true; el.classList.add('playing'); return true; }, () => false);
+    if (!s.player || s.error) return Promise.resolve(false);
+    if (s.playing) return Promise.resolve(true);
+    if (s.pending) settle(false);
+    return new Promise(res => {
+      s.pending = res;
+      try { if (!(s.want && s.want.muted)) { s.player.unMute(); s.player.setVolume(s.vol); } s.player.playVideo(); } catch (e) { settle(false); return; }
+      s.loadTimer = setTimeout(() => { if (s.pending) { s.error = s.error || '播放超时'; settle(false); } }, 8000);
+    });
+  };
+  s.pause = () => { s.playing = false; if (s.kind === 'file') { vid.pause(); return; } try { s.player && s.player.pauseVideo(); } catch (e) { /* ignore */ } };
+  s.stop = () => { s.onEnd = null; s.loop = null; s.endAt = null; s.pause(); el.classList.remove('playing'); };
+  s.seek = (t) => { if (s.kind === 'file') { try { vid.currentTime = Math.max(0, t); } catch (e) { /* ignore */ } return; } try { s.player && s.player.seekTo(Math.max(0, t), true); } catch (e) { /* ignore */ } };
+  s.time = () => { if (s.kind === 'file') return vid.currentTime || 0; try { return s.player ? s.player.getCurrentTime() || 0 : 0; } catch (e) { return 0; } };
+  s.duration = () => { if (s.kind === 'file') return vid.duration || 0; try { return s.player ? s.player.getDuration() || 0 : 0; } catch (e) { return 0; } };
+  s.setVolume = (v) => { s.vol = clamp(v, 0, 100); if (s.kind === 'file') vid.volume = s.vol / 100; else try { s.player && s.player.setVolume(s.vol); } catch (e) { /* ignore */ } };
+  s.mute = (m) => { if (s.kind === 'file') vid.muted = m; else try { s.player && (m ? s.player.mute() : s.player.unMute()); } catch (e) { /* ignore */ } };
+  s.show = (v) => el.classList.toggle('on', !!v);
+  s.fallback = showFallback;
+  s.showBg = (v) => { el.classList.toggle('on', !!v); const bg = $('#ytbg'); if (bg) bg.classList.toggle('on', $$('#ytbg > .vslot.on').length > 0); };
+  /* full-size box mapped onto a rect by a transform (uniform scale, centred) */
+  s.fit = (r) => {
+    if (!r) { el.style.transform = ''; return; }
+    const k = Math.min(r.w / W, r.h / H), x = r.x + (r.w - W * k) / 2, y = r.y + (r.h - H * k) / 2;
+    el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) scale(${k.toFixed(4)})`;
+  };
+  s.place = (r) => { if (!r) return; el.style.left = r.x + 'px'; el.style.top = r.y + 'px'; el.style.width = r.w + 'px'; el.style.height = r.h + 'px'; };
+  s.isPlaying = () => { if (s.kind === 'file') return !vid.paused; try { return s.player && s.player.getPlayerState() === 1; } catch (e) { return false; } };
+  return s;
+}
+
+const Video = (() => {
+  const layer = $('#video');
+  const slots = {};
+  const listeners = new Set();
+  let beatToken = 0, capture = 0;
+  const subs = h('div.sub'), subsEl = subs; $('#subs').append(subs);
+  const leader = h('canvas#leader', { width: 1920, height: 1080 }); layer.append(leader);
+
+  function slot(name) {
+    if (!slots[name]) { slots[name] = makeSlot(name, layer); if (leader.parentNode === layer) layer.append(leader); }
+    return slots[name];
+  }
+  function bgSlot(key) {
+    const n = 'bg-' + key;
+    if (!slots[n]) {
+      let host = $('#bgm'); if (!host) { host = h('div#bgm', { 'aria-hidden': 'true' }); $('#stage').append(host); }
+      slots[n] = makeSlot(n, host, { bg: true }); slots[n].place({ x: 0, y: 0, w: 320, h: 180 }); slots[n].show(true);
+    }
+    return slots[n];
+  }
+  function src(key) {
+    const v = Settings.get().videos[key] || {};
+    /* the trailer follows the screen language: the Chinese-subtitled cut when the stage is in Chinese */
+    const zh = key === 'trailer' && $('#stage').dataset.lang === 'zh' && (v.srcZh || '').trim();
+    const s = (zh || v.src || '').trim();
+    return { id: ytId(s), file: isFileSrc(s) ? s : null, cfg: v, set: !!s };
+  }
+  const configured = (key) => src(key).set;
+
+  /* watch cue ends and A/B loops every frame */
+  Loop.add(() => {
+    for (const s of Object.values(slots)) {
+      if (!s.playing) continue;
+      const t = s.time();
+      if (s.loop && s.loop[1] != null && t >= s.loop[1] - .05) s.seek(s.loop[0]);
+      else if (s.endAt != null && t >= s.endAt - .12) { s.endAt = null; const f = s.onEnd; s.onEnd = null; if (f) f(); else s.pause(); }
+    }
+  });
+
+  function showSub(label) {
+    if (!label) subs.classList.remove('top');
+    subs.innerHTML = ''; if (!label || !(label.ko || label.zh)) { subs.classList.remove('on'); return; }
+    /* always both languages, Korean above Chinese, whatever the stage language */
+    const strip = (x) => String(x || '').replace(/<br\s*\/?>/g, ' ').replace(/<[^>]+>/g, '');
+    subs.append(h('div.sk', { lang: 'ko', text: strip(label.ko) }), label.zh && label.zh !== label.ko ? h('div.sz', { lang: 'zh-Hans', text: strip(label.zh) }) : null);
+    subs.classList.add('on');
+  }
+
+  /* film leader 3·2·1 */
+  function countdown(sec = 2.4, rect = null) {
+    return new Promise(res => {
+      const c = leader.getContext('2d');
+      if (rect) { const k = Math.min(rect.w / W, rect.h / H); leader.style.transform = `translate(${(rect.x + (rect.w - W * k) / 2).toFixed(1)}px, ${(rect.y + (rect.h - H * k) / 2).toFixed(1)}px) scale(${k.toFixed(4)})`; }
+      else leader.style.transform = '';
+      leader.classList.add('on');
+      SFX.projector(sec + .3);
+      const t0 = now(), per = sec / 3;
+      const off = Loop.add(() => {
+        const t = (now() - t0) / 1000;
+        const jx = (Math.random() - .5) * 5, jy = (Math.random() - .5) * 4, fl = .9 + Math.random() * .12;
+        c.setTransform(1, 0, 0, 1, 0, 0);
+        c.fillStyle = `rgb(${Math.round(42 * fl)},${Math.round(40 * fl)},${Math.round(37 * fl)})`; c.fillRect(0, 0, W, H);
+        c.translate(jx, jy);
+        const n = 3 - Math.floor(t / per), p = (t % per) / per, cx = W / 2, cy = H / 2;
+        c.fillStyle = `rgba(120,116,108,${.55 * fl})`;
+        c.beginPath(); c.moveTo(cx, cy); c.arc(cx, cy, 760, -Math.PI / 2, -Math.PI / 2 + p * TAU); c.closePath(); c.fill();
+        c.strokeStyle = 'rgba(236,232,224,.8)'; c.lineWidth = 6;
+        c.beginPath(); c.arc(cx, cy, 380, 0, TAU); c.stroke(); c.beginPath(); c.arc(cx, cy, 330, 0, TAU); c.stroke();
+        c.lineWidth = 3; c.beginPath(); c.moveTo(0, cy); c.lineTo(W, cy); c.moveTo(cx, 0); c.lineTo(cx, H); c.stroke();
+        c.fillStyle = 'rgba(245,242,236,.94)'; c.font = '700 440px "Barlow Condensed", sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+        if (n >= 1) c.fillText(String(n), cx, cy + 18);
+        c.setTransform(1, 0, 0, 1, 0, 0);
+        for (let i = 0; i < 4; i++) { c.fillStyle = `rgba(255,255,255,${Math.random() * .18})`; c.fillRect(Math.random() * W, 0, 1 + Math.random() * 2, H); }
+        for (let i = 0; i < 26; i++) { c.fillStyle = `rgba(0,0,0,${.3 + Math.random() * .5})`; c.beginPath(); c.arc(Math.random() * W, Math.random() * H, Math.random() * 3.5, 0, TAU); c.fill(); }
+        const vg = c.createRadialGradient(cx, cy, 300, cx, cy, 1100); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.7)'); c.fillStyle = vg; c.fillRect(0, 0, W, H);
+        if (t >= sec) {
+          off(); c.fillStyle = '#fff'; c.fillRect(0, 0, W, H);
+          setTimeout(() => { c.fillStyle = '#000'; c.fillRect(0, 0, W, H); setTimeout(() => { leader.classList.remove('on'); res(); }, 120); }, 50);
+        }
+      });
+      Video.cancelLeader = () => { off(); leader.classList.remove('on'); res(); };
+    });
+  }
+
+  /* play a range in a slot; resolves when it ends (or is stopped) */
+  function playRange(slotName, key, { start = 0, end = null, muted = false, rect, loop = false, onEnd, sub, framed = false } = {}) {
+    if (VIEW !== 'stage') return Promise.resolve(false);
+    const s = slot(slotName); const so = src(key);
+    if (s.el.classList.contains('zoomer')) { clearTimeout(s.unzoom); s.el.classList.remove('zoomer', 'big'); s.el.style.transform = ''; }
+    s.place(rect || { x: 0, y: 0, w: W, h: H });
+    s.el.classList.toggle('framed', !!framed);
+    s.show(true);
+    if (sub) showSub(sub);
+    s.setVolume(100);
+    return s.load({ key, id: so.id, file: so.file, start, end, muted, loop, loopA: loop ? start : null, loopB: loop ? end : null, autoplay: true, onEnd }).then(ok => { emit(); return ok; });
+  }
+  function stop(slotName, { fade = true } = {}) {
+    const s = slots[slotName]; if (!s) return;
+    s.stop(); s.show(false); s.el.classList.remove('fallback', 'big');
+    if (slotName === 'main') {
+      showSub(null); trailerOn = null; $('#stage').classList.remove('film');
+      /* a projected slot keeps its transform until it has faded, then goes back to an ordinary box */
+      if (s.el.classList.contains('zoomer')) { const el = s.el; clearTimeout(s.unzoom); s.unzoom = setTimeout(() => { if (!el.classList.contains('on')) { el.classList.remove('zoomer'); el.style.transform = ''; } }, 760); }
+    }
+    emit();
+  }
+
+  /* beat-scoped playback (trailer, cues, Motown clip) */
+  function enterBeat(beat, { dir = 1, instant = false } = {}) {
+    if (VIEW !== 'stage') return;
+    const token = ++beatToken;
+    if (Video.cancelLeader) { Video.cancelLeader(); Video.cancelLeader = null; }
+    ['main'].forEach(n => stop(n));
+    if (slots.tv && slots.tv.want && slots.tv.want.key === 'motown') stop('tv');
+    const v = beat.video; if (!v) return;
+    if (dir < 0 || instant) { emit(); return; }       /* rewinding never auto-plays: press K */
+    startBeatVideo(beat, token);
+  }
+  function startBeatVideo(beat, token = ++beatToken, { skipCountdown = false } = {}) {
+    const v = beat.video; if (!v) return;
+    const so = src(v.key), cfg = so.cfg;
+    const audible = true;
+    const go = () => {
+      if (token !== beatToken) return;
+      if (v.key === 'sc') {
+        const c = (cfg.cues || [])[v.cue - 1] || {};
+        const rect = Scenes.rect && Scenes.rect('scFrame');
+        if (c.start == null) {
+          const s = slot('main'); s.place(rect); s.el.classList.add('framed'); s.want = { key: 'sc', id: so.id, start: 0 }; s.show(true);
+          s.load({ key: 'sc', id: so.id, file: so.file, start: 0, autoplay: false }).then(() => emit());
+          toast(`提示点 ${v.cue} 尚未设置：按 <b>K</b> 手动播放，或在排练时按 <b>C</b> 记录时间`, 5200);
+          return;
+        }
+        Music.duck(true);
+        playRange('main', 'sc', { start: c.start, end: c.end, rect, framed: true, sub: c.label, onEnd: () => { if (token !== beatToken) return; const s = slot('main'); s.pause(); setTimeout(() => { if (token === beatToken) { s.show(false); showSub(null); } }, 350); Music.duck(false); emit(); } });
+        Video.cueNow = v.cue;
+      } else if (v.key === 'motown') {
+        const rect = Scenes.rect && Scenes.rect('tvScreen');
+        Music.duck(true);
+        playRange('tv', 'motown', { start: +cfg.start || 0, end: cfg.end != null && cfg.end !== '' ? +cfg.end : null, rect, onEnd: () => { if (token !== beatToken) return; stop('tv'); Music.duck(false); } });
+      }
+    };
+    if (v.key === 'trailer') { playTrailer(token, { skipCountdown }); return; }
+    /* no film leader when the video cannot play here (phone, or an embed-blocking preview): go straight to its card */
+    const playable = !!so.file || (YTAPI.state !== 'failed' && (!LITE || YTAPI.unlocked));
+    if (v.countdown && !skipCountdown && playable) countdown(2.4).then(go);
+    else setTimeout(go, Music.status().level > 0 ? 900 : 0);
+  }
+
+  /* ── the trailer: projected on the cinema screen, then the camera goes into the screen, and back out ── */
+  let trailerOn = null;
+  function playTrailer(token, { skipCountdown = false } = {}) {
+    const so = src('trailer'), cfg = so.cfg;
+    const scr = (Scenes.rect && Scenes.rect('cineScreen')) || { x: 0, y: 0, w: W, h: H };
+    const s = slot('main');
+    clearTimeout(s.unzoom);
+    s.el.classList.remove('framed', 'big'); s.el.classList.add('zoomer');
+    s.el.style.transition = 'none'; s.place({ x: 0, y: 0, w: W, h: H }); s.fit(scr); void s.el.offsetWidth; s.el.style.transition = '';
+    const start = +cfg.start || 0, end = cfg.end != null && cfg.end !== '' ? +cfg.end : null;
+    const back = () => {
+      if (token !== beatToken) return;
+      trailerOn = null; showSub(null);
+      s.pause();                     /* the last frame goes back onto the screen, frozen */
+      $('#stage').classList.remove('film');
+      s.el.classList.remove('big'); s.fit(scr);
+      Music.duck(false);
+      later(1300, () => { SFX.runout(1.3); s.show(false); later(800, () => stop('main')); });
+    };
+    const later = (ms, f) => setTimeout(() => { if (token === beatToken) f(); }, ms);
+    const playable = !!so.file || (!!so.id && YTAPI.state !== 'failed' && (!LITE || YTAPI.unlocked));
+    s.setVolume(100);
+    if (!playable) {           /* phone or preview: the card with its link sits on the screen */
+      s.show(true);
+      s.load({ key: 'trailer', id: so.id, file: so.file, start, autoplay: false }).then(ok => { if (ok && !so.file) s.fallback(); emit(); });
+      return;
+    }
+    /* cue it while the screen turns to face us and the leader runs on it */
+    const cued = s.load({ key: 'trailer', id: so.id, file: so.file, start, end, autoplay: false, onEnd: back });
+    const lead = skipCountdown ? Promise.resolve() : new Promise(res => later(1100, () => countdown(2.4, scr).then(res)));
+    Promise.all([cued, lead]).then(([ok]) => {
+      if (token !== beatToken) return;
+      s.show(true);
+      if (!ok) { emit(); return; }
+      Music.duck(true);
+      s.resume().then(playing => {
+        if (token !== beatToken) return;
+        if (!playing) { s.fallback(); emit(); return; }
+        trailerOn = { token, cur: -1 };
+        later(700, () => { if (s.isPlaying()) { s.el.classList.add('big'); s.fit(null); $('#stage').classList.add('film'); } });
+        later(1500, () => {
+          /* without an out point, stop just before the end: YouTube's end screen of suggestions never shows */
+          if (end == null && s.duration() > 2 && s.endAt == null) { s.endAt = s.duration() - .35; s.onEnd = back; }
+          const d = Math.round(s.duration()); if (d > 5 && Math.abs((cfg.dur || 0) - d) >= 1) Settings.set('videos.trailer.dur', d); });
+        emit();
+      });
+    });
+  }
+  /* trailer subtitles (optional, from the media settings): one Korean/Chinese pair at a time, by the clock */
+  Loop.add(() => {
+    if (!trailerOn) return;
+    const s = slots.main; if (!s || !s.playing) return;
+    const subs = (Settings.get().videos.trailer || {}).subs || []; if (!subs.length) return;
+    const t = s.time();
+    let i = -1; for (let k = 0; k < subs.length; k++) { if (subs[k].t != null && subs[k].t <= t) i = k; }
+    const c = subs[i];
+    if (c && c.end != null && t > c.end) i = -1;
+    if (i === trailerOn.cur) return;
+    trailerOn.cur = i;
+    subsEl.classList.toggle('top', (Settings.get().videos.trailer || {}).subPos === 'top');
+    showSub(i >= 0 ? L(subs[i].ko || subs[i].zh || '', subs[i].zh || subs[i].ko || '') : null);
+  });
+
+  /* stop whatever beat video is running (trailer, cue, the CRT) */
+  function stopBeat() {
+    beatToken++;
+    if (Video.cancelLeader) { Video.cancelLeader(); Video.cancelLeader = null; }
+    const had = ['main', 'tv', 'pip'].some(n => slots[n] && slots[n].el.classList.contains('on'));
+    ['main', 'tv', 'pip'].forEach(n => stop(n));
+    if (had) Music.duck(false);
+    return had;
+  }
+  /* V: one key for every video — close what is open, otherwise play this beat's video or the first MV switch in sight */
+  function vkey() {
+    if (MV.isOpen) { MV.close(); return; }
+    if (Video.cancelLeader || ['main', 'tv', 'pip'].some(n => slots[n] && slots[n].el.classList.contains('on'))) { stopBeat(); toast('视频已关闭（再按 V 重新播放）', 1400, { local: true }); return; }
+    const b = BEATS[Director.beat];
+    if (b && b.video && configured(b.video.key)) { startBeatVideo(b, ++beatToken); return; }
+    const sw = MV.visible();
+    if (sw) { if (!MV.direct(sw.dataset.work)) MV.open(sw.dataset.work, sw); return; }
+    toast('这一页没有可播放的视频', 1400, { local: true });
+  }
+
+  /* operator controls */
+  function activeSlot() {
+    for (const n of ['mv', 'main', 'tv', 'pip', 'lab']) { const s = slots[n]; if (s && s.el.classList.contains('on')) return s; }
+    return null;
+  }
+  function toggle() {
+    const s = activeSlot();
+    const beat = BEATS[Director.beat];
+    if (!s || (!s.isPlaying() && !s.want)) { if (beat && beat.video) startBeatVideo(beat, ++beatToken, { skipCountdown: true }); return; }
+    if (s.isPlaying()) s.pause(); else { if (s.want && s.want.key === 'sc' && !s.el.classList.contains('on')) s.show(true); s.play(); }
+    emit();
+  }
+  function cue(n) {
+    const cfg = Settings.get().videos.sc; const c = (cfg.cues || [])[n - 1];
+    if (!c || c.start == null) { toast(`提示点 ${n} 尚未设置`); return; }
+    const token = ++beatToken;
+    const rect = Scenes.rect && Scenes.rect('scFrame');
+    Music.duck(true);
+    playRange('main', 'sc', { start: c.start, end: c.end, rect, framed: true, sub: c.label, onEnd: () => { if (token !== beatToken) return; slot('main').pause(); setTimeout(() => { if (token === beatToken) { slot('main').show(false); showSub(null); } }, 350); Music.duck(false); } });
+    Video.cueNow = n; emit();
+  }
+  function seekBy(d) { const s = activeSlot(); if (s) { s.seek(s.time() + d); emit(); } }
+  const CAP = ['1 起点', '1 终点', '2 起点', '2 终点', '3 起点', '3 终点', '4 起点', '4 终点'];
+  function captureCue() {
+    const s = activeSlot();
+    if (!s || !s.want || s.want.key !== 'sc') { toast('按 C 记录提示点：需要 Smooth Criminal 正在播放（K 播放，Shift+←/→ 快退快进）'); return; }
+    const t = Math.round(s.time() * 10) / 10;
+    const cues = clone(Settings.get().videos.sc.cues);
+    const i = Math.floor(capture / 2), end = capture % 2 === 1;
+    cues[i] = cues[i] || { start: null, end: null, label: L('', '') };
+    if (end) cues[i].end = t; else { cues[i].start = t; if (cues[i].end != null && cues[i].end <= t) cues[i].end = null; }
+    Settings.set('videos.sc.cues', cues);
+    toast(`已记录 提示点${CAP[capture]} = <b>${fmt(t, true)}</b>`);
+    capture = (capture + 1) % 8;
+    emit();
+  }
+  function status() {
+    const s = activeSlot();
+    return s ? { slot: s.name, key: s.want && s.want.key, t: s.time(), dur: s.duration(), playing: s.isPlaying(), error: s.error, cue: Video.cueNow, capture: CAP[capture] } : { slot: null, capture: CAP[capture] };
+  }
+  /* pre-flight probe of one YouTube id (resolves {ok, why}) */
+  function probe(id) {
+    if (!id) return Promise.resolve({ ok: false, why: '未设置' });
+    const s = slot('probe'); s.place({ x: -400, y: -300, w: 320, h: 180 }); s.show(false);
+    return s.load({ key: 'probe', id, start: 1, muted: true, autoplay: true }).then(ok => { s.stop(); return { ok, why: ok ? '可播放' + (s.title ? ' ·「' + s.title + '」' : '') : (s.error || YTAPI.reason || '失败') }; });
+  }
+  function muteAll(m) { Object.values(slots).forEach(s => { if (!(s.want && s.want.muted)) s.mute(m); }); }
+  function emit() { const st = status(); listeners.forEach(f => f(st)); }
+
+  function registerLab(s) { slots.lab = s; }
+  return { registerLab, slot, bgSlot, src, configured, playRange, stop, stopBeat, vkey, enterBeat, startBeatVideo, toggle, cue, seekBy, captureCue, status, probe, muteAll, showSub, countdown, emit,
+    on: f => (listeners.add(f), () => listeners.delete(f)), cancelLeader: null, cueNow: null };
+})();
+</script>

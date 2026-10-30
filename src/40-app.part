@@ -1,0 +1,306 @@
+<style>
+body.preview-mode #hint, body.preview-mode #ui { display: none; }
+body.preview-mode #grain { animation: none; }
+</style>
+
+<script>
+/* ═══ APP — input, windows, boot ═══ */
+const Wake = {
+  active: false, lock: null,
+  async req() {
+    try {
+      if (!('wakeLock' in navigator) || this.lock) return;
+      this.lock = await navigator.wakeLock.request('screen'); this.active = true;
+      this.lock.addEventListener('release', () => { this.active = false; this.lock = null; });
+    } catch (e) { this.active = false; }
+  },
+};
+document.addEventListener('visibilitychange', () => { if (!document.hidden && VIEW === 'stage') Wake.req(); });
+
+/* self-running demo: the whole show plays by itself (any key or tap stops it) */
+/* ═══ AUTO — the show runs by itself (off by default; the ∞ in the corner, or A) ═══
+   Off: everything waits for the presenter, subtitles included (one sentence per click).
+   On: subtitles follow the rehearsed pace and the pages turn on their own; a manual page turn restarts the clock. */
+const Auto = (() => {
+  let on = false, t = 0;
+  const subs = new Set();
+  function dur(b) {
+    if (!b) return 4000;
+    if (b.video) return b.video.key === 'trailer' ? (trailerSeconds(Settings.get().videos.trailer) + 6) * 1000 : (b.media || 4) * 1000 + 2400;
+    const base = (b.syl / Scenes.rate() + 2.4) * 1000;
+    const first = b.local === 0 ? 2600 : 0;
+    return clamp(base + first, 3600, 30000);
+  }
+  function arm() { clearTimeout(t); if (!on) return; t = setTimeout(step, dur(BEATS[Director.beat])); }
+  function step() {
+    if (!on) return;
+    if (MV.isOpen) { t = setTimeout(step, 2000); return; }
+    if (Director.beat >= BEATS.length - 1) { set(false); return; }
+    Director.next(); arm();
+  }
+  function set(v) {
+    v = !!v; if (v === on) return;
+    on = v; document.body.classList.toggle('demo', on);
+    subs.forEach(f => f(on));
+    if (on) { if (Director.beat < 0) { Director.next(); } arm(); toast('自动演出：开 · 字幕按排练语速走，页面自动翻；再点 ∞（或按 A）关闭', 3600, { local: true }); }
+    else { clearTimeout(t); toast('自动演出：关 · 全部手动（字幕每按一次走一句）', 2400, { local: true }); }
+    if (Director.beat >= 0) Captions.show(Director.beat);
+  }
+  return { set, toggle: () => set(!on), arm, listen: (f) => (subs.add(f), () => subs.delete(f)), get on() { return on; }, start: () => set(true), stop: () => set(false) };
+})();
+const Demo = Auto;   /* older entry points (#demo, the presenter) */
+
+/* ═══ PERF — watches the frames after each page turn; if the show keeps stuttering, the quality drops a tier ═══
+   Two slow page turns in a row (median frame > 26 ms, or one frame in ten > 60 ms) are needed, so a single hiccup
+   (a font arriving, a video starting) never changes anything. The choice is remembered for this device. */
+const Perf = (() => {
+  let strikes = 0, run = 0, last = null;
+  function watch() {
+    if (!Q.auto() || document.hidden || Director.reduced) return;
+    const my = ++run, t0 = now(); let prev = 0; const d = [];
+    const f = (t) => {
+      if (my !== run || document.hidden) return;
+      if (prev) d.push(t - prev); prev = t;
+      if (t - t0 < 2600) requestAnimationFrame(f); else judge(d);
+    };
+    requestAnimationFrame(f);
+  }
+  function judge(d) {
+    if (d.length < 4) return;
+    const s = d.slice().sort((a, b) => a - b), med = s[s.length >> 1], p90 = s[Math.floor(s.length * .9)];
+    last = { fps: Math.round(1000 / med), med: Math.round(med), p90: Math.round(p90), tier: Q.tier, at: Date.now() };
+    strikes = (med > 26 || p90 > 60) ? strikes + 1 : Math.max(0, strikes - 1);
+    /* silent on the projector: the note goes only to the presenter window (and the settings panel shows it) */
+    if (strikes >= 2 && Q.step(last.fps)) { strikes = 0; Director.publish(); if (Date.now() - (window.__pvSeen || 0) < 3500) toast(`画面有些卡：已自动切换到「${Q.name}」画质（设置 → 演讲 → 画质 可以改回）`, 6000); }
+  }
+  return { watch, get last() { return last; } };
+})();
+
+const App = (() => {
+  const stage = $('#stage'), vp = $('#vp');
+  const SID = Math.random().toString(36).slice(2, 8);
+  let warnedTwin = false;
+
+  /* fit the 1920×1080 stage into the window. On WebKit the stage is scaled with `zoom`, so every layer is laid out
+     (and allocated) at the size it is shown; elsewhere a transform keeps sub-pixel text positioning exact. */
+  function fit() {
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const s = Math.min(vw / W, vh / H), ox = (vw - W * s) / 2, oy = (vh - H * s) / 2;
+    Object.assign(StageFit, { s, ox, oy });
+    if (ZOOMED) { stage.style.transform = 'none'; stage.style.zoom = s; stage.style.left = (ox / s) + 'px'; stage.style.top = (oy / s) + 'px'; }
+    else { stage.style.zoom = ''; stage.style.left = stage.style.top = ''; stage.style.transform = `translate(${ox}px, ${oy}px) scale(${s})`; }
+    Light.setScale(s * (window.devicePixelRatio || 1));
+  }
+  function fullscreen() {
+    const el = document.documentElement;
+    if (document.fullscreenElement) { document.exitFullscreen && document.exitFullscreen().catch(() => {}); return; }
+    const p = el.requestFullscreen ? el.requestFullscreen() : (el.webkitRequestFullscreen && el.webkitRequestFullscreen());
+    if (p && p.catch) p.catch(() => toast('这个环境不允许全屏：请用浏览器自己的全屏（F11 / ⌃⌘F）', 4000, { local: true }));
+  }
+  function openPresenter() {
+    const url = location.pathname + location.search + '#presenter';
+    let w = null; try { w = window.open(url, 'bts-presenter', 'popup,width=1440,height=900'); } catch (e) { w = null; }
+    if (!w) toast(`浏览器拦截了新窗口：<a href="${url}" target="_blank" rel="noopener">点这里打开演讲者视图</a>`, 9000, { local: true });
+  }
+  function cycleLang() {
+    const order = ['ko', 'zh', 'bi'];
+    const cur = stage.dataset.lang || Settings.get().lang;
+    Settings.set('lang', order[(order.indexOf(cur) + 1) % 3]);
+  }
+
+  /* commands run in the stage window (the presenter forwards them) */
+  function exec(cmd, m = {}) {
+    SFX.ensure(); YTAPI.unlock(); if (Music.pendingGesture) { Music.pendingGesture = false; Music.retry(); }
+    switch (cmd) {
+      case 'video': Video.vkey(); break;
+      case 'video-close': if (MV.isOpen) MV.close(); else Video.stopBeat(); break;
+      case 'subs': { const v = !Settings.get().subs; Settings.set('subs', v); toast(v ? '中韩字幕：开' : '中韩字幕：关', 1200); break; }
+      case 'next': if (Overview.open) Overview.close(); MV.close(); if (!Captions.step(1)) { Director.next(); Auto.arm(); } break;
+      case 'prev': if (Overview.open) Overview.close(); MV.close(); if (!Captions.step(-1)) { Director.prev(); Auto.arm(); } break;
+      case 'auto': Auto.toggle(); break;
+      case 'go': Director.go(m.beat, 'jump'); break;
+      case 'black': Director.toggleBlack(); break;
+      case 'mute': { const v = !Music.muted; Music.setMuted(v); Video.muteAll(v); toast(v ? '已静音' : '取消静音', 1200); break; }
+      case 'lang': cycleLang(); break;
+      case 'cue': Video.cue(m.n); break;
+      case 'toggle': Video.toggle(); break;
+      case 'seek': Video.seekBy(m.d || 5); break;
+      case 'capture': Video.captureCue(); break;
+      case 'overview': Overview.toggle(); break;
+      case 'angle': { const b = BEATS[Director.beat]; if (b) Scenes.key(SCENES[b.scene].key, m.up ? 'ArrowUp' : 'ArrowDown'); break; }
+      case 'pause': Session.pause(); break;
+      case 'resume': Session.resume(); break;
+      case 'clock-reset': Session.resetClock(); Runs.curId = null; Runs.save(); break;
+      case 'reset': Session.resetClock(); Runs.curId = null; Runs.save(); Director.go(-1); break;
+    }
+    Director.publish();
+  }
+  function cmd(c, m = {}) {
+    if (VIEW === 'presenter') { if (c === 'angle' || c === 'capture' || c === 'cue' || c === 'toggle' || c === 'seek') Presenter.send(c, m); else Presenter.send(c, m); }
+    else exec(c, m);
+  }
+
+  /* a preview that cannot embed YouTube: say once that MVs open on YouTube itself */
+  /* the ∞ in the top-right corner: auto mode, off by default; light runs along the curve while it is on */
+  function autoButton() {
+    if ($('#autobtn')) return;
+    const P = 'M50 20 C 60 4, 88 4, 88 20 C 88 36, 60 36, 50 20 C 40 4, 12 4, 12 20 C 12 36, 40 36, 50 20 Z';
+    const b = h('button#autobtn', { type: 'button', 'aria-pressed': 'false', title: '自动演出（A）· 默认关闭', 'aria-label': '自动演出' });
+    b.innerHTML = `<svg viewBox="0 0 100 40" aria-hidden="true"><defs><linearGradient id="infg" x1="0" x2="1"><stop offset="0" stop-color="#fff2d6" stop-opacity="0"/><stop offset=".5" stop-color="#ffe2a8"/><stop offset="1" stop-color="#fff2d6" stop-opacity="0"/></linearGradient></defs>
+      <path class="inf-base" d="${P}" pathLength="100"/><path class="inf-flow" d="${P}" pathLength="100"/><path class="inf-flow f2" d="${P}" pathLength="100"/></svg>`;
+    b.addEventListener('click', (e) => { e.stopPropagation(); SFX.ensure(); cmd('auto'); });
+    b.addEventListener('pointerdown', (e) => e.stopPropagation());
+    Auto.listen((v) => { b.classList.toggle('on', v); b.setAttribute('aria-pressed', String(v)); });
+    stage.append(b);
+  }
+  function fullBanner() {
+    if ($('#fullbar')) return;
+    const bar = h('div#fullbar', {}, h('span', { text: '这个预览窗口按平台规定不能嵌入 YouTube：点 MV 开关或按 V 会直接在 YouTube 打开对应的官方视频' }),
+      h('button', { type: 'button', text: '×', 'aria-label': '关闭', on: { click: () => bar.remove() } }));
+    $('#ui').append(bar);
+    setTimeout(() => bar.remove(), 12000);
+  }
+  function onKey(e) {
+    if (e.key === 'F5' || (e.key === 'r' && (e.ctrlKey || e.metaKey) && document.body.classList.contains('started'))) { e.preventDefault(); toast('已屏蔽刷新（F5），防止翻页器误触', 1600); return; }
+    const t = e.target;
+    if (t && t.closest && t.closest('input, textarea, select, [contenteditable]')) { if (e.key === 'Escape') t.blur(); return; }
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (VIEW === 'stage') Wake.req();
+    const k = e.key;
+    const beat = BEATS[VIEW === 'presenter' ? (Presenter.beat ?? -1) : Director.beat];
+    if ((k === 'ArrowUp' || k === 'ArrowDown') && beat && beat.keys === 'angle') { e.preventDefault(); cmd('angle', { up: k === 'ArrowUp' }); return; }
+    if (e.shiftKey && (k === 'ArrowLeft' || k === 'ArrowRight')) { e.preventDefault(); cmd('seek', { d: k === 'ArrowLeft' ? -5 : 5 }); return; }
+    let handled = true;
+    switch (k) {
+      case 'ArrowRight': case 'ArrowDown': case 'PageDown': case ' ': case 'Spacebar': cmd('next'); break;
+      case 'ArrowLeft': case 'ArrowUp': case 'PageUp': cmd('prev'); break;
+      case 'b': case 'B': case '.': cmd('black'); break;
+      case '1': case '2': case '3': case '4': cmd('cue', { n: +k }); break;
+      case 'k': case 'K': cmd('toggle'); break;
+      case 'v': case 'V': cmd('video'); break;
+      case 'u': case 'U': cmd('subs'); break;
+      case 'a': case 'A': cmd('auto'); break;
+      case 'c': case 'C': cmd('capture'); break;
+      case 'g': case 'G': cmd('overview'); break;
+      case 't': case 'T': if (VIEW === 'stage') { const v = Torch.toggle(); toast(v ? '手电筒：开（移动鼠标照亮暗处）' : '手电筒：关', 1600, { local: true }); } break;
+      case 'm': case 'M': cmd('mute'); break;
+      case 'l': case 'L': cmd('lang'); break;
+      case 'f': case 'F': fullscreen(); break;
+      case 'p': case 'P': if (VIEW === 'stage') openPresenter(); break;
+      case 's': case 'S': Panel.toggle(); break;
+      case '?': Panel.open('keys'); break;
+      case 'Escape': if (Panel.isOpen()) Panel.close(); else if (VIEW === 'stage' && Overview.open) Overview.close(); else if (VIEW === 'stage' && MV.isOpen) MV.close(); else if (VIEW === 'presenter') cmd('video-close'); else handled = false; break;
+      default: handled = false;
+    }
+    if (handled) e.preventDefault();
+  }
+
+  function idle() {
+    let t = 0;
+    const wake = () => { vp.classList.remove('idle'); clearTimeout(t); t = setTimeout(() => vp.classList.add('idle'), 2000); };
+    ['mousemove', 'mousedown', 'touchstart'].forEach(ev => window.addEventListener(ev, wake, { passive: true }));
+    wake();
+  }
+
+  function hint() {
+    const el = $('#hint');
+    const touch = window.matchMedia && matchMedia('(pointer: coarse)').matches;
+    const k = (key, t) => `<span class="hk"><kbd>${key}</kbd> ${t}</span>`;
+    el.innerHTML = (touch
+      ? '<span class="hk">左滑 / 点右侧 · 下一句或下一页</span><span class="hk">右滑 / 点左侧 · 上一页</span><span class="hk">人物、旋钮、票根可以点</span><span class="hk">横屏观看更好</span>'
+      : k('→', '开始') + k('P', '演讲者视图') + k('S', '设置与课前预检') + k('F', '全屏') + k('G', '总览') + k('L', '语言') +
+        '<br><span class="hk">鼠标可以探索：移动是手电筒，人物、卡片、旋钮可以点或拖（<kbd>T</kbd> 关掉手电筒）</span>' +
+        (window.self !== window.top ? '<br><span class="hk">先点一下画面，让键盘生效</span>' : '')) +
+      '<br><span class="hk">全部手动：每按一次 → 走一句字幕或一页；右上角的 ∞' + (touch ? '' : '（或 <kbd>A</kbd>）') + '打开自动演出</span>';
+  }
+  /* touch: tap the right side for next, the left third for previous (mouse clicks never advance) */
+  function touchNav() {
+    let sx = 0, sy = 0, st = 0;
+    vp.addEventListener('pointerdown', (e) => { if (e.pointerType !== 'touch') return; sx = e.clientX; sy = e.clientY; st = now(); }, { passive: true });
+    vp.addEventListener('pointerup', (e) => {
+      if (e.pointerType !== 'touch') return;
+      if (MV.isOpen) { if (!e.target.closest('#vs-mv')) MV.close(); return; }
+      if (Panel.isOpen() || Overview.open || e.target.closest('#fullbar, #vbar, #mvask, #autobtn')) return;
+      const dx = e.clientX - sx, dy = e.clientY - sy;
+      if (now() - st > 900 || Math.abs(dy) > 80) return;
+      /* a swipe always turns the page (except while dragging a piece); a tap on a piece plays with it; any other tap turns the page */
+      if (Math.abs(dx) > 50) { if (!e.target.closest('.drag')) cmd(dx < 0 ? 'next' : 'prev'); return; }
+      if (e.target.closest(TOUCH ? 'a, button, .ov-card, .int, .drag, .fg-hit' : 'a, button, .ov-card, .int, .drag, .tilt')) return;
+      if (e.clientX > window.innerWidth * .34) cmd('next'); else cmd('prev');
+    }, { passive: true });
+  }
+
+  function bootStage() {
+    computePlan(Scenes.rate());
+    stage.classList.toggle('touch', TOUCH); stage.classList.toggle('lite', LITE);
+    Q.pick(); let qPref = Settings.get().quality || 'auto';
+    Settings.on((s) => { const p = s.quality || 'auto'; if (p !== qPref) { qPref = p; if (p === 'auto') Q.forget(); Q.pick(); Director.publish(); } });
+    Director.onTurn(() => Perf.watch()); Captions.init(); autoButton();
+    Scenes.build();
+    Director.setReduced();
+    Director.setLang(Settings.get().lang, { rerun: false });
+    fit(); window.addEventListener('resize', fit);
+    Session.load(); Runs.load();
+    hint(); idle();
+    document.addEventListener('keydown', onKey);
+    vp.addEventListener('click', () => { SFX.ensure(); if (Music.pendingGesture) { Music.pendingGesture = false; Music.retry(); } });
+    touchNav();
+    document.addEventListener('fullscreenchange', () => document.body.classList.toggle('fs', !!document.fullscreenElement));
+    if (/^#?demo$/.test(location.hash)) setTimeout(() => Demo.start(), 1800);
+    if (window.matchMedia) matchMedia('(prefers-reduced-motion: reduce)').addEventListener?.('change', () => Director.setReduced());
+    Settings.on((s) => {
+      if (stage.dataset.lang !== s.lang) Director.setLang(s.lang);
+      Director.setReduced(); computePlan(Scenes.rate()); Music.refreshVolumes(); Overview.rebuild(); Director.publish();
+    });
+    YTAPI.load();
+    /* inside an embedding preview that blocks YouTube: say so once, with the way out */
+    setTimeout(() => { if (YTAPI.state === 'failed' && IN_FRAME && VIEW === 'stage') fullBanner(); }, 2500);
+    if (!LITE) setTimeout(() => MediaCache.warmAll(), 2500);
+    Bus.on((m) => {
+      if (!m) return;
+      if (m.type === 'hello') { window.__pvSeen = Date.now(); Director.publish(); }
+      else if (m.type === 'cmd') exec(m.cmd, m);
+      else if (m.type === 'state' && m.sid && m.sid !== SID && !warnedTwin && m.view === 'stage') { warnedTwin = true; toast('检测到另一个舞台窗口也开着：请只保留一个，否则翻页会被执行两次', 8000); }
+    });
+    Music.on(() => Director.publish()); Video.on(() => Director.publish());
+    Music.on((st) => HUD.setLive(st.track && st.track === HUD.npKey && st.state === 'playing' && st.level > 0));
+    setInterval(() => Director.publish(), 1000);
+    if (Session.beat >= 0) {
+      Director.go(Session.beat, 'jump');
+      const b = BEATS[Session.beat];
+      toast(`已回到刚才的节拍：${SCENES[b.scene].short.zh} ${b.tag}${Session.timer.start != null ? ' · 计时继续' : ''}<br><span style="opacity:.7">从头开始：设置 → 演讲 → 回到开场前</span>`, 6000);
+    } else Director.go(-1);
+    if (!LITE) Scenes.warm(Math.max(0, Director.beat >= 0 ? BEATS[Director.beat].scene : 0));
+    else Scenes.ensure(SCENES[0].key);
+    document.fonts && document.fonts.ready.then(() => { if (Director.beat >= 0) Director.setLang(stage.dataset.lang); });
+  }
+
+  function bootPreview() {
+    document.body.classList.add('preview-mode');
+    computePlan(Scenes.rate());
+    Q.pick();
+    Scenes.build();
+    stage.classList.add('reduced');
+    Light.setReduced(false); Light.setStill(true); FX.setReduced(true);
+    Director.setLang(Settings.get().lang, { rerun: false });
+    fit(); window.addEventListener('resize', fit);
+    let last = null;
+    Bus.on((m) => {
+      if (!m || m.type !== 'state') return;
+      if (m.lang && stage.dataset.lang !== m.lang) Director.setLang(m.lang, { rerun: false });
+      let t = m.beat + 1; while (t < BEATS.length && Director.skippable(BEATS[t])) t++;
+      if (t >= BEATS.length) t = BEATS.length - 1;
+      if (t !== last) { last = t; Director.go(t, 'jump'); }
+    });
+    Bus.send({ type: 'hello', from: 'preview' });
+  }
+
+  function bootPresenter() {
+    Session.load(); Runs.load();
+    Presenter.mount();
+    document.addEventListener('keydown', onKey);
+  }
+
+  return { boot() { if (VIEW === 'presenter') bootPresenter(); else if (VIEW === 'preview') bootPreview(); else bootStage(); }, cmd, exec, fullscreen, openPresenter, SID, fit };
+})();
+</script>

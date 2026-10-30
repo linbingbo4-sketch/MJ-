@@ -1,0 +1,207 @@
+<script>
+/* ═══ DIRECTOR — the single state machine; light, music and video only obey it ═══ */
+const Director = (() => {
+  const stage = $('#stage'), black = $('#black'), flashEl = $('#flash');
+  let beat = -1, token = 0, lastFlash = 0, blackout = false, reduced = false, enteredAt = 0, sceneEnteredAt = 0;
+  let shown = null, npLater = 0;                 /* the scene actually on stage — a cancelled blackout may not have swapped yet */
+  const timers = [];
+  const later = (ms, fn) => { const t = setTimeout(fn, ms); timers.push(t); return t; };
+  const clearLater = () => { while (timers.length) clearTimeout(timers.pop()); };
+
+  function skippable(b) {
+    if (!b) return false;
+    if (b.optional && !Video.configured(b.optional)) return true;
+    if (b.cut && Settings.get().trim) return true;
+    return false;
+  }
+  function step(from, dir) {
+    let i = from + dir;
+    while (i >= 0 && i < BEATS.length && skippable(BEATS[i])) i += dir;
+    return i;
+  }
+
+  function setReduced() {
+    const m = Settings.get().motion;
+    reduced = m === 'reduce' || (m === 'auto' && window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+    stage.classList.toggle('reduced', reduced);
+    Light.setReduced(reduced); FX.setReduced(reduced);
+  }
+
+  function setLang(lang, { rerun = true } = {}) {
+    stage.dataset.lang = lang;
+    document.documentElement.lang = lang === 'zh' ? 'zh-Hans' : 'ko';
+    if (rerun && beat >= 0) {
+      const b = BEATS[beat], sc = SCENES[b.scene];
+      stage.classList.add('instant');
+      Scenes.run(sc, b.local, { dir: 0, instant: true });
+      HUD.setAct(null); HUD.setAct(sc, { instant: true });
+      requestAnimationFrame(() => requestAnimationFrame(() => stage.classList.remove('instant')));
+    }
+  }
+
+  function fadeBlack(to, ms) {
+    black.getAnimations().forEach(a => a.cancel());
+    const from = +getComputedStyle(black).opacity;
+    black.style.opacity = to;
+    if (to > 0 || from > 0) black.style.visibility = 'visible';
+    const hide = () => { if (+black.style.opacity <= .001) black.style.visibility = 'hidden'; };
+    if (ms > 0) black.animate([{ opacity: from }, { opacity: to }], { duration: ms, easing: 'ease-in-out' }).onfinish = hide;
+    else hide();
+  }
+
+  function showScene(sc, mode, ms) {
+    const el = Scenes.el(sc.key);
+    $$('.scene', stage).forEach(s => {
+      if (s === el) return;
+      if (s.classList.contains('active') && mode === 'cross' && ms > 0) {
+        s.classList.remove('active'); s.classList.add('leaving');
+        s.getAnimations().forEach(a => a.cancel());
+        const a = s.animate([{ opacity: 1 }, { opacity: 0 }], { duration: ms, easing: 'linear', fill: 'forwards' });
+        a.onfinish = () => { s.classList.remove('leaving'); a.cancel(); };
+      } else { s.classList.remove('active', 'leaving'); s.getAnimations().forEach(a => a.cancel()); }
+    });
+    el.getAnimations().forEach(a => a.cancel());
+    el.classList.remove('leaving'); el.classList.add('active');
+    shown = sc;
+    if (ms > 0 && mode !== 'cut') el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: ms, easing: 'linear' });
+    /* 3D: the camera travels into the next scene (it starts a little behind and below, and settles) */
+    if (ms > 0 && mode === 'cross' && !reduced && VIEW === 'stage') {
+      el.animate([{ transform: 'perspective(1800px) translate3d(0, 26px, -190px) rotateX(4deg)' }, { transform: 'none' }], { duration: ms * 1.35, easing: 'cubic-bezier(.2, .7, .2, 1)' });
+      $$('.scene.leaving', stage).forEach(s => s.animate([{ transform: 'none' }, { transform: 'perspective(1800px) translate3d(0, -18px, 160px)' }], { duration: ms, easing: 'cubic-bezier(.5, 0, .8, .4)', fill: 'forwards' }));
+    }
+  }
+
+  function applyBeat(b, { dir = 1, instant = false, first = false, enterDur, enter = null } = {}) {
+    const sc = SCENES[b.scene];
+    stage.classList.toggle('rev', dir < 0);
+    if (instant) stage.classList.add('instant');
+    HUD.visible(true);
+    HUD.setAct(sc, { instant });
+    HUD.setYear(b.year ?? sc.year, { instant, show: sc.hud });
+    /* the corner card waits for a chapter card to clear */
+    clearTimeout(npLater);
+    if (first && sc.chapter && b.local === 0 && dir > 0 && !instant) { HUD.hideNP(); npLater = setTimeout(() => { if (shown === sc) HUD.showNP(sc.track); }, 3400); }
+    else HUD.showNP(sc.track);
+    Scenes.run(sc, b.local, { dir, instant, first, enterDur });
+    if (VIEW === 'stage') {
+      Music.apply(sc.track, b.mus || 'speech', { dir, instant, enter });
+      Video.enterBeat(b, { dir, instant });
+      /* the next era's song is cued while this one plays, so the change of era starts on time */
+      if (first || instant) { const nx = SCENES.slice(b.scene + 1).find(x => x.track && x.track !== sc.track); Music.prime(nx && nx.track); }
+    }
+    if (instant) { void stage.offsetWidth; requestAnimationFrame(() => requestAnimationFrame(() => stage.classList.remove('instant'))); }
+  }
+
+  function standby(instant) {
+    $$('.scene', stage).forEach(s => s.classList.remove('active', 'leaving'));
+    shown = null;
+    HUD.visible(false); HUD.setAct(null); HUD.setYear(null, { show: false }); HUD.hideNP();
+    Era.apply('cold', { instant: true });
+    Light.set({ ambient: 1, wash: 0, bloom: 0, haze: 0, dust: 0, lights: [] }, { instant: true });
+    if (VIEW === 'stage') { Music.stopAll(); ['main', 'tv', 'pip'].forEach(n => Video.stop(n)); }
+    document.body.classList.remove('started');
+  }
+
+  /* listeners told after every page turn (the frame monitor uses it) */
+  const turned = new Set();
+  function go(target, mode = 'jump') { goRaw(target, mode); turned.forEach(f => { try { f(beat, mode); } catch (e) { console.error(e); } }); }
+  /* go to a beat. mode: next | prev | jump */
+  function goRaw(target, mode = 'jump') {
+    target = clamp(target, -1, BEATS.length - 1);
+    const from = beat;
+    if (target === from && mode !== 'jump') return;
+    const my = ++token;
+    clearLater(); Scenes.clearTimers();
+    if (Video.cancelLeader) { Video.cancelLeader(); Video.cancelLeader = null; }
+    if (+getComputedStyle(black).opacity > .01) fadeBlack(0, 260);   /* a cancelled blackout never leaves the stage dark */
+    beat = target;
+    if (VIEW === 'stage') { Session.beat = target; Session.save(); }
+    if (target < 0) { standby(); fadeBlack(0, 0); publish(); return; }
+    document.body.classList.add('started');
+    const b = BEATS[target], sc = SCENES[b.scene];
+    const prevSc = shown;
+    const dir = mode === 'next' ? 1 : mode === 'prev' ? -1 : 0;
+
+    if (VIEW === 'stage' && dir > 0) {
+      if (Session.timer.start == null) { Session.startClock(); Runs.begin(); }
+      Runs.mark(target, Session.elapsed());
+    }
+
+    const change = !prevSc || prevSc !== sc;
+    enteredAt = Session.elapsed(); if (change) sceneEnteredAt = enteredAt;
+    if (!change) { applyBeat(b, { dir, instant: dir === 0 }); if (dir === 0) jumpFade(); publish(); return; }
+
+    if (prevSc) { Scenes.leave(prevSc); if (VIEW === 'stage') { Video.stop('tv'); Video.stop('pip'); } }
+
+    if (dir === 0 || reduced) {                                    /* jump: direct state, 0.4s fade-in */
+      Era.apply(sc.era, { instant: true });
+      showScene(sc, 'cut', 0);
+      applyBeat(b, { dir: 0, instant: true, first: true });
+      jumpFade(); publish(); return;
+    }
+    if (dir < 0) {                                                 /* rewind: precise, quick */
+      Era.apply(sc.era, { dur: .4 });
+      showScene(sc, 'cross', 380);
+      applyBeat(b, { dir: -1, first: true, enterDur: .4 });
+      publish(); return;
+    }
+    const kind = sc.enter || 'dissolve';
+    if (kind === 'blackout') {                                     /* between acts: 0.6 down · 0.4 hold · 0.8 up */
+      fadeBlack(1, 600);
+      if (VIEW === 'stage') { Music.apply(null, 'off', { dir: 1, enter: 'blackout' }); Music.prime(sc.track); SFX.transition('blackout', sc); }
+      later(1000, () => {
+        if (my !== token) return;
+        Era.apply(sc.era, { instant: true });
+        showScene(sc, 'cut', 0);
+        applyBeat(b, { dir: 1, first: true, enterDur: .8, enter: 'blackout' });
+        fadeBlack(0, 800);
+        publish();
+      });
+      publish(); return;
+    }
+    const ms = kind === 'houselights' ? 1600 : 1800;               /* era dissolve */
+    Era.apply(sc.era, { dur: ms / 1000 });
+    showScene(sc, 'cross', ms);
+    if (VIEW === 'stage') SFX.transition(kind, sc);
+    applyBeat(b, { dir: 1, first: true, enterDur: ms / 1000, enter: kind });
+    publish();
+  }
+  function jumpFade() { fadeBlack(1, 0); requestAnimationFrame(() => fadeBlack(0, 400)); }
+
+  function next() {
+    if (beat >= BEATS.length - 1) { finish(); return; }
+    go(step(beat, 1), 'next');
+  }
+  function prev() { if (beat <= -1) return; go(step(beat, -1) < 0 ? -1 : step(beat, -1), 'prev'); }
+  function finish() {
+    if (VIEW !== 'stage') return;
+    if (Session.running()) {
+      const t = Session.elapsed(); Runs.finish(t); Session.pause();
+      toast(`演讲结束 · 用时 <b>${fmt(t)}</b>（计划 ${fmt(TOTAL_PLAN)}）`, 6000);
+      publish();
+    }
+  }
+  function jumpScene(key) { const sc = SCENES.find(s => s.key === key); if (sc) go(sc.first, 'jump'); }
+
+  function flash() {
+    if (reduced) return;
+    const t = now(); if (t - lastFlash < 1500) return; lastFlash = t;
+    flashEl.style.visibility = 'visible';
+    flashEl.animate([{ opacity: 0 }, { opacity: .35, offset: .23 }, { opacity: 0 }], { duration: 520, easing: 'ease-out' }).onfinish = () => { flashEl.style.visibility = ''; };
+  }
+  function toggleBlack(v) { blackout = v == null ? !blackout : !!v; $('#bkey').classList.toggle('on', blackout); publish(); }
+
+  /* state for the presenter window */
+  function snapshot() {
+    return { type: 'state', view: VIEW, sid: App.SID, beat, total: BEATS.length, lang: stage.dataset.lang, blackout, muted: Music.muted, timer: Session.timer, enteredAt, sceneEnteredAt, sceneTimes: Runs.sceneTimes(Runs.cur()), music: Music.status(), video: Video.status(), trim: Settings.get().trim, run: Runs.curId, at: Date.now() };
+  }
+  let pubTimer = 0;
+  function publish() { if (VIEW !== 'stage') return; clearTimeout(pubTimer); pubTimer = setTimeout(() => Bus.send(snapshot()), 0); }
+
+  return {
+    go, onTurn(f) { turned.add(f); return () => turned.delete(f); },
+    next, prev, finish, jumpScene, flash, toggleBlack, setLang, setReduced, publish, snapshot, skippable, step,
+    get beat() { return beat; }, get reduced() { return reduced; }, get blackout() { return blackout; },
+  };
+})();
+</script>

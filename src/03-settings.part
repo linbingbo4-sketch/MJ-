@@ -1,0 +1,114 @@
+<script>
+/* ═══ settings · session · rehearsal runs (all local to this browser) ═══ */
+function deepMerge(base, over) {
+  if (Array.isArray(base)) {
+    const out = base.map((v, i) => (over && over[i] !== undefined) ? deepMerge(v, over[i]) : clone(v));
+    if (Array.isArray(over) && over.length > base.length) for (let i = base.length; i < over.length; i++) out.push(clone(over[i]));
+    return out;
+  }
+  if (base && typeof base === 'object') {
+    const out = {};
+    for (const k of new Set([...Object.keys(base), ...Object.keys(over || {})])) {
+      out[k] = (over && over[k] !== undefined) ? (base[k] !== undefined ? deepMerge(base[k], over[k]) : clone(over[k])) : clone(base[k]);
+    }
+    return out;
+  }
+  return over !== undefined ? over : base;
+}
+const clone = v => v == null ? v : JSON.parse(JSON.stringify(v));
+
+/* settings saved by an older version keep their choices; only defaults the user never changed move forward */
+function migrate(saved) {
+  if (!saved || typeof saved !== 'object' || (saved.mver || 1) >= DEFAULTS.mver) return saved;
+  const o = clone(saved), t = o.videos && o.videos.trailer;
+  if (t) { if (!t.src) delete t.src; if (t.end === 45 && !t.start) t.end = null; }
+  const v = o.videos || {};
+  if (v.bj && /Zi_XLOBDo_Y/.test(v.bj.src || '')) delete v.bj.src;      /* the old default (the music video) */
+  if (v.motown && !v.motown.src) delete v.motown.src;
+  o.mver = DEFAULTS.mver;
+  return o;
+}
+const Settings = (() => {
+  let s = deepMerge(DEFAULTS, migrate(store.get('settings', {})));
+  const subs = new Set();
+  const emit = () => subs.forEach(f => { try { f(s); } catch (e) { console.error(e); } });
+  return {
+    get: () => s,
+    set(path, value, { silent = false } = {}) {
+      const keys = path.split('.'); let o = s;
+      while (keys.length > 1) { const k = keys.shift(); if (o[k] == null) o[k] = {}; o = o[k]; }
+      o[keys[0]] = value;
+      store.set('settings', s);
+      if (!silent) { Bus.send({ type: 'settings' }); emit(); }
+    },
+    replace(obj) { s = deepMerge(DEFAULTS, migrate(obj || {})); store.set('settings', s); Bus.send({ type: 'settings' }); emit(); },
+    reset() { s = clone(DEFAULTS); store.set('settings', s); Bus.send({ type: 'settings' }); emit(); },
+    reload() { s = deepMerge(DEFAULTS, migrate(store.get('settings', {}))); emit(); },
+    on(f) { subs.add(f); return () => subs.delete(f); },
+  };
+})();
+Bus.on(m => { if (m && m.type === 'settings') Settings.reload(); });
+
+/* session: where we are + the show clock. Survives an accidental refresh. */
+const Session = {
+  beat: -1,
+  timer: { start: null, pausedAt: null, pausedTotal: 0 },
+  load() {
+    const d = store.get('session', null);
+    if (d && typeof d.beat === 'number') { this.beat = clamp(d.beat, -1, BEATS.length - 1); this.timer = Object.assign({ start: null, pausedAt: null, pausedTotal: 0 }, d.timer || {}); }
+  },
+  save() { store.set('session', { beat: this.beat, timer: this.timer, saved: Date.now() }); },
+  running() { return this.timer.start != null && this.timer.pausedAt == null; },
+  elapsed(at = Date.now()) {
+    const t = this.timer; if (t.start == null) return 0;
+    return Math.max(0, ((t.pausedAt ?? at) - t.start - t.pausedTotal) / 1000);
+  },
+  startClock() { if (this.timer.start == null) { this.timer = { start: Date.now(), pausedAt: null, pausedTotal: 0 }; this.save(); } },
+  pause() { if (this.running()) { this.timer.pausedAt = Date.now(); this.save(); } },
+  resume() { const t = this.timer; if (t.pausedAt != null) { t.pausedTotal += Date.now() - t.pausedAt; t.pausedAt = null; this.save(); } },
+  resetClock() { this.timer = { start: null, pausedAt: null, pausedTotal: 0 }; this.save(); },
+};
+
+/* rehearsal runs: each run stores when every beat was entered */
+const Runs = {
+  list: [],
+  curId: null,
+  load() { this.list = store.get('runs', []); this.curId = store.get('runCur', null); },
+  save() { store.set('runs', this.list.slice(-12)); store.set('runCur', this.curId); },
+  cur() { return this.list.find(r => r.id === this.curId) || null; },
+  begin() {
+    const r = { id: 'r' + Date.now().toString(36), started: Date.now(), marks: [], done: false };
+    this.list.push(r); this.curId = r.id; this.save(); return r;
+  },
+  mark(beat, t) { const r = this.cur(); if (!r || r.done) return; r.marks.push([beat, Math.round(t * 10) / 10]); this.save(); },
+  finish(t) { const r = this.cur(); if (!r) return; r.done = true; r.total = Math.round(t * 10) / 10; this.save(); },
+  /* per-scene actual seconds for a run */
+  sceneTimes(r) {
+    const out = SCENES.map(() => null);
+    if (!r || !r.marks.length) return out;
+    const enter = SCENES.map(() => null);
+    r.marks.forEach(([b, t]) => { const s = BEATS[b] && BEATS[b].scene; if (s != null && enter[s] == null) enter[s] = t; });
+    SCENES.forEach((sc, i) => {
+      if (enter[i] == null) return;
+      let exit = null;
+      for (const [b, t] of r.marks) { const s = BEATS[b] && BEATS[b].scene; if (s > i && t >= enter[i]) { exit = t; break; } }
+      if (exit == null && r.done && r.total != null && i === SCENES.length - 1) exit = r.total;
+      if (exit != null) out[i] = Math.max(0, exit - enter[i]);
+    });
+    return out;
+  },
+  /* speech rate measured from a run: spoken syllables ÷ (time − media − beat overhead) */
+  rate(r) {
+    if (!r || r.marks.length < 4) return null;
+    let syl = 0, secs = 0;
+    for (let i = 0; i < r.marks.length - 1; i++) {
+      const [b, t] = r.marks[i], [b2, t2] = r.marks[i + 1];
+      if (b2 !== b + 1 && !(BEATS[b + 1] && (BEATS[b + 1].optional || BEATS[b + 1].cut) && b2 > b)) continue;
+      const beat = BEATS[b]; if (!beat || beat.silent) continue;
+      const d = t2 - t - (beat.media || 0) - .5;
+      if (d > 1 && d < 90) { syl += beat.syl; secs += d; }
+    }
+    return secs > 20 ? syl / secs : null;
+  },
+};
+</script>

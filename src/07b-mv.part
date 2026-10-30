@@ -1,0 +1,291 @@
+<style>
+/* ── MV switches: a small record on each work the stage shows, in that work's colours.
+   It rolls in with its piece, pings once so the room notices, spins when you point at it, and keeps spinning while its video plays. ── */
+.mvs { --mv: currentColor; position: relative; display: inline-flex; align-items: center; gap: 11px; height: 44px; padding: 0 18px 0 5px; margin: 0;
+  border: 1.5px solid color-mix(in srgb, var(--mv) 65%, transparent); border-radius: 22px; background: rgba(10, 8, 6, .62); color: var(--mv);
+  font: 700 16px/1 var(--f-num); letter-spacing: .24em; text-transform: uppercase; cursor: pointer; pointer-events: auto; vertical-align: middle; white-space: nowrap;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .35), 0 0 0 0 color-mix(in srgb, var(--mv) 40%, transparent);
+  transition: background .25s ease, border-color .25s ease, transform .3s var(--e-stage), box-shadow .3s ease; }
+.mvs .mv-disc { position: relative; flex: none; width: 34px; height: 34px; border-radius: 50%;
+  background: radial-gradient(circle, var(--mv) 0 24%, #0d0d0d 25% 29%, transparent 30%), repeating-radial-gradient(circle, #0b0b0b 0 1.2px, #2a2a2a 1.7px 2.6px);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .06), 0 2px 6px rgba(0, 0, 0, .6); transition: transform .5s var(--e-stage); }
+.mvs .mv-disc::before { content: ''; position: absolute; left: 50%; top: 50%; translate: -35% -50%; border-left: 7px solid #0d0d0d; border-top: 4.5px solid transparent; border-bottom: 4.5px solid transparent; }
+.mvs .mv-disc::after { content: ''; position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(from 20deg, transparent 0 12%, rgba(255, 255, 255, .22) 16%, transparent 22% 58%, rgba(255, 255, 255, .14) 63%, transparent 69%); }
+.mvs .mv-l { display: block !important; line-height: 1 !important; margin: 0 !important; padding: 0 !important; height: auto !important; text-align: left; }
+.mvs .mv-l > span { display: block !important; margin: 0 !important; padding: 0 !important; position: static !important; }
+.mvs .mv-l > .mv-y { margin-top: 4px !important; }
+.mvs .mv-l .mv-t { font: inherit; color: inherit; background: none; padding: 0; }
+.mvs .mv-y { font: 600 11px/1 var(--f-num); letter-spacing: .18em; opacity: .62; }
+.mvs:hover, .mvs:focus-visible { background: rgba(10, 8, 6, .85); border-color: var(--mv); transform: translateY(-2px) scale(1.04); outline: none; box-shadow: 0 10px 26px rgba(0, 0, 0, .45), 0 0 18px color-mix(in srgb, var(--mv) 35%, transparent); }
+.mvs:hover .mv-disc, .mvs:focus-visible .mv-disc { animation: mvspin 1.1s linear infinite; }
+.mvs.on { border-color: var(--mv); background: color-mix(in srgb, var(--mv) 20%, rgba(10, 8, 6, .8)); }
+.mvs.on .mv-disc { animation: mvspin 1.8s linear infinite; }
+.mvs.on .mv-disc::before { translate: -50% -50%; width: 7px; height: 7px; border: 0; background: #0d0d0d; border-radius: 1px; }
+/* arriving: the record rolls in from the left, then one ring goes out */
+.rv .mvs .mv-disc, .rv.mvs-w .mvs .mv-disc { transform: translateX(-14px) rotate(-200deg); }
+.rv.on .mvs .mv-disc, .rv.on.mvs-w .mvs .mv-disc, .slv .mvs .mv-disc { transform: none; transition: transform 1.1s cubic-bezier(.2, .9, .3, 1.1) calc(var(--d, 0s) + .5s); }
+.mvs::after { content: ''; position: absolute; inset: -2px; border-radius: inherit; border: 2px solid var(--mv); opacity: 0; pointer-events: none; }
+.rv.on .mvs::after, .rv.on.mvs-w .mvs::after { animation: mvping 1.5s ease-out calc(var(--d, 0s) + 1.4s) 2; }
+@keyframes mvping { 0% { opacity: .8; transform: scale(1); } 100% { opacity: 0; transform: scale(1.35, 1.8); } }
+@keyframes mvspin { to { transform: rotate(360deg); } }
+.mvs.sm { height: 38px; gap: 9px; font-size: 14px; padding: 0 14px 0 4px; border-radius: 19px; }
+.mvs.sm .mv-disc { width: 30px; height: 30px; }
+.hit .mvs { margin-left: 10px; font-style: normal; }
+/* on a record sleeve: hangs under it like a label */
+.slv .mvs { position: absolute; left: 50%; bottom: -21px; translate: -50% 0; z-index: 5; background: rgba(12, 10, 8, .88); border-color: color-mix(in srgb, var(--mv) 75%, transparent); }
+.slv .mvs:hover { background: rgba(12, 10, 8, .96); }
+#stage.reduced .mvs .mv-disc { animation: none !important; transform: none !important; }
+#stage.reduced .mvs::after { animation: none !important; }
+.mvs:active .mv-disc { animation: mvspin 1.1s linear infinite; }
+/* clickable even inside tilting / hover-reactive pieces, but never while its piece is still hidden */
+.scene .mvs, .scene .tilt .mvs, .scene .hov .mvs, #stage.touch .scene .mvs { pointer-events: auto !important; }
+.scene .mvs * { pointer-events: none; }
+.scene .rv:not(.on) .mvs, .scene .rv:not(.on).mvs-w .mvs { pointer-events: none !important; }
+
+/* the question in the corner when this page has something to play */
+#mvask { position: absolute; right: 96px; top: 170px; width: 380px; padding: 13px 15px 12px; border-radius: 10px; pointer-events: auto;
+  background: linear-gradient(100deg, rgba(14, 12, 10, .84), rgba(14, 12, 10, .66)); box-shadow: 0 14px 40px rgba(0, 0, 0, .45), inset 0 0 0 1px rgba(255, 255, 255, .08);
+  border-left: 3px solid var(--acc); opacity: 0; visibility: hidden; transform: translateY(-10px); transition: opacity .6s var(--e-stage), transform .6s var(--e-stage), visibility 0s linear .6s; }
+#mvask.on { opacity: 1; visibility: visible; transform: none; transition: opacity .6s var(--e-stage), transform .6s var(--e-stage), visibility 0s; }
+#mvask .mq-k { display: flex; align-items: center; justify-content: space-between; font: 600 13px/1 var(--f-num); letter-spacing: .3em; color: var(--acc); }
+#mvask .mq-x { width: 24px; height: 24px; border: 0; border-radius: 50%; background: rgba(255,255,255,.08); color: rgba(239,232,218,.7); font-size: 15px; line-height: 1; cursor: pointer; }
+#mvask .mq-q { margin-top: 8px; font: 600 21px/1.3 var(--f-ko); color: var(--ink); }
+#mvask .mq-z { margin-top: 1px; font: 400 16px/1.35 var(--f-zh); color: rgba(239, 232, 218, .78); }
+#mvask .mq-list { margin-top: 10px; display: flex; flex-direction: column; gap: 5px; }
+#mvask .mq-b { display: flex; align-items: center; gap: 10px; width: 100%; padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, .12); background: rgba(255, 255, 255, .04);
+  color: var(--ink); text-align: left; cursor: pointer; transition: background .2s ease, border-color .2s ease; }
+#mvask .mq-b:hover, #mvask .mq-b:focus-visible { background: color-mix(in srgb, var(--acc) 18%, transparent); border-color: var(--acc); outline: none; }
+#mvask .mq-b::before { content: ''; flex: none; border-left: 10px solid var(--acc); border-top: 6.5px solid transparent; border-bottom: 6.5px solid transparent; }
+#mvask .mq-b b { font: italic 500 18px/1.1 var(--f-en); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#mvask .mq-b span { margin-left: auto; flex: none; font: 600 13px/1 var(--f-num); letter-spacing: .14em; color: rgba(239, 232, 218, .55); }
+#mvask .mq-h { margin-top: 10px; font: 500 12px/1 var(--f-num); letter-spacing: .2em; color: rgba(239, 232, 218, .45); }
+/* folded: one pill under the corner card, opens on click (or when the pointer comes over it) */
+#mvask.mini { width: auto; padding: 8px 12px 8px 14px; cursor: pointer; }
+#mvask.mini .mq-q, #mvask.mini .mq-z, #mvask.mini .mq-list, #mvask.mini .mq-h { display: none; }
+#mvask.mini .mq-k { gap: 14px; }
+#mvask .mq-mini { display: none; font: 500 15px/1 var(--f-ko); letter-spacing: 0; color: var(--ink); }
+#mvask .mq-mini .zh { font-family: var(--f-zh); color: rgba(239, 232, 218, .7); margin-left: 6px; }
+#mvask.mini .mq-mini { display: inline; }
+#stage.mv-open #mvask, #stage.film #mvask { opacity: 0 !important; visibility: hidden !important; }
+/* the progress bar of whatever video is playing: play / pause, drag to any point, ten seconds back or on */
+#vbar { position: absolute; left: 230px; top: 938px; width: 1460px; height: 40px; display: flex; align-items: center; gap: 14px; padding: 0 14px; border-radius: 8px; z-index: 3;
+  background: rgba(10, 8, 6, .72); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08); color: #efe8da; pointer-events: auto; opacity: 0; visibility: hidden; transition: opacity .35s ease, visibility 0s linear .35s; }
+#vbar.on { opacity: 1; visibility: visible; transition: opacity .35s ease, visibility 0s; }
+#vbar.idle { opacity: 0; }
+#vbar button { flex: none; height: 28px; min-width: 28px; padding: 0 8px; border: 0; border-radius: 6px; background: rgba(255, 255, 255, .08); color: inherit; font: 600 13px/1 var(--f-num); letter-spacing: .08em; cursor: pointer; }
+#vbar button:hover { background: rgba(255, 208, 138, .25); }
+#vbar .vb-pp { width: 34px; font-size: 14px; }
+#vbar .vb-t { flex: none; font: 600 14px/1 var(--f-num); letter-spacing: .08em; color: rgba(239, 232, 218, .75); min-width: 96px; text-align: center; }
+#vbar .vb-tr { position: relative; flex: 1; height: 28px; cursor: pointer; touch-action: none; }
+#vbar .vb-tr::before { content: ''; position: absolute; left: 0; right: 0; top: 12px; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, .16); }
+#vbar .vb-fill { position: absolute; left: 0; top: 12px; height: 4px; border-radius: 2px; background: linear-gradient(90deg, #ffb24a, #ffe2a8); width: 0; }
+#vbar .vb-knob { position: absolute; top: 7px; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; background: #fff2d6; box-shadow: 0 0 0 4px rgba(255, 208, 138, .25), 0 2px 6px rgba(0, 0, 0, .5); left: 0; transition: transform .15s ease; }
+#vbar .vb-tr:hover .vb-knob, #vbar.drag .vb-knob { transform: scale(1.25); }
+#vbar .vb-tip { position: absolute; bottom: 30px; translate: -50% 0; padding: 4px 7px; border-radius: 4px; background: rgba(0, 0, 0, .8); font: 600 12px/1 var(--f-num); opacity: 0; transition: opacity .15s ease; white-space: nowrap; }
+#vbar .vb-tr:hover .vb-tip, #vbar.drag .vb-tip { opacity: 1; }
+/* the MV window: grows out of its switch, plays above a dimmed stage, goes back into the switch */
+#mvdim { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 46%, rgba(0, 0, 0, .78), rgba(0, 0, 0, .94) 75%); opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity .7s ease, visibility 0s linear .7s; }
+#mvdim.on { opacity: 1; visibility: visible; pointer-events: auto; cursor: pointer; transition: opacity .7s ease, visibility 0s; }
+#vs-mv { transform-origin: 0 0; background: #000; box-shadow: 0 0 0 2px rgba(241, 234, 214, .18), 0 40px 140px rgba(0, 0, 0, .8); }
+#vs-mv.on { transition: opacity .55s ease, visibility 0s, transform 1.05s cubic-bezier(.62, 0, .3, 1); }
+#vs-mv:not(.on) { transition: opacity .55s ease .35s, visibility 0s linear .9s, transform 1s cubic-bezier(.62, 0, .3, 1); }
+#stage.mv-open #hud > * { opacity: 0 !important; }
+#mvcap { position: absolute; left: 230px; top: 990px; width: 1460px; display: flex; align-items: baseline; gap: 22px; color: #efe8da; opacity: 0; visibility: hidden; transition: opacity .5s ease, visibility 0s linear .5s; pointer-events: none; }
+#mvcap.on { opacity: 1; visibility: visible; transition: opacity .5s ease .5s, visibility 0s; }
+#mvcap b { font: italic 600 40px/1 var(--f-en); }
+#mvcap span { font: 500 20px/1 var(--f-num); letter-spacing: .3em; color: rgba(239, 232, 218, .6); }
+#mvcap kbd { margin-left: auto; font: 600 16px/1 var(--f-num); letter-spacing: .2em; color: rgba(239, 232, 218, .55); border: 1px solid rgba(239, 232, 218, .3); border-radius: 6px; padding: 7px 10px; }
+</style>
+
+<script>
+/* ═══ MV — the official video of any work on stage, from its switch (or V on the keyboard) ═══ */
+function mvSwitch(work, o = {}) {
+  const w = WORKS[work]; if (!w) return null;
+  const b = h('button.mvs', { type: 'button', 'data-work': work, 'aria-label': `${w.t} — MV`, title: `${w.t} (${w.y}) · MV`, cls: o.sm ? 'sm' : '' },
+    h('i.mv-disc'), h('span.mv-l', {}, h('span.mv-t', { text: o.label || 'MV' }), o.year === false ? null : h('span.mv-y', { text: String(w.y) })));
+  if (o.color) b.style.setProperty('--mv', o.color);
+  b.addEventListener('click', (e) => { e.stopPropagation(); e.preventDefault(); if (!MV.direct(work)) MV.toggle(work, b); });
+  b.addEventListener('pointerdown', (e) => e.stopPropagation());
+  return b;
+}
+/* of two hex colours, the lighter one (a switch on a sleeve takes the sleeve's light colour) */
+function lighter(a, b) {
+  const lum = (c) => { const m = String(c).match(/^#?([0-9a-f]{6})$/i); if (!m) return .5; const n = parseInt(m[1], 16); return (.2126 * (n >> 16 & 255) + .7152 * (n >> 8 & 255) + .0722 * (n & 255)) / 255; };
+  return lum(a) >= lum(b) ? a : b;
+}
+/* a switch placed on the stage like any other element */
+const mvAt = (work, x, y, o = {}) => A('div.mvs-w', x, y, { anchor: o.anchor ?? 'ay', show: o.show, d: o.d, cls: o.cls || 'up' }, mvSwitch(work, o));
+
+const MV = (() => {
+  const layer = $('#video');
+  const dim = h('div#mvdim'), cap = h('div#mvcap');
+  layer.prepend(dim); layer.append(cap);
+  let slot = null, cur = null, token = 0, from = null;
+  const BOX = { x: 230, y: 105, w: 1460, h: 821 };
+  dim.addEventListener('click', (e) => { e.stopPropagation(); close(); });
+  dim.addEventListener('pointerdown', (e) => e.stopPropagation());
+  const switches = (work) => $$(`.mvs[data-work="${work}"]`);
+  function mark(work, on) { switches(work).forEach(b => b.classList.toggle('on', on)); }
+
+  async function open(work, el) {
+    if (VIEW !== 'stage') return;
+    const w = WORKS[work]; if (!w) return;
+    if (cur) close({ quick: true });
+    YTAPI.unlock();
+    Video.stopBeat();
+    const my = ++token; cur = work;
+    if (!slot) slot = Video.slot('mv');
+    const s = slot;
+    from = el && el.isConnected ? stageBox(el) : { x: W / 2 - 80, y: H / 2 - 45, w: 160, h: 90 };
+    clearTimeout(s.hideTimer);
+    s.el.style.transition = 'none'; s.place({ x: 0, y: 0, w: W, h: H }); s.fit(from); void s.el.offsetWidth; s.el.style.transition = '';
+    s.show(true); dim.classList.add('on'); mark(work, true); $('#stage').classList.add('mv-open');
+    cap.innerHTML = ''; cap.append(h('b', { text: w.t }), h('span', { text: `${w.y} · ${w.by}` }), h('kbd', { text: TOUCH ? '바깥을 누르면 닫힘 · 点外面关闭' : 'V / Esc' }));
+    cap.classList.add('on');
+    requestAnimationFrame(() => { if (my === token) s.fit(BOX); });
+    Music.duck(true);
+    SFX.projector(.9);
+    for (const id of w.ids) {
+      if (my !== token) return;
+      const ok = await s.load({ key: 'mv', work, id, start: 0, autoplay: true, onEnd: () => { if (my === token) close(); } });
+      if (my !== token) return;
+      if (ok) { Video.emit(); return; }
+    }
+    if (my === token) { s.want = { key: 'mv', work, id: w.ids[0] }; s.fallback(); Video.emit(); }
+  }
+  function close({ quick = false } = {}) {
+    if (!cur) return;
+    const work = cur; cur = null; token++;
+    const s = slot; mark(work, false);
+    dim.classList.remove('on'); cap.classList.remove('on'); $('#stage').classList.remove('mv-open');
+    if (s) {
+      s.pause();
+      if (!quick && from) s.fit(from);
+      s.show(false);
+      s.hideTimer = setTimeout(() => { s.stop(); s.el.classList.remove('fallback'); s.el.style.transform = ''; }, quick ? 50 : 1000);
+    }
+    Music.duck(false);
+    Video.emit();
+  }
+  const toggle = (work, el) => (cur === work ? close() : open(work, el));
+  /* where YouTube cannot be embedded (a sandboxed preview), the official video opens on youtube.com itself —
+     called straight from the click or key press, so the browser lets the new tab open */
+  function direct(work) {
+    if (YTAPI.state !== 'failed') return false;
+    const w = WORKS[work]; if (!w) return false;
+    const tab = window.open('https://www.youtube.com/watch?v=' + w.ids[0], '_blank');   /* ('noopener' would make this return null) */
+    if (tab) { try { tab.opener = null; } catch (e) { /* ignore */ } }
+    else toast('浏览器拦截了新窗口：请允许弹出窗口，或用 Chrome / Safari 直接打开这个网页', 3000, { local: true });
+    return true;
+  }
+  /* the first switch you can see on stage right now */
+  function visible() {
+    const sc = $('.scene.active'); if (!sc) return null;
+    return $$('.mvs', sc).find(b => { const r = b.getBoundingClientRect(); if (r.width < 4) return false; for (let e = b; e && e !== sc; e = e.parentElement) { const cs = getComputedStyle(e); if (cs.visibility === 'hidden' || +cs.opacity < .3 || cs.display === 'none') return false; } return true; }) || null;
+  }
+  /* every work with a switch you can see right now (one per work, in stage order) */
+  function visibleAll() {
+    const sc = $('.scene.active'); if (!sc) return [];
+    const seen = new Set();
+    return $$('.mvs', sc).filter(b => {
+      const r = b.getBoundingClientRect(); if (r.width < 4) return false;
+      for (let e = b; e && e !== sc; e = e.parentElement) { const cs = getComputedStyle(e); if (cs.visibility === 'hidden' || +cs.opacity < .3 || cs.display === 'none') return false; }
+      if (seen.has(b.dataset.work)) return false; seen.add(b.dataset.work); return true;
+    });
+  }
+  /* the question: "play this MV?" for one work, "which one?" for several */
+  const ask = h('div#mvask', { role: 'dialog', 'aria-label': 'MV' });
+  $('#hud').append(ask);
+  let askTimers = [], askBeat = -1, dismissed = -1;
+  function hideAsk() { askTimers.forEach(clearTimeout); askTimers = []; ask.classList.remove('on'); }
+  function renderAsk(list) {
+    ask.innerHTML = '';
+    const one = list.length === 1;
+    const x = h('button.mq-x', { type: 'button', text: '×', 'aria-label': '닫기 · 关闭', on: { click: (e) => { e.stopPropagation(); dismissed = askBeat; hideAsk(); } } });
+    ask.append(h('div.mq-k', {}, h('span', { text: one ? '▶ MV' : `▶ MV · ${list.length}` }),
+        h('span.mq-mini', {}, document.createTextNode(one ? '재생할까요?' : '어떤 곡?'), h('span.zh', { lang: 'zh-Hans', text: one ? '要播放吗？' : '播放哪首？' })), x),
+      h('div.mq-q', { lang: 'ko', text: one ? '이 MV를 재생할까요?' : '어떤 곡을 재생할까요?' }),
+      h('div.mq-z', { lang: 'zh-Hans', text: one ? '这个 MV 需要播放吗？' : '该播放哪首呢？' }),
+      h('div.mq-list', {}, ...list.map(b => {
+        const w = WORKS[b.dataset.work];
+        return h('button.mq-b', { type: 'button', on: { click: (e) => { e.stopPropagation(); if (!direct(b.dataset.work)) open(b.dataset.work, b.isConnected ? b : null); } } }, h('b', { text: w.t }), h('span', { text: String(w.y) }));
+      })),
+      h('div.mq-h', { text: one ? 'V 재생 · 按 V 播放' : 'V = 첫 곡 · 按 V 播放第一首' }));
+  }
+  let foldTimer = 0;
+  const fold = (ms) => { clearTimeout(foldTimer); foldTimer = setTimeout(() => { if (!ask.matches(':hover')) ask.classList.add('mini'); }, ms); };
+  ask.addEventListener('click', (e) => { if (ask.classList.contains('mini')) { e.stopPropagation(); ask.classList.remove('mini'); fold(9000); } });
+  ask.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') { ask.classList.remove('mini'); clearTimeout(foldTimer); } });
+  ask.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') fold(1200); });
+  ask.addEventListener('pointerdown', (e) => e.stopPropagation());
+  function offer(beat) {
+    hideAsk(); askBeat = beat; clearTimeout(foldTimer);
+    if (VIEW !== 'stage' || beat < 0 || dismissed === beat) return;
+    /* look twice: switches come in with their pieces, some a few seconds into the beat */
+    let shownKeys = '';
+    [1900, 3800].forEach(ms => askTimers.push(setTimeout(() => {
+      if (askBeat !== beat || cur) return;
+      const list = visibleAll(); const keys = list.map(b => b.dataset.work).join();
+      if (!list.length) { ask.classList.remove('on'); return; }
+      if (keys !== shownKeys) { const first = !shownKeys; shownKeys = keys; renderAsk(list); ask.classList.remove('mini'); fold(first ? 6500 : 4500); }
+      ask.classList.add('on');
+    }, ms)));
+  }
+  return { open, close, toggle, direct, visible, visibleAll, offer, hideAsk, get cur() { return cur; }, get isOpen() { return !!cur; } };
+})();
+
+/* ═══ VBAR — scrubbing for the video on screen (MV window, the trailer, the Smooth Criminal frame) ═══ */
+const VBar = (() => {
+  const layer = $('#video');
+  const bar = h('div#vbar', { role: 'group', 'aria-label': '视频进度' });
+  const pp = h('button.vb-pp', { type: 'button', text: '❚❚', 'aria-label': '播放 / 暂停' });
+  const back = h('button', { type: 'button', text: '−10', 'aria-label': '后退 10 秒' }), fwd = h('button', { type: 'button', text: '+10', 'aria-label': '前进 10 秒' });
+  const tr = h('div.vb-tr'), fill = h('div.vb-fill'), knob = h('div.vb-knob'), tip = h('div.vb-tip');
+  const tm = h('div.vb-t', { text: '0:00 / 0:00' });
+  tr.append(fill, knob, tip); bar.append(pp, back, tr, fwd, tm); layer.append(bar);
+  let slot = null, drag = null, lastMove = now();
+  const stop = (e) => e.stopPropagation();
+  ['pointerdown', 'pointerup', 'click'].forEach(ev => bar.addEventListener(ev, stop));
+  pp.addEventListener('click', () => { if (!slot) return; if (slot.isPlaying()) slot.pause(); else slot.play(); });
+  back.addEventListener('click', () => slot && slot.seek(slot.time() - 10));
+  fwd.addEventListener('click', () => slot && slot.seek(Math.min(slot.duration() - .5, slot.time() + 10)));
+  const ratio = (e) => { const r = tr.getBoundingClientRect(); return clamp((e.clientX - r.left) / r.width, 0, 1); };
+  tr.addEventListener('pointerdown', (e) => { if (!slot) return; drag = ratio(e); bar.classList.add('drag'); tr.setPointerCapture(e.pointerId); });
+  tr.addEventListener('pointermove', (e) => {
+    const d = slot ? slot.duration() : 0; const r = ratio(e);
+    tip.style.left = (r * 100) + '%'; tip.textContent = fmt(r * d);
+    if (drag != null) drag = r;
+  });
+  tr.addEventListener('pointerup', () => { if (drag != null && slot) { const d = slot.duration(); slot.seek(drag * d); if (slot.endAt != null && drag * d >= slot.endAt) slot.endAt = null; } drag = null; bar.classList.remove('drag'); });
+  $('#vp').addEventListener('pointermove', () => { lastMove = now(); });
+  /* where the bar goes for each kind of screen */
+  function place(s) {
+    const st = bar.style;
+    if (s.name === 'mv') { st.left = '230px'; st.top = '938px'; st.width = '1460px'; return; }
+    if (s.el.classList.contains('big')) { st.left = '160px'; st.top = '1016px'; st.width = '1600px'; return; }
+    const r = Scenes.rect && Scenes.rect('scFrame');
+    if (s.el.classList.contains('framed') && r) { st.left = r.x + 'px'; st.top = (r.y + r.h + 6) + 'px'; st.width = r.w + 'px'; return; }
+    st.left = '160px'; st.top = '1016px'; st.width = '1600px';
+  }
+  function pick() {
+    if (MV.isOpen) return Video.slot('mv');
+    const m = Video.status().slot && Video.slot('main');
+    if (m && m.el.classList.contains('on') && m.want && (m.want.key === 'trailer' || m.want.key === 'sc') && m.kind) return m;
+    return null;
+  }
+  Loop.add(() => {
+    const s = VIEW === 'stage' ? pick() : null;
+    if (!s || s.el.classList.contains('fallback') || !(s.duration() > 0)) { if (slot) { bar.classList.remove('on'); slot = null; } return; }
+    if (s !== slot) { slot = s; place(s); bar.classList.add('on'); }
+    else if (now() % 500 < 20) place(s);
+    const d = s.duration(), t = drag != null ? drag * d : s.time(), p = d ? t / d : 0;
+    fill.style.width = (p * 100).toFixed(2) + '%'; knob.style.left = (p * 100).toFixed(2) + '%';
+    tm.textContent = `${fmt(t)} / ${fmt(d)}`;
+    pp.textContent = s.isPlaying() ? '❚❚' : '▶';
+    /* over the full-screen trailer the bar steps away while nobody touches the mouse */
+    bar.classList.toggle('idle', s.el.classList.contains('big') && s.isPlaying() && drag == null && now() - lastMove > 2600 && !bar.matches(':hover'));
+  });
+  return { get slot() { return slot; } };
+})();
+</script>

@@ -112,8 +112,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .rv.card3d.on .cc-num { transform: none; }
 .rv.flip3d { transform: perspective(1100px) rotateY(82deg) translateZ(-80px) translateY(-30px); transition-duration: 1.1s; transition-timing-function: cubic-bezier(.2, .85, .3, 1.08); }
 .rv.flip3d.on { transform: none; }
-#stage.q-low .rv.card3d, #stage.q-low .rv.flip3d, #stage.reduced .rv.card3d, #stage.reduced .rv.flip3d { transform: none; }
-#stage.q-low .rv.card3d .cc-num, #stage.reduced .rv.card3d .cc-num { transform: none; }
+#stage.reduced .rv.card3d, #stage.reduced .rv.flip3d { transform: none; }
+#stage.reduced .rv.card3d .cc-num { transform: none; }
 .rv.gone { opacity: 0; transform: none; filter: blur(8px); transition-delay: 0s; transition-duration: .6s; }
 .rv.dimmed.on { opacity: .28; filter: blur(1.5px); }
 #stage.rev .rv { transition-duration: .32s !important; transition-delay: 0s !important; }
@@ -176,14 +176,22 @@ body.fs #hint .hint-demo, body.started #hint .hint-demo { pointer-events: none; 
 
 /* ── 03b-quality ── */
 /* ── quality tiers ──
-   high      every effect
-   standard  still film grain, no light-leak / scanline motion, half the particles, plain blending for the light layers
-   low       phones and previews: no filters, no blend modes, no particles, no full-screen overlays */
+   RULE: a tier changes how much a feature costs, never whether it is there. The phone (low tier) shows everything the
+   desktop shows: grain, overlays, colour grade, particles, 3D entrances, twinkles, tappable pieces — drawn cheaper.
+   tests/parity.js compares desktop and phone beat by beat and fails if the phone is missing anything.
+   high      every effect, moving grain and light leaks, blend modes
+   standard  grain and leaks hold still, plain blending for the light layers, half the particles
+   low       phones: no blend modes (each would need a full-stage offscreen surface), no SVG filters on figures,
+             particles at a third and 20 fps; overlays are toned down so plain blending reads like the real thing */
 #stage:not(.q-high) #grain, #stage:not(.q-high) #ov-leak::before, #stage:not(.q-high) #ov-leak::after, #stage:not(.q-high) #ov-scan::after { animation: none !important; }
 #stage:not(.q-high) #glow, #stage:not(.q-high) #fx { mix-blend-mode: normal; }
-#stage:not(.q-high) .smoke circle, #stage:not(.q-high) .twinkle circle { animation: none !important; }
-#stage.q-low #grain, #stage.q-low .ov, #stage.q-low #ytbg, #stage.q-low #fx, #stage.q-low #grade { display: none !important; }
-#stage.q-low *:not(.fg-fx), #stage.q-low *::before, #stage.q-low *::after { filter: none !important; backdrop-filter: none !important; mix-blend-mode: normal !important; }
+#stage.q-low #ov-leak, #stage.q-low #ov-cold, #stage.q-low #ov-warm, #stage.q-low #grade { mix-blend-mode: normal !important; }
+#stage.q-low #ov-leak::before, #stage.q-low #ov-leak::after { opacity: .55; }
+#stage.q-low #ov-cold { background: linear-gradient(180deg, rgba(120, 140, 170, .07), rgba(40, 50, 70, .14)); }
+#stage.q-low #ov-warm { background: radial-gradient(ellipse 80% 70% at 50% 75%, rgba(255, 168, 70, .16), transparent 72%); }
+#stage.q-low #grade { opacity: .55 !important; }
+/* figures carry their own SVG filters; the rest of the page keeps its CSS filters (photo toning, glows) */
+#stage.q-low .fig *:not(.fg-fx) { filter: none !important; }
 #stage.q-low #glow { opacity: .8; }
 
 /* ── 05-era ── */
@@ -301,7 +309,7 @@ body.fs #hint .hint-demo, body.started #hint .hint-demo { pointer-events: none; 
 .slv .mvs:hover { background: rgba(12, 10, 8, .96); }
 #stage.reduced .mvs .mv-disc { animation: none !important; transform: none !important; }
 #stage.reduced .mvs::after { animation: none !important; }
-#stage.q-low .mvs .mv-disc::after { display: none; }
+.mvs:active .mv-disc { animation: mvspin 1.1s linear infinite; }
 /* clickable even inside tilting / hover-reactive pieces, but never while its piece is still hidden */
 .scene .mvs, .scene .tilt .mvs, .scene .hov .mvs, #stage.touch .scene .mvs { pointer-events: auto !important; }
 .scene .mvs * { pointer-events: none; }
@@ -429,7 +437,7 @@ body.fs #hint .hint-demo, body.started #hint .hint-demo { pointer-events: none; 
 #autobtn .inf-flow { fill: none; stroke: #ffe2a8; stroke-width: 3.6; stroke-linecap: round; stroke-dasharray: 0 100; opacity: 0; }
 #autobtn.on .inf-flow { opacity: 1; stroke-dasharray: 22 78; animation: infflow 2.6s linear infinite; filter: drop-shadow(0 0 4px rgba(255, 210, 140, .9)); }
 #autobtn.on .inf-flow.f2 { stroke-dasharray: 9 91; animation-delay: -1.3s; opacity: .7; }
-#stage:not(.q-high) #autobtn.on .inf-flow { filter: none; }
+
 @keyframes infflow { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -100; } }
 #stage.film #autobtn, #stage.mv-open #autobtn { opacity: 0; pointer-events: none; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -450,7 +458,7 @@ body.fs #hint .hint-demo, body.started #hint .hint-demo { pointer-events: none; 
 /* the rigged figure */
 .fig { position: absolute; display: block; overflow: visible; pointer-events: none; }
 .fig .tw { animation: tw 1.5s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
-#stage:not(.q-high) .fig .tw { animation: none; opacity: .75; }
+#stage.reduced .fig .tw { animation: none; opacity: .75; }
 .fig .tw-g:nth-child(2n) .tw { animation-delay: .5s; } .fig .tw-g:nth-child(3n) .tw { animation-delay: 1s; } .fig .tw-g:nth-child(5n) .tw { animation-delay: .25s; }
 .scene .fig .fg-hit { pointer-events: all; }
 
@@ -576,7 +584,10 @@ body.fs #hint .hint-demo, body.started #hint .hint-demo { pointer-events: none; 
 .scene .rv:not(.on) .tilt, .scene .rv:not(.on) .hov, .scene .rv:not(.on) .int, .scene .rv:not(.on) .drag, .scene .rv:not(.on) .fg-hit,
 .scene .rv.tilt:not(.on), .scene .rv.int:not(.on), .scene .rv.drag:not(.on), .scene .rv.hov:not(.on) { pointer-events: none !important; }
 /* on a phone the stage is for watching: taps anywhere turn the page, nothing on stage swallows them */
-#stage.touch .scene .tilt, #stage.touch .scene .hov, #stage.touch .scene .int, #stage.touch .scene .drag, #stage.touch .scene .fg-hit { pointer-events: none !important; }
+/* touch: tilting and hover pieces react to a mouse only; anything you can click or drag on the desktop is tappable on a phone */
+#stage.touch .scene .tilt, #stage.touch .scene .hov { pointer-events: none !important; }
+#stage.touch .scene .int, #stage.touch .scene .drag, #stage.touch .scene .fg-hit { pointer-events: auto; }
+#stage.touch .scene .drag { touch-action: none; }
 .scene .int { cursor: pointer; }
 .scene .drag { cursor: grab; touch-action: none; }
 .scene .drag:active, .scene .drag.grabbing { cursor: grabbing; }
@@ -1010,7 +1021,7 @@ body.fs #hint .hint-demo, body.started #hint .hint-demo { pointer-events: none; 
 .songs.l > div:nth-child(2) { animation-delay: -3s; }
 .songs.l small { -webkit-text-stroke: 0; color: var(--dim); }
 @keyframes glint { from { background-position: 100% 0; } to { background-position: -50% 0; } }
-#stage:not(.q-high) .songs.l > div { animation: none; background: none; }
+#stage.reduced .songs.l > div { animation: none; }
 /* seoul · redesign */
 .se-and { font: 500 56px/1 var(--f-ko-h); color: var(--dim); white-space: nowrap; }
 .se-and .zh { font-family: var(--f-zh-h); }
@@ -1884,7 +1895,7 @@ const Q = (() => {
   const P = {
     high: { canvasMax: 1, fx: 1, fxRes: .6, fxFps: 30, disco: true },
     standard: { canvasMax: .75, fx: .5, fxRes: .5, fxFps: 24, disco: false },
-    low: { canvasMax: .6, fx: 0, fxRes: .5, fxFps: 0, disco: false },
+    low: { canvasMax: .6, fx: .34, fxRes: .4, fxFps: 20, disco: false },
   };
   const NAME = { high: '高', standard: '标准', low: '省电' };
   const url = (location.search.match(/[?&]q=(high|standard|low)/) || [])[1];
@@ -3951,8 +3962,9 @@ const Figure = (() => {
       this.castK = o.castK ?? .55; this.castS = o.castS ?? .22;
       this.reflect = !!o.reflect;
       this.vb = o.vb || [-480, -980, 960, 1060];
-      /* the low tier drops the figure filters, except the rim of a silhouette: without it a dark figure on a dark stage disappears */
-      this.useFx = o.fx !== false && (Q.tier !== 'low' || (o.style || 'silhouette') === 'silhouette');
+      /* every tier keeps the rim light (the one filter that makes a figure read on a dark stage); the low tier
+         only drops the soft inner shading (its blur), see below */
+      this.useFx = o.fx !== false;
       this.scale = 1;
       this.p = Object.assign({}, BASE, POSES[o.pose || 'stand'] || {}, o.p || {});
       this.ik = null;
@@ -6797,7 +6809,7 @@ const Director = (() => {
     shown = sc;
     if (ms > 0 && mode !== 'cut') el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: ms, easing: 'linear' });
     /* 3D: the camera travels into the next scene (it starts a little behind and below, and settles) */
-    if (ms > 0 && mode === 'cross' && !reduced && Q.tier !== 'low' && VIEW === 'stage') {
+    if (ms > 0 && mode === 'cross' && !reduced && VIEW === 'stage') {
       el.animate([{ transform: 'perspective(1800px) translate3d(0, 26px, -190px) rotateX(4deg)' }, { transform: 'none' }], { duration: ms * 1.35, easing: 'cubic-bezier(.2, .7, .2, 1)' });
       $$('.scene.leaving', stage).forEach(s => s.animate([{ transform: 'none' }, { transform: 'perspective(1800px) translate3d(0, -18px, 160px)' }], { duration: ms, easing: 'cubic-bezier(.5, 0, .8, .4)', fill: 'forwards' }));
     }
@@ -7584,11 +7596,11 @@ const App = (() => {
     const touch = window.matchMedia && matchMedia('(pointer: coarse)').matches;
     const k = (key, t) => `<span class="hk"><kbd>${key}</kbd> ${t}</span>`;
     el.innerHTML = (touch
-      ? '<span class="hk">点右侧 · 下一页</span><span class="hk">点左侧 · 上一页</span><span class="hk">横屏观看更好</span>'
+      ? '<span class="hk">左滑 / 点右侧 · 下一句或下一页</span><span class="hk">右滑 / 点左侧 · 上一页</span><span class="hk">人物、旋钮、票根可以点</span><span class="hk">横屏观看更好</span>'
       : k('→', '开始') + k('P', '演讲者视图') + k('S', '设置与课前预检') + k('F', '全屏') + k('G', '总览') + k('L', '语言') +
         '<br><span class="hk">鼠标可以探索：移动是手电筒，人物、卡片、旋钮可以点或拖（<kbd>T</kbd> 关掉手电筒）</span>' +
         (window.self !== window.top ? '<br><span class="hk">先点一下画面，让键盘生效</span>' : '')) +
-      '<br><span class="hk">全部手动：每按一次 → 走一句字幕或一页；右上角的 ∞（或 <kbd>A</kbd>）打开自动演出</span>';
+      '<br><span class="hk">全部手动：每按一次 → 走一句字幕或一页；右上角的 ∞' + (touch ? '' : '（或 <kbd>A</kbd>）') + '打开自动演出</span>';
   }
   /* touch: tap the right side for next, the left third for previous (mouse clicks never advance) */
   function touchNav() {
@@ -7597,11 +7609,13 @@ const App = (() => {
     vp.addEventListener('pointerup', (e) => {
       if (e.pointerType !== 'touch') return;
       if (MV.isOpen) { if (!e.target.closest('#vs-mv')) MV.close(); return; }
-      if (Panel.isOpen() || Overview.open || e.target.closest('#fullbar') || e.target.closest(TOUCH ? 'a, button, .ov-card' : 'a, button, .ov-card, .int, .drag, .tilt')) return;
+      if (Panel.isOpen() || Overview.open || e.target.closest('#fullbar, #vbar, #mvask, #autobtn')) return;
       const dx = e.clientX - sx, dy = e.clientY - sy;
       if (now() - st > 900 || Math.abs(dy) > 80) return;
-      if (dx < -50) cmd('next'); else if (dx > 50) cmd('prev');
-      else if (e.clientX > window.innerWidth * .34) cmd('next'); else cmd('prev');
+      /* a swipe always turns the page (except while dragging a piece); a tap on a piece plays with it; any other tap turns the page */
+      if (Math.abs(dx) > 50) { if (!e.target.closest('.drag')) cmd(dx < 0 ? 'next' : 'prev'); return; }
+      if (e.target.closest(TOUCH ? 'a, button, .ov-card, .int, .drag, .fg-hit' : 'a, button, .ov-card, .int, .drag, .tilt')) return;
+      if (e.clientX > window.innerWidth * .34) cmd('next'); else cmd('prev');
     }, { passive: true });
   }
 

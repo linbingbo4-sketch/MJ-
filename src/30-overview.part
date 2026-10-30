@@ -1,0 +1,72 @@
+<style>
+/* scene overview (G) — on the stage, so Q&A can jump in front of the audience */
+#overview { background: radial-gradient(ellipse at 50% 30%, rgba(24, 20, 16, .97), rgba(4, 4, 4, .98)); padding: 70px 96px; color: #f3eadb; }
+#overview .ov-h { display: flex; align-items: baseline; justify-content: space-between; }
+#overview .ov-h h2 { font: 500 44px/1 var(--f-en); letter-spacing: .3em; }
+#overview .ov-h span { font: 500 20px/1 var(--f-num); letter-spacing: .3em; color: rgba(243, 234, 219, .5); }
+#overview .ov-road { position: relative; height: 230px; margin-top: 30px; --acc: #ffd08a; --acc2: #ffe9c4; --ink: #f3eadb; --dim: rgba(243,234,219,.55); --faint: rgba(243,234,219,.22); }
+#overview .ov-road .road { position: absolute; left: 50%; translate: -50% 0; }
+#overview .ov-cols { display: grid; grid-template-columns: repeat(5, 1fr); gap: 22px; margin-top: 26px; }
+#overview .ov-col h3 { font: 500 18px/1 var(--f-num); letter-spacing: .32em; color: rgba(243, 234, 219, .5); margin-bottom: 14px; }
+#overview .ov-col h3 .zh, #overview .ov-col h3 .ko { letter-spacing: .1em; }
+#overview .ov-card { position: relative; display: block; width: 100%; text-align: left; padding: 16px 18px 14px; margin-bottom: 14px; border-radius: 8px; border: 1px solid rgba(243, 234, 219, .14); background: rgba(255, 255, 255, .03); cursor: pointer; overflow: hidden; color: inherit; }
+#overview .ov-card:hover, #overview .ov-card:focus-visible { border-color: rgba(255, 208, 138, .7); outline: none; }
+#overview .ov-card.cur { border-color: #ffd08a; box-shadow: 0 0 40px rgba(255, 208, 138, .2); }
+#overview .ov-card .sw { position: absolute; left: 0; top: 0; bottom: 0; width: 6px; }
+#overview .ov-card .n { font: 500 15px/1 var(--f-num); letter-spacing: .25em; color: rgba(243, 234, 219, .5); }
+#overview .ov-card .t { display: block; margin-top: 8px; font: 500 28px/1.2 var(--f-ko-h); }
+#overview .ov-card .t .zh { font-family: var(--f-zh-h); }
+#overview .ov-card .m { margin-top: 10px; display: flex; align-items: center; justify-content: space-between; font: 500 16px/1 var(--f-num); letter-spacing: .12em; color: rgba(243, 234, 219, .55); }
+#overview .dots { display: flex; gap: 6px; }
+#overview .dots i { width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid rgba(243, 234, 219, .4); cursor: pointer; }
+#overview .dots i.cut { border-style: dashed; }
+#overview .dots i.cur { background: #ffd08a; border-color: #ffd08a; }
+#overview .dots i:hover { border-color: #ffd08a; }
+#overview .ov-foot { position: absolute; left: 96px; right: 96px; bottom: 50px; display: flex; justify-content: space-between; font: 500 18px/1 var(--f-num); letter-spacing: .2em; color: rgba(243, 234, 219, .45); }
+</style>
+
+<script>
+/* ═══ OVERVIEW (G) ═══ */
+const ERA_SWATCH = { cold: '#ffd08a', cinema: '#9fc0ff', title: '#ffd9a0', gary: '#eaa92c', otw: '#dcc08a', thriller: '#e0233a', bad: '#6f93ff', dangerous: '#e0b55a', shadow: '#9aa6b2', seoul: '#8ec5ff', tii: '#f2c230', legacy: '#ffb54a', finale: '#fff1dc' };
+const Overview = (() => {
+  const el = $('#overview');
+  let open = false, road = null;
+  function build() {
+    el.innerHTML = '';
+    el.append(h('div.ov-h', {}, h('h2', { text: 'BEYOND THE SPOTLIGHT' }), h('span', {}, T(L('장면 총람 · 클릭해서 이동 · G 닫기', '场景总览 · 点击跳转 · G 关闭')))));
+    road = roadmap({ clickable: true });
+    el.append(h('div.ov-road', {}, road));
+    const groups = [[L('프롤로그', '序幕'), [0, 1, 2]], [L('1막 · 빛 속에서', '第一幕 · 光中'), [3, 4, 5, 6]], [L('2막 · 빛의 가장자리', '第二幕 · 光的边缘'), [7, 8, 9]], [L('3막 · 빛 너머', '第三幕 · 光之外'), [10, 11]], [L('피날레', '终幕'), [12]]];
+    const cols = h('div.ov-cols');
+    groups.forEach(([name, list]) => {
+      const col = h('div.ov-col', {}, h('h3', {}, T(name)));
+      list.forEach(si => {
+        const sc = SCENES[si];
+        const dots = h('div.dots', {}, ...sc.beats.map(b => {
+          const d = h('i', { cls: b.cut ? 'cut' : '', title: `${b.tag} ${b.vis}` });
+          d.addEventListener('click', (e) => { e.stopPropagation(); Director.go(b.index, 'jump'); close(); });
+          d.dataset.b = b.index; return d;
+        }));
+        const card = h('button.ov-card', { type: 'button', 'data-sc': si },
+          h('span.sw', { style: { background: ERA_SWATCH[sc.era] } }),
+          h('span.n', { text: `${String(si).padStart(2, '0')} · ${fmt(sc.budget)}` }),
+          h('span.t', {}, T(sc.short)),
+          h('span.m', {}, dots, h('span', { text: String(sc.year) })));
+        card.addEventListener('click', () => { Director.go(sc.first, 'jump'); close(); });
+        col.append(card);
+      });
+      cols.append(col);
+    });
+    el.append(cols, h('div.ov-foot', {}, h('span', { text: `59 BEATS · PLAN ${fmt(TOTAL_PLAN)} · LIMIT 15:00` }), h('span', { text: '← → NAVIGATE · G CLOSE' })));
+  }
+  function mark() {
+    const b = BEATS[Director.beat];
+    $$('.ov-card', el).forEach(c => c.classList.toggle('cur', !!b && +c.dataset.sc === b.scene));
+    $$('.dots i', el).forEach(d => d.classList.toggle('cur', +d.dataset.b === Director.beat));
+    if (road) road.focusOn(b ? SCENES[b.scene].key : null, { instant: true });
+  }
+  function show() { if (!el.childElementCount) build(); mark(); el.hidden = false; open = true; }
+  function close() { el.hidden = true; open = false; }
+  return { toggle() { open ? close() : show(); }, show, close, mark, get open() { return open; }, rebuild() { el.innerHTML = ''; if (open) show(); } };
+})();
+</script>

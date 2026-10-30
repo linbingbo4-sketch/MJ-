@@ -1,0 +1,778 @@
+<style>
+/* the rigged figure */
+.fig { position: absolute; display: block; overflow: visible; pointer-events: none; }
+.fig .tw { animation: tw 1.5s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+#stage.reduced .fig .tw { animation: none; opacity: .75; }
+.fig .tw-g:nth-child(2n) .tw { animation-delay: .5s; } .fig .tw-g:nth-child(3n) .tw { animation-delay: 1s; } .fig .tw-g:nth-child(5n) .tw { animation-delay: .25s; }
+.scene .fig .fg-hit { pointer-events: all; }
+</style>
+
+<script>
+/* ═══ FIGURE — Michael, drawn as a rigged figure ═══
+   Units: 1 ≈ 0.25 cm; the floor is y = 0, a standing adult with a fedora is ~700 tall.
+   Angles are "from down": 0° points down, 90° points forward (+x), 180° up. Every figure is authored facing +x;
+   `face: -1` mirrors it. A pose is a flat object of numbers so any two poses can be tweened. */
+const Figure = (() => {
+  let uid = 0;
+  const RAD = Math.PI / 180;
+  const sn = a => Math.sin(a * RAD), cs = a => Math.cos(a * RAD);
+  const mv = (p, a, l) => [p[0] + sn(a) * l, p[1] + cs(a) * l];
+  const r1 = n => Math.round(n * 10) / 10;
+  const pt = p => r1(p[0]) + ' ' + r1(p[1]);
+  const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+  const angOf = (a, b) => Math.atan2(b[0] - a[0], b[1] - a[1]) / RAD;
+  const sstep = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+  /* local frame at o: +x along angle a, +y = +x turned 90° clockwise on screen (down, for a foot pointing forward) */
+  const frame = (o, a, sx = 1) => { const X = [sn(a), cs(a)], Y = [-X[1], X[0]]; return ([x, y]) => [o[0] + (X[0] * x * sx + Y[0] * y), o[1] + (X[1] * x * sx + Y[1] * y)]; };
+  const rotAbout = (p, o, d) => { const x = p[0] - o[0], y = p[1] - o[1]; return [o[0] + x * cs(d) + y * sn(d), o[1] - x * sn(d) + y * cs(d)]; };
+
+  /* Catmull–Rom through points → cubic Bézier commands (no leading M) */
+  function crv(P, closed) {
+    const n = P.length; let d = '';
+    const at = i => closed ? P[(i + n) % n] : P[clamp(i, 0, n - 1)];
+    for (let i = 0; i < (closed ? n : n - 1); i++) {
+      const p0 = at(i - 1), p1 = at(i), p2 = at(i + 1), p3 = at(i + 2);
+      d += 'C' + pt([p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6]) + ' ' + pt([p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6]) + ' ' + pt(p2);
+    }
+    return d;
+  }
+  const area = P => P.reduce((a, p, i) => { const q = P[(i + 1) % P.length]; return a + p[0] * q[1] - q[0] * p[1]; }, 0);
+  const blob = P => { if (!P.length) return ''; if (area(P) > 0) P = P.slice().reverse(); return 'M' + pt(P[0]) + crv(P, true) + 'Z'; };
+  const circle = (c, r) => `M${r1(c[0] - r)} ${r1(c[1])}a${r1(r)} ${r1(r)} 0 1 0 ${r1(2 * r)} 0a${r1(r)} ${r1(r)} 0 1 0 ${r1(-2 * r)} 0Z`;
+  const bump = (s, t) => Math.sin(Math.PI * Math.pow(s, Math.log(.5) / Math.log(t)));
+  /* a tapered limb a→b; o.n bulges on the left of a→b (the back, for a limb hanging down), o.p on the right; o.flat = square end at b */
+  function limb(a, b, ra, rb, o = {}) {
+    const dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy);
+    if (L < .5) return circle(a, Math.max(ra, rb));
+    const nx = -dy / L, ny = dx / L, N = 6, Ls = [], Rs = [];
+    for (let i = 0; i <= N; i++) {
+      const s = i / N, cx = a[0] + dx * s, cy = a[1] + dy * s, r = ra + (rb - ra) * s;
+      const rn = r + (o.n ? o.n * bump(s, o.tn || .4) : 0), rp = r + (o.p ? o.p * bump(s, o.tp || .4) : 0);
+      Ls.push([cx + nx * rn, cy + ny * rn]); Rs.push([cx - nx * rp, cy - ny * rp]);
+    }
+    Rs.reverse();
+    const capB = o.flat ? 'L' + pt(Rs[0]) : `A${r1(rb)} ${r1(rb)} 0 0 0 ${pt(Rs[0])}`;
+    return 'M' + pt(Ls[0]) + crv(Ls) + capB + crv(Rs) + `A${r1(ra)} ${r1(ra)} 0 0 0 ${pt(Ls[0])}Z`;
+  }
+  /* 2-bone IK: knee for hip H reaching ankle T; the knee bends forward (+x) */
+  function ik(H, T, L1, L2) {
+    const dx = T[0] - H[0], dy = T[1] - H[1];
+    const d = clamp(Math.hypot(dx, dy), Math.abs(L1 - L2) + 1, L1 + L2 - .3);
+    const a = Math.acos(clamp((L1 * L1 + d * d - L2 * L2) / (2 * L1 * d), -1, 1));
+    const ang = Math.atan2(dy, dx) - a;
+    return [H[0] + Math.cos(ang) * L1, H[1] + Math.sin(ang) * L1];
+  }
+  const shade = (hex, k) => {            /* k > 0 lightens toward white, k < 0 darkens toward black */
+    const n = parseInt(hex.slice(1), 16), c = [n >> 16, (n >> 8) & 255, n & 255];
+    return '#' + c.map(v => Math.round(k > 0 ? v + (255 - v) * k : v * (1 + k)).toString(16).padStart(2, '0')).join('');
+  };
+
+  /* ── bodies ──  trunk rows: [d along the spine from the hip joints, front depth, back depth, half width when facing us] */
+  const ADULT = { thigh: 170, shin: 160, low: 70, up: 132, neck: 22, headH: 88, upper: 118, fore: 104, hand: 62, fs: 1,
+    shW: 57, shD: 184, hipW: 17, armR: [16, 12.5, 9.4], legR: [27, 17, 11], neckR: 12,
+    trunk: [[-34, 24, 31, 46], [-14, 31, 39, 53], [20, 29, 35, 49], [70, 26.5, 28.5, 41], [112, 35, 31.5, 49], [156, 40.5, 36, 56], [181, 34, 37, 61], [197, 21, 24, 45], [210, 11, 13, 15]] };
+  const CHILD = { thigh: 128, shin: 120, low: 54, up: 100, neck: 17, headH: 80, upper: 88, fore: 78, hand: 46, fs: .78,
+    shW: 41, shD: 140, hipW: 14, armR: [12, 9.4, 7.4], legR: [21, 13, 8.6], neckR: 9.5,
+    trunk: ADULT.trunk.map(([d, f, b, w]) => [d * .76, f * .74, b * .74, w * .72]) };
+  const BODY = { adult: ADULT, child: CHILD };
+  const H0 = (B) => B.thigh + B.shin + 28.5 * B.fs;   /* hip-joint height when standing straight */
+
+  /* ── shapes in local frames ── */
+  const HEAD_P = [[22,-38],[31,-25],[34,-11],[32.5,-4],[37,4],[43,11],[37,15],[37.5,19],[34,23],[35.5,26.5],[31,31],[33,37],[27,44],[14,46.5],[0,41],[-12,31],[-26,21],[-36,6],[-38,-12],[-32,-30],[-18,-42],[0,-46],[13,-44]];
+  const HEAD_F = [[22,-38],[29,-26],[31.5,-11],[31.5,-3],[31,5],[30,12],[29,16],[28,20],[26,25],[24,29],[21,34],[16,39],[9,44],[0,46.5],[-9,44],[-16,39],[-26,25],[-30.5,12],[-31.5,-10],[-29,-28],[-18,-41],[0,-46],[13,-44]];
+  const HAT_P = [[66,6],[56,9],[0,4],[-54,4],[-62,-2],[-54,-4],[-36,-4],[-38,-26],[-30,-42],[-14,-40],[-4,-37],[14,-45],[26,-42],[33,-26],[35,-4],[56,0]];
+  const HAT_F = [[68,4],[56,8],[0,12],[-56,8],[-68,4],[-60,0],[-35,-3],[-36,-26],[-30,-42],[-12,-44],[0,-39],[12,-44],[30,-42],[36,-26],[35,-3],[60,0]];
+  const BAND_P = [[-37,-4],[35,-4],[34.5,-14],[-37.5,-14]], BAND_F = [[-35.5,-3],[35.5,-3],[35.8,-13],[-35.8,-13]];
+  const SHOE = [[-13,-5],[-22,4],[-25,16],[-22,27],[-4,28.5],[6,25.5],[30,27.5],[52,28.5],[71,27.6],[79,22],[76,14],[60,8],[38,1.5],[18,-4],[3,-8]];
+  const HANDS = {
+    open:  [[0,-9],[10,-12],[20,-18],[30,-19],[32,-14],[27,-10],[38,-10],[52,-8],[61,-3],[62,3],[54,7],[40,9],[24,10],[10,10],[0,9]],
+    fist:  [[0,-9],[8,-13],[20,-16],[30,-14],[36,-6],[36,4],[30,11],[18,12],[6,11],[0,9]],
+    point: [[0,-9],[10,-13],[22,-18],[30,-17],[28,-11],[42,-9],[66,-6],[69,-2],[64,1],[42,2],[38,9],[24,11],[10,10],[0,9]],
+    claw:  [[0,-9],[12,-14],[22,-21],[30,-22],[30,-15],[42,-16],[54,-13],[61,-6],[58,0],[50,-3],[50,6],[44,10],[26,11],[10,10],[0,9]],
+    flat:  [[0,-8],[14,-11],[24,-16],[31,-16],[30,-11],[46,-9],[62,-6],[66,-2],[64,3],[46,6],[26,9],[10,9],[0,8]],
+  };
+  const HAND_KEYS = Object.keys(HANDS);
+  const AFRO_P = [[-2,4],[14,-22],[28,-38],[35,-58],[32,-80],[18,-98],[-4,-108],[-28,-110],[-52,-100],[-70,-82],[-80,-56],[-80,-28],[-72,-2],[-58,20],[-38,32],[-18,26]];
+  const AFRO_F = [[30,6],[44,-16],[58,-38],[66,-62],[62,-86],[46,-104],[20,-114],[-14,-115],[-40,-108],[-58,-92],[-66,-68],[-62,-42],[-50,-18],[-34,6],[-20,-24],[14,-26]];
+  /* hair: a cap ellipse + curls (circles), each defined in profile and facing us; [xP, yP, xF, yF, r] */
+  const HAIR = {
+    jheri: { cap: [-5, -13, 42, 43, -1, -13, 38, 43], curls: [[-42,-6,38,-8,11.5],[-45,10,41,8,12],[-42,26,38,24,11.5],[-34,40,31,38,11],[-22,47,22,46,9.5],[-30,-34,-38,-8,12],[-12,-47,-41,8,12],[6,-52,-38,24,11.5],[20,-46,-31,38,11],[28,-33,-22,46,9.5],[-46,-22,0,-55,11]] },
+    curls: { cap: [-5, -13, 42, 43, -1, -13, 38, 43], curls: [[-43,-4,39,-6,12],[-46,14,42,12,12],[-44,32,40,30,12],[-38,50,36,48,11.5],[-28,62,28,60,10.5],[-16,58,20,64,9],[-30,-34,-39,-6,12],[-12,-47,-42,12,12],[6,-52,-40,30,12],[20,-46,-36,48,11.5],[29,-33,-28,60,10.5],[-46,-22,-20,64,11]], fore: true },
+    afro:  { afro: .8 },
+    afroL: { afro: 1 },
+    long:  { cap: [-4, -14, 41, 42, -1, -14, 37, 42], curtains: [[-34, 0, 34, 1], [-30, -6, -34, 1]] },
+    short: { cap: [-5, -15, 40, 38, -1, -15, 36, 38] },
+    rag:   { cap: [-6, -12, 44, 42, -1, -12, 40, 42], curls: [[-44,8,40,6,10],[-40,26,36,24,9],[-30,-36,-40,6,10],[-8,-50,-36,24,9]] },
+  };
+
+  /* ── costumes ── */
+  const COSTUMES = {
+    billie:   { jacket: '#151417', pants: '#0f0e10', shoe: '#0b0b0d', sock: '#f6f3ec', hat: '#0e0d10', band: '#030303', hair: 'jheri', hem: -66, sequins: true, glove: true, cuff: true },
+    child:    { jacket: '#c9862a', pants: '#5b3420', shoe: '#1a110c', sock: null, hat: null, hair: 'afroL', body: 'child', hem: 24, collar: '#f2d27a', bell: true, shirt: '#8a3a8e' },
+    teen:     { jacket: '#7b2f43', pants: '#3a2418', shoe: '#140d0a', sock: null, hat: null, hair: 'afroL', hem: 30, collar: '#e9c66a', bell: true },
+    tux:      { jacket: '#101013', pants: '#0f0f12', shoe: '#0b0b0b', sock: '#f4f1e8', hair: 'afro', hem: -62, shirt: '#f1eee6', bow: true },
+    thriller: { jacket: '#b3142c', pants: '#9c1027', shoe: '#0c0909', sock: '#f3efe6', hair: 'jheri', hem: 26, chevron: '#110707' },
+    bad:      { jacket: '#121114', pants: '#0f0e11', shoe: '#0b0b0d', sock: '#f2efe7', hair: 'curls', hem: -40, buckles: '#c3c6ce' },
+    smooth:   { jacket: '#efe9dd', pants: '#ebe4d8', shoe: '#f2eee6', sock: '#ffffff', hat: '#f2ede3', band: '#151515', hair: 'curls', hem: -72, armband: '#2f5be0', shirt: '#3d64d8', tie: '#f6f3ee', light: true },
+    military: { jacket: '#121115', pants: '#0f0e11', shoe: '#0b0b0d', sock: '#f2efe7', hair: 'long', hem: -44, gold: '#d9ad4f', shades: true },
+    bow:      { jacket: '#f1eee8', pants: '#0f0e11', shoe: '#0b0b0d', sock: '#f6f3ec', hat: '#0e0d10', band: '#030303', hair: 'curls', hem: -14, light: true, tee: true },
+    tii:      { jacket: '#1a181d', pants: '#0f0e11', shoe: '#0b0b0d', sock: null, hair: 'long', hem: -52, sequins: true },
+    person:   { jacket: '#17151a', pants: '#121014', shoe: '#0c0c0e', sock: null, hair: 'long', hem: -46 },
+    grammy:   { jacket: '#1b2647', pants: '#0f0e11', shoe: '#0b0b0d', sock: '#f2efe7', hair: 'jheri', hem: -50, sequins: true, gold: '#d9ad4f', shades: true, glove: true },
+    qj:       { jacket: '#3a332c', pants: '#2b2622', shoe: '#0d0c0c', sock: null, hair: 'short', hem: -62, shirt: '#e9e3d6' },
+    zombie:   { jacket: '#2a2522', pants: '#1d1a18', shoe: '#0f0d0c', sock: null, hair: 'rag', hem: -30, torn: true },
+  };
+  const INK = '#060506', SKIN = '#2b211d';
+
+  const BASE = { x: 0, lean: 0, chest: 0, neck: 0, head: 0, turn: .18, tilt: 0, lift: 0, spin: 0,
+    nSh: 6, nEl: 10, nWr: 0, fSh: -5, fEl: 12, fWr: 0, nHand: 0, fHand: 0,
+    nHip: 2, nKnee: 4, nFoot: 90, fHip: -2, fKnee: 3, fFoot: 90, hat: 1, hatTilt: 12, glove: 1, umbrella: 0, mic: 0, farFront: 0 };
+  /* hands are stored as indexes into HAND_KEYS so poses stay numeric */
+  const HI = k => HAND_KEYS.indexOf(k);
+  /* the vocabulary of moves people know */
+  const POSES = {
+    stand:   {},
+    hat:     { turn: .3, lean: -4, neck: 8, head: 2, nSh: 91, nEl: 112, nWr: -64, nHand: HI('flat'), fSh: -20, fEl: 10, fWr: 12, fHand: HI('flat'),
+               nHip: 16, nKnee: 30, nFoot: 74, fHip: -7, fKnee: 2, fFoot: 90, hatTilt: 16 },
+    toe:     { turn: .26, lean: -3, neck: -4, nSh: 34, nEl: 92, nWr: 8, nHand: HI('fist'), fSh: -34, fEl: 36, fWr: 10,
+               nHip: 9, nKnee: 20, nFoot: 16, fHip: 4, fKnee: 18, fFoot: 14 },
+    lean:    { tilt: 45, turn: .2, nSh: 3, nEl: 4, fSh: -2, fEl: 4, nHip: 1, nKnee: 0, fHip: -1, fKnee: 0, neck: -2, hatTilt: 10 },
+    kick:    { turn: .3, lean: -16, neck: -10, nSh: 168, nEl: 22, nHand: HI('flat'), fSh: -48, fEl: 12, fHand: HI('flat'),
+               nHip: 96, nKnee: 8, nFoot: 150, fHip: -8, fKnee: 3, fFoot: 90 },
+    point:   { turn: .36, lean: -6, neck: -16, head: -4, nSh: 160, nEl: 2, nHand: HI('point'), fSh: -24, fEl: 14, fHand: HI('flat'),
+               nHip: 16, nKnee: 24, nFoot: 84, fHip: -6, fKnee: 2, fFoot: 90 },
+    zombie:  { turn: .62, lean: 8, chest: 8, neck: 22, head: 10, nSh: 96, nEl: 74, nWr: 26, nHand: HI('claw'), fSh: 84, fEl: 86, fWr: 24, fHand: HI('claw'),
+               nHip: 22, nKnee: 40, nFoot: 92, fHip: -14, fKnee: 30, fFoot: 96, hat: 0 },
+    statue:  { turn: 1, neck: -7, nSh: -7, nEl: 3, nHand: HI('flat'), fSh: 7, fEl: 3, fHand: HI('flat'), nHip: -9, nKnee: 0, fHip: 9, fKnee: 0, hat: 0 },
+    sing:    { turn: .3, neck: -18, head: -6, nSh: 36, nEl: 128, nWr: -4, nHand: HI('fist'), fSh: 64, fEl: 26, fHand: HI('open'),
+               nHip: 6, nKnee: 10, fHip: -6, fKnee: 4, mic: 1 },
+    mic:     { turn: .28, neck: 16, head: 6, nSh: 30, nEl: 132, nWr: 0, nHand: HI('fist'), fSh: -12, fEl: 40, nHip: 6, nKnee: 12, fHip: -6, fKnee: 4, mic: 1 },
+    person:  { turn: .26, neck: 8, head: 4, nSh: 3, nEl: 8, fSh: -3, fEl: 9, nHip: 4, nKnee: 8, fHip: -3, fKnee: 2, hat: 0, glove: 0 },
+    umbrella:{ turn: .2, lean: 2, neck: 12, head: 4, nSh: 30, nEl: 104, nWr: 4, nHand: HI('fist'), fSh: -4, fEl: 12, nHip: 4, nKnee: 6, fHip: -4, fKnee: 3, hat: 0, glove: 0, umbrella: 1 },
+    spin:    { turn: .5, nSh: 26, nEl: 122, nHand: HI('fist'), fSh: 16, fEl: 126, fHand: HI('fist'), nHip: 70, nKnee: 112, nFoot: 40, fHip: 0, fKnee: 6, fFoot: 30 },
+    groove:  { turn: .32, lean: 4, neck: 6, nSh: 150, nEl: 34, nHand: HI('point'), fSh: -32, fEl: 84, fHand: HI('fist'),
+               nHip: 24, nKnee: 46, nFoot: 70, fHip: -8, fKnee: 4, fFoot: 90 },
+    snap:    { turn: .3, lean: 3, neck: 4, nSh: 58, nEl: 64, nHand: HI('fist'), fSh: -36, fEl: 42, nHip: 20, nKnee: 26, nFoot: 86, fHip: -12, fKnee: 6, fFoot: 92 },
+    bad:     { turn: .55, lean: 6, neck: 6, nSh: 70, nEl: 14, nHand: HI('fist'), fSh: -40, fEl: 52, fHand: HI('fist'), nHip: 18, nKnee: 20, fHip: -16, fKnee: 4 },
+    reach:   { turn: .34, lean: -6, neck: -10, nSh: 138, nEl: 8, nHand: HI('flat'), fSh: -52, fEl: 4, fHand: HI('flat'),
+               nHip: 26, nKnee: 2, nFoot: 100, fHip: -24, fKnee: 12, fFoot: 46 },
+    bow:     { turn: .2, lean: 52, chest: 6, neck: 16, nSh: 14, nEl: 10, fSh: 8, fEl: 10, nHip: 2, nKnee: 4, fHip: -2, fKnee: 3, hat: 0, glove: 0 },
+    j5:      { turn: .3, neck: -6, nSh: 32, nEl: 118, nWr: -6, nHand: HI('fist'), fSh: 26, fEl: 70, fHand: HI('open'), nHip: 14, nKnee: 22, nFoot: 84, fHip: -6, fKnee: 4, mic: 1 },
+  };
+
+  class Fig {
+    constructor(o = {}) {
+      this.id = 'fg' + (++uid);
+      this.cname = o.costume || 'billie';
+      this.c = Object.assign({}, COSTUMES[this.cname] || COSTUMES.billie, o.c || {});
+      this.B = BODY[o.body || this.c.body || 'adult'];
+      this.styl = o.style || 'silhouette';     /* silhouette | costume | line | light */
+      this.ink = o.ink || INK;
+      this.lineCol = o.line || '#9fd3ff'; this.lineBg = o.lineBg || '#07111f';
+      this.lightCol = o.lightCol || '#fff3dc';
+      this.rimCol = o.rim === undefined ? '#ffdcae' : o.rim;
+      this.rimPx = o.rimPx ?? 2.2; this.rimDir = o.rimDir || [1, 1];
+      this.glowCol = o.glow === undefined ? 'rgba(255, 196, 130, .45)' : o.glow; this.glowPx = o.glowPx ?? 7;
+      this.face = o.face || 1;
+      this.shadow = o.shadow === undefined ? 'pool' : o.shadow;   /* pool | cast | none */
+      this.castK = o.castK ?? .55; this.castS = o.castS ?? .22;
+      this.reflect = !!o.reflect;
+      this.vb = o.vb || [-480, -980, 960, 1060];
+      /* every tier keeps the rim light (the one filter that makes a figure read on a dark stage); the low tier
+         only drops the soft inner shading (its blur), see below */
+      this.useFx = o.fx !== false;
+      this.scale = 1;
+      this.p = Object.assign({}, BASE, POSES[o.pose || 'stand'] || {}, o.p || {});
+      this.ik = null;
+      this.build();
+      this.render();
+      if (o.parent) o.parent.append(this.el);
+      if (o.at) this.place(o.at[0], o.at[1], o.at[2]);
+    }
+    build() {
+      const id = this.id, c = this.c;
+      const s = h('svg.fig', { viewBox: this.vb.join(' '), 'aria-hidden': 'true', 'data-fig': this.cname });
+      const grads = {};
+      let gi = 0;
+      const gradFor = (col, dk = 0) => {
+        if (!col || col === 'none') return 'none';
+        const key = col + '|' + dk;
+        if (grads[key]) return `url(#${grads[key]})`;
+        const gid = `${id}-g${gi++}`; grads[key] = gid;
+        return `url(#${gid})`;
+      };
+      /* fills per part */
+      const F = {};
+      const put = (k, v) => { F[k] = v; };
+      const skin = this.c.light ? '#3a2c25' : SKIN;
+      if (this.styl === 'costume') {
+        const armC = c.tee ? skin : c.jacket;
+        put('arm', gradFor(armC, .06)); put('armF', gradFor(armC, -.34)); put('hand', gradFor(skin)); put('handF', gradFor(skin, -.3));
+        put('leg', gradFor(c.pants, .04)); put('legF', gradFor(c.pants, -.32)); put('sock', c.sock ? gradFor(c.sock) : null); put('sockF', c.sock ? gradFor(c.sock, -.22) : null);
+        put('shoe', gradFor(c.shoe)); put('shoeF', gradFor(c.shoe, -.3)); put('hips', gradFor(c.pants, -.12)); put('torso', gradFor(c.jacket)); put('neck', gradFor(skin, -.2)); put('head', gradFor(skin));
+        put('hair', gradFor('#0b0908')); put('hat', c.hat ? gradFor(c.hat) : null); put('band', c.band || null);
+      } else {
+        const ink = this.styl === 'light' ? this.lightCol : this.styl === 'line' ? this.lineBg : this.ink;
+        ['arm', 'hand', 'leg', 'shoe', 'hips', 'torso', 'neck', 'head', 'hair', 'hat', 'band'].forEach(k => put(k, ink));
+        put('sock', c.sock ? (this.styl === 'line' ? this.lineBg : (this.styl === 'light' ? ink : c.sock)) : null);
+        if (!c.hat) put('hat', null);
+      }
+      this.F = F;
+      const gradDefs = Object.entries(grads).map(([key, gid]) => {
+        const [col0, dk] = key.split('|'), col = +dk ? shade(col0, +dk) : col0;
+        const x1 = -260 * this.face, x2 = 260 * this.face;
+        return `<linearGradient id="${gid}" gradientUnits="userSpaceOnUse" x1="${x1}" y1="-900" x2="${x2}" y2="40"><stop offset="0" stop-color="${shade(col, .2)}"/><stop offset=".42" stop-color="${col}"/><stop offset="1" stop-color="${shade(col, -.5)}"/></linearGradient>`;
+      }).join('');
+      s.innerHTML = `
+        <defs>
+          ${gradDefs}
+          <filter id="${id}-fx" x="-40%" y="-20%" width="180%" height="140%" color-interpolation-filters="sRGB">
+            <feGaussianBlur in="SourceAlpha" stdDeviation="8" result="gb"/>
+            <feFlood class="fx-gc" flood-color="#000" flood-opacity="0"/>
+            <feComposite in2="gb" operator="in" result="glow"/>
+            <feOffset class="fx-off" in="SourceAlpha" dx="3" dy="3" result="off"/>
+            <feComposite in="SourceAlpha" in2="off" operator="out" result="edge"/>
+            <feGaussianBlur class="fx-eb" in="edge" stdDeviation=".7" result="edgeB"/>
+            <feFlood class="fx-rc" flood-color="#000" flood-opacity="0"/>
+            <feComposite in2="edgeB" operator="in" result="rim"/>
+            <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/><feMergeNode in="rim"/></feMerge>
+          </filter>
+          <filter id="${id}-sh" x="-50%" y="-50%" width="300%" height="200%"><feFlood flood-color="#000" flood-opacity=".78"/><feComposite in2="SourceAlpha" operator="in"/><feGaussianBlur stdDeviation="3.5"/></filter>
+          <filter id="${id}-aob" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="4"/></filter>
+          <clipPath id="${id}-clT"><use href="#${id}-torso"/></clipPath>
+          <clipPath id="${id}-clL"><use href="#${id}-fleg"/></clipPath>
+          <radialGradient id="${id}-pool"><stop offset="0" stop-color="#000" stop-opacity=".7"/><stop offset=".6" stop-color="#000" stop-opacity=".35"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+          <linearGradient id="${id}-rfg" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="-420"><stop offset="0" stop-color="#fff" stop-opacity=".5"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+          <mask id="${id}-rfm" maskUnits="userSpaceOnUse" x="-900" y="-1000" width="1800" height="1100"><rect x="-900" y="-1000" width="1800" height="1100" fill="url(#${id}-rfg)"/></mask>
+          <radialGradient id="${id}-gem" cx=".38" cy=".34" r=".7"><stop offset="0" stop-color="#fff"/><stop offset=".45" stop-color="#d8dde6"/><stop offset="1" stop-color="#6a707c"/></radialGradient>
+          <pattern id="${id}-gl" width="7" height="7" patternUnits="userSpaceOnUse"><rect width="7" height="7" fill="#8a909b"/><circle cx="3.5" cy="3.5" r="3.1" fill="url(#${id}-gem)"/></pattern>
+          <pattern id="${id}-sq" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(30)"><circle cx="2" cy="2" r="1.5" fill="#fff" fill-opacity=".09"/><circle cx="6" cy="6" r="1.5" fill="#fff" fill-opacity=".06"/></pattern>
+        </defs>
+        <g class="fg-root">
+          <g class="fg-shadow"><ellipse class="fg-pool" cx="0" cy="0" rx="150" ry="18" fill="url(#${id}-pool)"/><use class="fg-cast" href="#${id}-parts" filter="url(#${id}-sh)"/></g>
+          <use class="fg-refl" href="#${id}-parts" transform="scale(1 -1)" mask="url(#${id}-rfm)" opacity=".28"/>
+          <g class="fg-fx" filter="url(#${id}-fx)">
+            <g id="${id}-parts" class="fg-parts">
+              <path class="p-umb"/>
+              <path class="p-fArm"/><path class="p-fHand"/>
+              <path class="p-fLeg" id="${id}-fleg"/><path class="p-fSock"/><path class="p-fShoe"/><path class="p-fGlint"/>
+              <path class="p-aoL"/><path class="p-nLeg"/><path class="p-nSock"/><path class="p-nShoe"/><path class="p-nGlint"/>
+              <path class="p-hips"/><path class="p-torso" id="${id}-torso"/><path class="p-seq"/><path class="p-det"/><path class="p-det2"/>
+              <path class="p-fArm2"/><path class="p-fHand2"/>
+              <path class="p-neck"/><path class="p-hair"/><path class="p-head"/><path class="p-hat"/><path class="p-band"/><path class="p-shP"/><path class="p-shF"/>
+              <path class="p-aoA"/><path class="p-nArm"/><path class="p-nDet"/><path class="p-nHand"/><path class="p-mic"/>
+            </g>
+          </g>
+          <!-- the twinkling glints live outside the parts: the parts are filtered and re-used by the shadow and the
+               reflection, so anything animating in there would re-render the whole figure three times a frame -->
+          <g class="p-tw"></g>
+        </g>`;
+      this.el = s;
+      const q = {}; s.querySelectorAll('[class^="p-"], [class^="fg-"]').forEach(e => { q[e.getAttribute('class').split(' ')[0]] = e; });
+      this.q = q;
+      const fill = (k, v) => { const e = q[k]; if (!e) return; e.setAttribute('fill', v || 'none'); };
+      const line = this.styl === 'line';
+      fill('p-fArm', F.armF || F.arm); fill('p-nArm', F.arm); fill('p-fArm2', F.armF || F.arm); fill('p-fHand', F.handF || F.hand); fill('p-fHand2', F.handF || F.hand);
+      fill('p-nHand', (c.glove && this.styl !== 'line') ? `url(#${id}-gl)` : F.hand);
+      fill('p-fLeg', F.legF || F.leg); fill('p-nLeg', F.leg); fill('p-fSock', F.sockF || F.sock); fill('p-nSock', F.sock);
+      fill('p-fShoe', F.shoeF || F.shoe); fill('p-nShoe', F.shoe); fill('p-hips', F.hips); fill('p-torso', F.torso);
+      fill('p-neck', F.neck); fill('p-head', F.head); fill('p-hair', F.hair); fill('p-hat', F.hat); fill('p-band', F.band);
+      fill('p-seq', c.sequins && this.styl !== 'line' ? `url(#${id}-sq)` : null);
+      fill('p-umb', this.styl === 'costume' ? '#0d0d10' : F.torso);
+      fill('p-mic', this.styl === 'costume' ? '#1b1b1f' : F.torso);
+      const glint = (k) => { const e = q[k]; e.setAttribute('fill', 'none'); e.setAttribute('stroke', this.c.light ? 'rgba(0,0,0,.18)' : 'rgba(255,255,255,.38)'); e.setAttribute('stroke-width', '2.2'); e.setAttribute('stroke-linecap', 'round'); };
+      glint('p-fGlint'); glint('p-nGlint');
+      if (this.styl !== 'costume') { q['p-fGlint'].style.display = q['p-nGlint'].style.display = this.styl === 'silhouette' ? '' : 'none'; }
+      /* details: costume style shows the outfit; the silhouette keeps only what reads in a backlight */
+      const det = q['p-det'], det2 = q['p-det2'], nDet = q['p-nDet'];
+      det.setAttribute('fill', 'none'); det.setAttribute('stroke-linecap', 'round'); det.setAttribute('stroke-linejoin', 'round');
+      if (this.styl === 'costume') {
+        det.setAttribute('stroke', c.chevron || c.gold || c.buckles || 'none'); det.setAttribute('stroke-width', c.gold ? 5 : c.chevron ? 6 : 3.5);
+        det2.setAttribute('fill', c.gold || c.shirt || c.collar || 'none');
+        nDet.setAttribute('fill', c.armband || c.gold || (c.chevron ? c.chevron : 'none'));
+      } else { det.setAttribute('stroke', 'none'); det2.setAttribute('fill', 'none'); nDet.setAttribute('fill', 'none'); }
+      q['p-shP'].setAttribute('fill', c.shades ? (this.styl === 'costume' ? '#0a0a0c' : 'rgba(255,255,255,.0)') : 'none');
+      q['p-shF'].setAttribute('fill', c.shades ? (this.styl === 'costume' ? '#0a0a0c' : 'rgba(255,255,255,.0)') : 'none');
+      if (c.shades && this.styl === 'costume') { q['p-shP'].setAttribute('stroke', '#d9ad4f'); q['p-shP'].setAttribute('stroke-width', '1.6'); q['p-shF'].setAttribute('stroke', '#d9ad4f'); q['p-shF'].setAttribute('stroke-width', '1.6'); }
+      /* line style: each part is outlined by a morphology filter (its union, so no inner joint circles);
+         later parts cover the outlines behind them, like cel drawings */
+      if (line) {
+        const [lc, lo] = splitCol(this.lineCol);
+        s.querySelector('defs').insertAdjacentHTML('beforeend', `<filter id="${id}-ol" x="-15%" y="-15%" width="130%" height="130%"><feMorphology class="ol-r" in="SourceAlpha" operator="dilate" radius="2" result="d"/><feComposite in="d" in2="SourceAlpha" operator="out" result="o"/><feFlood flood-color="${lc}" flood-opacity="${lo}"/><feComposite in2="o" operator="in" result="ln"/><feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="ln"/></feMerge></filter>`);
+        s.querySelectorAll('.fg-parts > path').forEach(e => { if (e.getAttribute('fill') !== 'none') e.setAttribute('filter', `url(#${id}-ol)`); });
+      }
+      if (this.styl === 'costume' && Q.tier !== 'low') {
+        ['p-aoA', 'p-aoL'].forEach(k => { q[k].setAttribute('fill', '#000'); q[k].setAttribute('fill-opacity', this.c.light ? '.22' : '.42'); q[k].setAttribute('filter', `url(#${id}-aob)`); });
+        q['p-aoA'].setAttribute('clip-path', `url(#${id}-clT)`); q['p-aoL'].setAttribute('clip-path', `url(#${id}-clL)`);
+      } else { q['p-aoA'].style.display = q['p-aoL'].style.display = 'none'; }
+      /* the shadow and the reflection */
+      q['fg-cast'].style.display = this.shadow === 'cast' ? '' : 'none';
+      q['fg-pool'].style.display = this.shadow === 'none' ? 'none' : '';
+      q['fg-refl'].style.display = this.reflect ? '' : 'none';
+      if (!this.useFx) q['fg-fx'].removeAttribute('filter');
+      this.setLight();
+    }
+    /* rim + glow, in screen pixels (converted to figure units with the current scale) */
+    setLight(o = {}) {
+      if (o.rim !== undefined) this.rimCol = o.rim;
+      if (o.glow !== undefined) this.glowCol = o.glow;
+      if (o.rimPx !== undefined) this.rimPx = o.rimPx;
+      if (o.glowPx !== undefined) this.glowPx = o.glowPx;
+      if (o.rimDir) this.rimDir = o.rimDir;
+      const s = this.el, k = 1 / (this.scale || 1);
+      const off = s.querySelector('.fx-off'), rc = s.querySelector('.fx-rc'), gc = s.querySelector('.fx-gc'), gb = s.querySelector('[result="gb"]');
+      const [dx, dy] = this.rimDir;
+      off.setAttribute('dx', r1(dx * this.rimPx * k * this.face)); off.setAttribute('dy', r1(dy * this.rimPx * k));
+      s.querySelector('.fx-eb').setAttribute('stdDeviation', r1(.45 * k));
+      const [rcol, rop] = splitCol(this.rimCol), [gcol, gop] = splitCol(this.glowCol);
+      rc.setAttribute('flood-color', rcol); rc.setAttribute('flood-opacity', this.rimCol ? rop : 0);
+      gc.setAttribute('flood-color', gcol); gc.setAttribute('flood-opacity', this.glowCol ? gop : 0);
+      gb.setAttribute('stdDeviation', r1(this.glowPx * k));
+      const ol = s.querySelector('.ol-r'); if (ol) ol.setAttribute('radius', r1(1.6 * k));
+    }
+    /* put the figure on the 1920×1080 stage: (x, y) is the floor point under the figure, hPx the height of 700 units */
+    place(x, y, hPx) {
+      const s = hPx / 700, vb = this.vb;
+      this.scale = s; this.at = [x, y, hPx];
+      Object.assign(this.el.style, { left: r1(x + vb[0] * s) + 'px', top: r1(y + vb[1] * s) + 'px', width: r1(vb[2] * s) + 'px', height: r1(vb[3] * s) + 'px' });
+      this.setLight();
+      return this;
+    }
+    /* stage point (px) → figure units, and back */
+    toLocal(X, Y) { const [x, y] = this.at || [0, 0, 700]; return [(X - x) / this.scale * this.face, (Y - y) / this.scale]; }
+    toStage(u, v) { const [x, y] = this.at || [0, 0, 700]; return [x + u * this.scale * this.face, y + v * this.scale]; }
+
+    /* ── skeleton ── */
+    solve() {
+      const B = this.B, p = this.p;
+      const th = clamp(p.turn, 0, 1) * 90, st = sn(th), ct = cs(th);
+      const R = -(p.lean || 0);
+      const spLo = 180 + R, spUp = 180 + R - (p.chest || 0);
+      const pelvis = this.ik ? this.ik.pelvis.slice() : [0, -H0(B)];
+      const waist = mv(pelvis, spLo, B.low), neckB = mv(waist, spUp, B.up);
+      const fwdUp = spUp - 90, fwdLo = spLo - 90;
+      const shC = mv(waist, spUp, B.shD - B.low);
+      const nS = mv(shC, fwdUp, -B.shW * st), fS = mv(shC, fwdUp, B.shW * st);
+      const nHp = mv(pelvis, fwdLo, -B.hipW * st), fHp = mv(pelvis, fwdLo, B.hipW * st);
+      const armBase = R - (p.chest || 0);
+      const arm = (S, sh, el, wr) => { const a1 = armBase + sh, E = mv(S, a1, B.upper), a2 = a1 + el, W = mv(E, a2, B.fore); return { S, E, W, a1, a2, a3: a2 + wr }; };
+      const leg = (Hp, hip, knee, foot, key) => {
+        if (this.ik) { const T = this.ik[key]; const A = T.A.slice(), K = ik(Hp, A, B.thigh, B.shin); return { H: Hp, K, A, a1: angOf(Hp, K), a2: angOf(K, A), fa: T.fa }; }
+        const a1 = hip, K = mv(Hp, a1, B.thigh), a2 = a1 - knee, A = mv(K, a2, B.shin);
+        return { H: Hp, K, A, a1, a2, fa: foot };
+      };
+      const nA = arm(nS, p.nSh, p.nEl, p.nWr), fA = arm(fS, p.fSh, p.fEl, p.fWr);
+      const nL = leg(nHp, p.nHip, p.nKnee, p.nFoot, 'n'), fL = leg(fHp, p.fHip, p.fKnee, p.fFoot, 'f');
+      const neckA = spUp - (p.neck || 0), faceA = spUp - 90 - (p.neck || 0) - (p.head || 0);
+      const neckT = mv(neckB, neckA, B.neck);
+      const hk = B.headH / 88;
+      const att = [lerp(-6, 0, st) * hk, lerp(32, 38, st) * hk];
+      const hv = frame([0, 0], faceA)(att);
+      const headC = [neckT[0] - hv[0], neckT[1] - hv[1]];
+      const J = { pelvis, waist, neckB, shC, neckT, headC, faceA, spLo, spUp, fwdLo, fwdUp, nA, fA, nL, fL, th, st, ct, hk };
+      const pts = [pelvis, waist, neckB, shC, neckT, headC, nA.S, nA.E, nA.W, fA.S, fA.E, fA.W, nL.H, nL.K, nL.A, fL.H, fL.K, fL.A];
+      J.pts = pts;
+      if (!this.ik) {
+        /* whole-body tilt about the ankles, feet stay flat (the patented lean) */
+        if (p.tilt) {
+          const piv = mix(nL.A, fL.A, .5), d = -p.tilt;
+          pts.forEach(q => { const r = rotAbout(q, piv, d); q[0] = r[0]; q[1] = r[1]; });
+          for (const a of [nA, fA]) { a.a1 += d; a.a2 += d; a.a3 += d; }
+          for (const l of [nL, fL]) { l.a1 += d; l.a2 += d; }
+          J.spLo += d; J.spUp += d; J.fwdLo += d; J.fwdUp += d; J.faceA += d;
+          [nL.A, fL.A].forEach(q => { const r = rotAbout(q, piv, -d); q[0] = r[0]; q[1] = r[1]; });
+        }
+        /* ground: the lowest sole point on the floor; x follows the feet that carry weight */
+        const fx = this.footScale(J);
+        let maxY = -1e9; const low = [];
+        for (const L of [nL, fL]) {
+          const tr = frame(L.A, L.fa, fx), fs = B.fs;
+          const ys = [tr([-22 * fs, 28.5 * fs]), tr([52 * fs, 28.5 * fs]), tr([77 * fs, 26 * fs])];
+          const m = Math.max(...ys.map(v => v[1])); low.push(m); maxY = Math.max(maxY, m);
+        }
+        const dy = -maxY - (p.lift || 0);
+        const w = low.map(m => Math.exp(-(maxY - m) / 16));
+        const ax = (nL.A[0] * w[0] + fL.A[0] * w[1]) / (w[0] + w[1]);
+        const dx = (p.x || 0) - ax;
+        pts.forEach(q => { q[0] += dx; q[1] += dy; });
+      }
+      return J;
+    }
+    footScale(J) { return lerp(1, .36, Math.pow(J.st, 2)); }
+
+    /* ── drawing ── */
+    render() {
+      const J = this.solve(), B = this.B, p = this.p, c = this.c, q = this.q, fs = B.fs;
+      const set = (k, d) => { const e = q[k]; if (e) e.setAttribute('d', d || ''); };
+      const st = J.st, ct = J.ct;
+      /* trunk: rows projected for the turn (an ellipse seen at angle th) */
+      const row = ([d, fP, bP, hF]) => {
+        const c0 = d <= B.low ? mv(J.pelvis, J.spLo, d) : mv(J.waist, J.spUp, d - B.low);
+        const k = clamp((d - (B.low - 24)) / 48, 0, 1), fa = lerp(J.spLo, J.spUp, k) - 90;
+        return [mv(c0, fa, Math.hypot(hF * st, fP * ct)), mv(c0, fa, -Math.hypot(hF * st, bP * ct))];
+      };
+      const rowsFor = (from, to, flare, natural) => {
+        const T = B.trunk, out = [], wide = T[1];
+        const hang = (d) => { const k = clamp((wide[0] - d) / 50, 0, 1.6); return [d, wide[1] + flare * k * 1.1, wide[2] + flare * k, wide[3] + flare * k * 1.3]; };
+        const at = (d) => {
+          for (let i = 0; i < T.length - 1; i++) if (d >= T[i][0] && d <= T[i + 1][0]) { const t = (d - T[i][0]) / (T[i + 1][0] - T[i][0]); return [d, lerp(T[i][1], T[i + 1][1], t), lerp(T[i][2], T[i + 1][2], t), lerp(T[i][3], T[i + 1][3], t)]; }
+          return d < T[0][0] ? T[0] : T[T.length - 1];
+        };
+        if (from < wide[0] && !natural) { out.push(hang(from)); if (from < wide[0] - 20) out.push(hang((from + wide[0]) / 2)); T.forEach(r => { if (r[0] >= wide[0] && r[0] <= to) out.push(r); }); }
+        else { out.push(at(from)); T.forEach(r => { if (r[0] > from + 4 && r[0] <= to) out.push(r); }); }
+        /* a jacket sits loose over the hips */
+        if (!natural) return out.map(([d, f, b, w]) => { const k = clamp((44 - d) / 44, 0, 1) * 4.5; return [d, f + k, b + k, w + k * .8]; });
+        return out;
+      };
+      const shapeTrunk = (rows, flatBottom) => {
+        const F = [], K = [];
+        rows.forEach(r => { const [f, k] = row(r); F.push(f); K.push(k); });
+        K.reverse();
+        if (!flatBottom) return blob(F.concat(K));
+        return 'M' + pt(F[0]) + crv(F) + 'L' + pt(K[0]) + crv(K) + 'Z';
+      };
+      const hem = c.hem ?? -30;
+      set('p-hips', shapeTrunk(rowsFor(-34, 40, 0, true), false));
+      set('p-torso', shapeTrunk(rowsFor(hem, 999, c.tee ? 0 : 3), true));
+      set('p-seq', c.sequins ? shapeTrunk(rowsFor(hem, 999, 3), true) : '');
+      /* arms */
+      const r = B.armR;
+      const armD = (A) => circle(A.S, r[0] + 2.4) + limb(A.S, A.E, r[0], r[1], { n: 2, tn: .45, p: 1.2, tp: .35 }) + limb(A.E, A.W, r[1], r[2] + (c.cuff ? 1.4 : 0), { p: 2, tp: .3, n: 1, tn: .25 });
+      const handD = (A, kind) => {
+        const pts = HANDS[HAND_KEYS[Math.round(kind) || 0]] || HANDS.open, k = B.hand / 62;
+        const tr = frame(A.W, A.a3);
+        return blob(pts.map(([x, y]) => tr([x * k, y * k])));
+      };
+      const ff = !!(p.farFront > .5);
+      set(ff ? 'p-fArm2' : 'p-fArm', armD(J.fA)); set(ff ? 'p-fArm' : 'p-fArm2', '');
+      set(ff ? 'p-fHand2' : 'p-fHand', handD(J.fA, p.fHand)); set(ff ? 'p-fHand' : 'p-fHand2', '');
+      set('p-nArm', armD(J.nA)); set('p-nHand', handD(J.nA, p.nHand));
+      if (this.styl === 'costume') { const ao = armD(J.nA) + handD(J.nA, p.nHand); set('p-aoA', ao); q['p-aoA'].setAttribute('transform', `translate(${5 * this.face} 6)`); }
+      /* legs */
+      const lr = B.legR, fx = this.footScale(J);
+      const legD = (L) => {
+        const thigh = limb(L.H, L.K, lr[0], lr[1], { p: 2.4, tp: .3, n: 3.4, tn: .18 });
+        const hemT = c.bell ? 1.0 : (c.sock ? .84 : .97), hemP = mix(L.K, L.A, hemT);
+        const hemR = c.bell ? lr[1] * 1.7 : lr[1] * .93;
+        const shin = limb(L.K, hemP, lr[1], hemR, c.bell ? { flat: true, n: -1, p: -1 } : { n: 2.2, tn: .32, p: .6, tp: .3, flat: true });
+        const sock = c.sock ? limb(hemP, mix(L.K, L.A, 1.04), lr[2] * 1.02, lr[2] * .98) : '';
+        return { pants: thigh + shin, sock };
+      };
+      const shoeD = (L) => { const tr = frame(L.A, L.fa, fx); return blob(SHOE.map(([x, y]) => tr([x * fs, y * fs]))); };
+      const glintD = (L) => { const tr = frame(L.A, L.fa, fx); return 'M' + pt(tr([24 * fs, -.5 * fs])) + 'Q' + pt(tr([46 * fs, 4 * fs])) + ' ' + pt(tr([66 * fs, 12 * fs])); };
+      const nLeg = legD(J.nL), fLeg = legD(J.fL);
+      set('p-fLeg', fLeg.pants); set('p-fSock', fLeg.sock); set('p-fShoe', shoeD(J.fL)); set('p-fGlint', glintD(J.fL));
+      if (this.styl === 'costume') { set('p-aoL', nLeg.pants); q['p-aoL'].setAttribute('transform', `translate(${5 * this.face} 5)`); }
+      set('p-nLeg', nLeg.pants); set('p-nSock', nLeg.sock); set('p-nShoe', shoeD(J.nL)); set('p-nGlint', glintD(J.nL));
+      /* neck + head */
+      const hk = J.hk, ht = frame(J.headC, J.faceA);
+      const L2 = (P, F) => P.map((a, i) => [lerp(a[0], F[i][0], st) * hk, lerp(a[1], F[i][1], st) * hk]);
+      set('p-neck', limb(J.neckB, J.neckT, B.neckR, B.neckR * .94));
+      set('p-head', blob(L2(HEAD_P, HEAD_F).map(ht)));
+      /* hair */
+      const hs = HAIR[c.hair] || HAIR.jheri;
+      let hair = '';
+      if (hs.cap) {
+        const [xP, yP, rxP, ryP, xF, yF, rxF, ryF] = hs.cap;
+        const cc = ht([lerp(xP, xF, st) * hk, lerp(yP, yF, st) * hk]), rx = lerp(rxP, rxF, st) * hk, ry = lerp(ryP, ryF, st) * hk;
+        const E = []; for (let i = 0; i < 20; i++) { const a = i / 20 * TAU; E.push(frame(cc, J.faceA)([Math.cos(a) * rx, Math.sin(a) * ry])); }
+        hair += blob(E);
+      }
+      (hs.curls || []).forEach(([xP, yP, xF, yF, rr]) => { hair += circle(ht([lerp(xP, xF, st) * hk, lerp(yP, yF, st) * hk]), rr * hk); });
+      if (hs.afro) {
+        const k = hs.afro, o = [-14, -36];
+        const P = AFRO_P.map((a, i) => { const b = AFRO_F[i]; return [(o[0] + (lerp(a[0], b[0], st) - o[0]) * k) * hk, (o[1] + (lerp(a[1], b[1], st) - o[1]) * k) * hk]; });
+        hair += blob(P.map(ht));
+        for (let i = 1; i < 14; i++) hair += circle(ht(P[i]), 9 * k * hk);
+      }
+      if (hs.curtains) hs.curtains.forEach(([xP, , xF]) => {
+        const x = lerp(xP, xF, st);
+        hair += blob([[x - 10, -26], [x + 10, -22], [x + 14, 30], [x + 12, 92], [x + 2, 108], [x - 10, 98], [x - 16, 50], [x - 16, 0]].map(([u, v]) => ht([u * hk, v * hk])));
+      });
+      if (hs.fore && !(p.hat > .01 && c.hat)) hair += limb(ht([26 * hk, -36 * hk]), ht([34 * hk, -14 * hk]), 4 * hk, 2.4 * hk, { p: 4 * hk, tp: .5 });
+      set('p-hair', hair);
+      /* hat */
+      const hatOn = c.hat && p.hat > .01;
+      if (hatOn) {
+        const hf = frame(ht([-3 * hk, -27 * hk]), J.faceA - p.hatTilt * (1 - st * .7));
+        const sc = hk * 1.0;
+        set('p-hat', blob(L2(HAT_P, HAT_F).map(([x, y]) => hf([x * sc / hk, y * sc / hk]))));
+        set('p-band', blob(L2(BAND_P, BAND_F).map(([x, y]) => hf([x * sc / hk, y * sc / hk]))));
+      } else { set('p-hat', ''); set('p-band', ''); }
+      q['p-hat'].style.opacity = q['p-band'].style.opacity = clamp(p.hat, 0, 1);
+      /* sunglasses */
+      if (c.shades) {
+        set('p-shP', blob([[15, -12], [38, -11], [38.5, -3], [31, 2], [17, 0]].map(([x, y]) => ht([x * hk, y * hk]))) + limb(ht([16 * hk, -9 * hk]), ht([-8 * hk, -6 * hk]), 1.4, 1.2));
+        set('p-shF', blob([[3, -12], [27, -12], [27, -2], [19, 3], [5, 0]].map(([x, y]) => ht([x * hk, y * hk]))) + blob([[-3, -12], [-27, -12], [-27, -2], [-19, 3], [-5, 0]].map(([x, y]) => ht([x * hk, y * hk]))));
+        q['p-shP'].style.opacity = 1 - sstep(.35, .7, st); q['p-shF'].style.opacity = sstep(.35, .7, st);
+      }
+      /* costume details */
+      let det = '', det2 = '', nDet = '';
+      const onArm = (A, t, w) => { const m = mix(A.S, A.E, t), a = mv(m, A.a1, -w), b = mv(m, A.a1, w), rr = lerp(r[0], r[1], t) + 1.6; return 'M' + [mv(a, A.a1 + 90, rr), mv(b, A.a1 + 90, rr), mv(b, A.a1 - 90, rr), mv(a, A.a1 - 90, rr)].map(pt).join('L') + 'Z'; };
+      if (c.chevron) {
+        for (const A of [J.nA, J.fA]) for (const t2 of [.28, .48]) { const m = mix(A.S, A.E, t2); det += 'M' + pt(mv(m, A.a1 + 90, r[0] * .98)) + 'L' + pt(mv(mix(A.S, A.E, t2 + .1), A.a1, 0)) + 'L' + pt(mv(m, A.a1 - 90, r[0] * .98)); }
+        const [f1] = row([170, 40, 36, 56]), [f2] = row([120, 35, 31, 49]);
+        det += 'M' + pt(mv(J.shC, J.fwdUp, 6)) + 'L' + pt(mix(f2, J.waist, .2)) + 'L' + pt(f1);
+        nDet = '';
+      }
+      if (c.gold) {
+        const [bf, bb] = row([62, 27, 29, 42]), [bf2, bb2] = row([46, 27.5, 30.5, 44]);
+        det2 = 'M' + pt(bf) + 'L' + pt(bb) + 'L' + pt(bb2) + 'L' + pt(bf2) + 'Z';
+        nDet = limb(mv(J.nA.S, J.fwdUp, -16), mv(J.nA.S, J.fwdUp, 16), 5, 5) + limb(mix(J.nA.E, J.nA.W, .86), mix(J.nA.E, J.nA.W, .97), r[2] + 2.6, r[2] + 2.6);
+        det += 'M' + pt(mv(J.fA.S, J.fwdUp, -14)) + 'L' + pt(mv(J.fA.S, J.fwdUp, 14));
+      }
+      if (c.armband) nDet = onArm(J.nA, .5, 9);
+      if (c.buckles) {
+        for (const A of [J.nA, J.fA]) for (const t2 of [.35, .7]) { const m = mix(A.S, A.E, t2); det += 'M' + pt(mv(m, A.a1 + 90, r[0] + 1)) + 'L' + pt(mv(m, A.a1 - 90, r[0] + 1)); }
+        for (const Lg of [J.nL, J.fL]) for (const t2 of [.45, .75]) { const m = mix(Lg.H, Lg.K, t2); det += 'M' + pt(mv(m, Lg.a1 + 90, lr[0])) + 'L' + pt(mv(m, Lg.a1 - 90, lr[0])); }
+      }
+      /* a point on the chest surface: the front edge in profile, the centre line when facing us */
+      const chest = (d, k = 1) => { const [f, b] = row(B.trunk.find(r => r[0] >= d) || B.trunk[B.trunk.length - 1]); return mix(f, mix(f, b, .5), st * k); };
+      if (c.shirt && !c.collar) {
+        const top = chest(181), low = chest(118), w = lerp(10, 22, st);
+        const a = mv(top, J.fwdUp + 90, 0), l1 = mv(top, J.fwdUp, -w), r1v = mv(top, J.fwdUp, st > .5 ? w : 4);
+        det2 = 'M' + pt(l1) + 'L' + pt(low) + 'L' + pt(r1v) + 'Z';
+        if (c.tie) det2 += 'M' + pt(mv(top, J.spUp, -8)) + 'L' + pt(mv(mix(top, low, .7), J.fwdUp, -3)) + 'L' + pt(mv(mix(top, low, .7), J.fwdUp, 3)) + 'Z';
+        if (c.bow) det2 += circle(mv(a, J.spUp, -6), 6.5);
+      }
+      if (c.collar) {
+        const [f1] = row([150, 29, 26, 41]);
+        det2 = 'M' + pt(mv(J.neckB, J.fwdUp, 4)) + 'L' + pt(mv(f1, J.spUp, -26)) + 'L' + pt(mix(J.neckB, f1, .55)) + 'Z';
+      }
+      set('p-det', det); set('p-det2', det2); set('p-nDet', nDet);
+      /* props */
+      if (p.mic > .01) {
+        const tr = frame(J.nA.W, J.nA.a3), k = B.hand / 62;
+        set('p-mic', limb(tr([18 * k, -10 * k]), tr([18 * k, -46 * k]), 4.6 * k, 5.6 * k) + circle(tr([18 * k, -54 * k]), 10 * k));
+      } else set('p-mic', '');
+      q['p-mic'].style.opacity = clamp(p.mic, 0, 1);
+      if (p.umbrella > .01) {
+        const tr = frame(J.nA.W, J.nA.a3), k = B.hand / 62, grip = tr([20 * k, 0]);
+        const tip = [grip[0] + 4, grip[1] - 262], rim = 196, depth = 96, ribs = 8;
+        const d = limb(grip, tip, 3.2, 3.2) + limb(grip, [grip[0], grip[1] + 30], 3.6, 3.6) + circle([grip[0] - 8, grip[1] + 30], 8) ;
+        const bl = [tip[0] - rim, tip[1] + depth], br = [tip[0] + rim, tip[1] + depth];
+        let canopy = 'M' + pt(br) + 'C' + pt([tip[0] + rim * 1.02, tip[1] + 18]) + ' ' + pt([tip[0] + rim * .55, tip[1] - 2]) + ' ' + pt([tip[0], tip[1]]) + 'C' + pt([tip[0] - rim * .55, tip[1] - 2]) + ' ' + pt([tip[0] - rim * 1.02, tip[1] + 18]) + ' ' + pt(bl);
+        for (let i = 1; i <= ribs; i++) { const x0 = tip[0] - rim + ((i - 1) / ribs) * 2 * rim, x1 = tip[0] - rim + (i / ribs) * 2 * rim; canopy += 'Q' + pt([(x0 + x1) / 2, tip[1] + depth - 20]) + ' ' + pt([x1, tip[1] + depth + (i === ribs ? 0 : 2)]); }
+        canopy += 'Z' + limb([tip[0], tip[1] + 2], [tip[0], tip[1] - 22], 3, 1.5);
+        set('p-umb', d + canopy);
+      } else set('p-umb', '');
+      q['p-umb'].style.opacity = clamp(p.umbrella, 0, 1);
+      /* sparkle: the glove, the socks and the sequins */
+      const tw = q['p-tw'], spots = [];
+      if (c.glove && p.glove > .01) { const tr = frame(J.nA.W, J.nA.a3), k = B.hand / 62; spots.push(tr([24 * k, -4 * k]), tr([44 * k, 2 * k]), tr([12 * k, 6 * k])); }
+      if (c.sock && this.styl !== 'line') for (const Lg of [J.nL, J.fL]) spots.push(mix(Lg.K, Lg.A, .93));
+      if (c.sequins && this.styl !== 'line') { const [f1] = row([150, 40, 36, 56]), [, k2] = row([90, 30, 30, 44]); spots.push(mix(f1, J.shC, .35), mix(k2, J.waist, .4), mix(J.nA.S, J.nA.E, .55)); }
+      if (tw.childElementCount !== spots.length) {
+        tw.innerHTML = '';
+        spots.forEach(() => { const g = h('g.tw-g'); g.append(h('path.tw', { d: 'M0 -9L2 -2L9 0L2 2L0 9L-2 2L-9 0L-2 -2Z', fill: '#fff' })); tw.append(g); });
+      }
+      [...tw.children].forEach((g, i) => { const s2 = spots[i]; g.setAttribute('transform', `translate(${r1(s2[0])} ${r1(s2[1])}) scale(${r1(B.hand / 62 * (i < 3 && c.glove ? 1 : .8) * 10) / 10})`); g.style.opacity = i < 3 && c.glove ? clamp(p.glove, 0, 1) : 1; });
+      /* the cast shadow and reflection follow the feet */
+      const footX = (J.nL.A[0] + J.fL.A[0]) / 2;
+      q['fg-pool'].setAttribute('cx', r1(footX + 10)); q['fg-pool'].setAttribute('rx', r1(130 * (B === CHILD ? .8 : 1) + Math.abs(J.nL.A[0] - J.fL.A[0]) * .5));
+      if (this.shadow === 'cast') q['fg-cast'].setAttribute('transform', `matrix(1 0 ${this.castK} ${this.castS} 0 0)`);
+      /* facing mirrors about the figure's origin; a spin squeezes it about its own centre line */
+      const c0 = Math.cos((p.spin || 0) * RAD), cx0 = J.pelvis[0];
+      const tf = (this.face < 0 ? 'scale(-1 1) ' : '') + (Math.abs(c0 - 1) < 1e-3 ? '' : `translate(${r1(cx0 * (1 - c0))} 0) scale(${Math.round(c0 * 1000) / 1000} 1)`);
+      q['fg-root'].setAttribute('transform', tf.trim());
+      if (this._hit) this._hit.setAttribute('x', r1(J.pelvis[0] - this._hitW / 2));
+      this.J = J;
+    }
+
+    /* ── motion ── */
+    set(p) { Object.assign(this.p, p); this.render(); return this; }
+    poseOf(name, extra) { return Object.assign({}, BASE, { x: this.p.x }, POSES[name] || {}, extra || {}); }
+    /* tween to a pose (name or object); hands switch at the midpoint */
+    to(pose, ms = 900, ez = ease.inOut, done) {
+      const target = typeof pose === 'string' ? this.poseOf(pose) : Object.assign({}, this.p, pose);
+      this.stop();
+      const from = Object.assign({}, this.p);
+      const keys = Object.keys(target).filter(k => typeof target[k] === 'number');
+      const discrete = new Set(['nHand', 'fHand', 'farFront']);
+      if (!(ms > 0) || Director.reduced) { keys.forEach(k => this.p[k] = target[k]); this.render(); done && done(); return this; }
+      this._tw = tween(ms, (e, raw) => {
+        keys.forEach(k => { this.p[k] = discrete.has(k) ? (raw < .5 ? from[k] : target[k]) : lerp(from[k] ?? target[k], target[k], e); });
+        this.render();
+      }, ez, () => { this._tw = null; done && done(); });
+      return this;
+    }
+    pose(name, extra) { this.stop(); Object.assign(this.p, this.poseOf(name, extra)); this.render(); return this; }
+    /* a list of [pose, ms, holdMs] played in order; returns a stopper */
+    seq(list, { loop = false, done } = {}) {
+      this.stop();
+      if (Director.reduced) { const last = [...list].reverse().find(e => typeof e[0] !== 'function'); if (last) this.to(last[0], 0); done && done(); return () => {}; }
+      let i = 0, alive = true, tm = 0;
+      const next = () => {
+        if (!alive) return;
+        if (i >= list.length) { if (loop) i = 0; else { done && done(); return; } }
+        const [ps, ms = 600, hold = 0, ez] = list[i++];
+        if (typeof ps === 'function') { ps(this); tm = setTimeout(next, hold); return; }
+        const target = typeof ps === 'string' ? this.poseOf(ps) : Object.assign({}, this.p, ps);
+        const from = Object.assign({}, this.p);
+        const keys = Object.keys(target).filter(k => typeof target[k] === 'number');
+        this._tw = tween(ms, (e, raw) => { keys.forEach(k => { this.p[k] = (k === 'nHand' || k === 'fHand') ? (raw < .5 ? from[k] : target[k]) : lerp(from[k] ?? target[k], target[k], e); }); this.render(); }, ez || ease.inOut, () => { tm = setTimeout(next, hold); });
+      };
+      this._seq = () => { alive = false; clearTimeout(tm); };
+      next();
+      return this._seq;
+    }
+    stop() {
+      if (this._tw) { this._tw(); this._tw = null; }
+      if (this._seq) { this._seq(); this._seq = null; }
+      if (this._cyc) { this._cyc(); this._cyc = null; }
+      if (this.ik) { this.ik = null; }
+    }
+    /* the backslide: a toe-planted foot holds still while the flat foot glides back; the body drifts backward */
+    moonwalk({ steps = 4, stride = 64, stepMs = 620, onStep, done, frame: atT, x0: from } = {}) {
+      this.stop();
+      const B = this.B, fs = B.fs, x0 = from ?? (this.p.x || 0);
+      Object.assign(this.p, this.poseOf('stand', { x: x0, lean: 5, chest: 2, neck: 6, turn: .14, nSh: 8, nEl: 34, nWr: 6, fSh: -6, fEl: 28, nHand: HI('open'), fHand: HI('flat'), hat: this.p.hat, glove: this.p.glove }));
+      const ball = 52 * fs, sole = 28.5 * fs, TOE = 52;
+      const ankleFromBall = (bx, fa) => { const X = [sn(fa), cs(fa)], Y = [-X[1], X[0]]; return [bx - X[0] * ball - Y[0] * sole, 0 - X[1] * ball - Y[1] * sole]; };
+      const hipY = -H0(B) + 18;
+      const total = steps * stepMs;
+      const P0 = x0 + 4 * fs + 6;
+      const pose = (t) => {
+        const k = Math.min(t, total - 1e-6) / stepMs, step = Math.floor(k), ph = k - step;
+        const P = P0 - stride * step;                                   /* ball of the planted foot this step */
+        const sw = sstep(.82, 1, ph);                                   /* end-of-step heel switch */
+        const plantFa = lerp(TOE, 90, sw), slideFa = lerp(90, TOE, sw);
+        const slideStart = P + stride - ball, slideEnd = P - stride - ball;
+        const sx = lerp(slideStart, slideEnd, Math.min(1, ph / .82));
+        const slideA = sw > 0 ? ankleFromBall(slideEnd + ball, slideFa) : [sx, -sole];
+        const plantA = ankleFromBall(P, plantFa);
+        const plantKey = step % 2 === 0 ? 'n' : 'f', slideKey = plantKey === 'n' ? 'f' : 'n';
+        const bodyX = P - 2 * fs - stride * ph + 8;
+        this.ik = { pelvis: [bodyX, hipY + Math.sin(ph * TAU) * 2.5], [plantKey]: { A: plantA, fa: plantFa }, [slideKey]: { A: slideA, fa: slideFa } };
+        this.p.x = bodyX;
+        this.p.nSh = 8 + Math.sin(k * Math.PI) * 10; this.p.fSh = -6 - Math.sin(k * Math.PI) * 9;
+        this.render();
+        return step;
+      };
+      if (atT != null) { pose(atT); return this; }
+      if (Director.reduced) { pose(total - 1); this.ik = null; done && done(); return this; }
+      const t0 = now(); let last = -1;
+      const off = Loop.add(() => {
+        const t = now() - t0, s = pose(Math.min(t, total));
+        if (s !== last) { last = s; onStep && onStep(s); this.stepSound({ slide: true }); }
+        if (t >= total) { off(); this._cyc = null; const keep = Object.assign({}, this.p); this.ik = null; this.p = keep; done && done(); }
+      });
+      this._cyc = off;
+      return this;
+    }
+    /* a footstep, only for a figure that is on stage and big enough to be heard (not the miniatures) */
+    stepSound(o = {}) {
+      if (this.scale < .45 || !this.el.isConnected) return;
+      const sc = this.el.closest('.scene'); if (!sc || !sc.classList.contains('active')) return;
+      const r = this.el.getBoundingClientRect(), sr = $('#stage').getBoundingClientRect();
+      const pan = sr.width ? ((r.left + r.width / 2 - sr.left) / sr.width - .5) * 1.3 : 0;
+      SFX.step(Object.assign({ pan, gain: .22 + Math.min(.16, (this.scale - .45) * .25) }, o));
+    }
+    /* a plain walk; dir -1 walks backward */
+    walk({ dir = 1, stride = 60, stepMs = 700, steps = 6, done } = {}) {
+      this.stop();
+      const B = this.B, fs = B.fs, x0 = this.p.x || 0, sole = 28.5 * fs;
+      const keepHat = this.p.hat, keepUmb = this.p.umbrella;
+      const t0 = now(), total = steps * stepMs, hipY = -H0(B) + 10;
+      const pose = (t) => {
+        const k = t / stepMs, ph = k % 2 / 2, bodyX = x0 + dir * stride * k;
+        const foot = (o) => {
+          const u = (ph + o) % 1;
+          if (u < .5) return { A: [bodyX + dir * stride * (1 - u * 4) * .5, -sole], fa: 90 };
+          const s = (u - .5) * 2;
+          return { A: [bodyX + dir * stride * (-1 + s * 2) * .5, -sole - Math.sin(s * Math.PI) * 22 * fs], fa: 90 - Math.sin(s * Math.PI) * 14 };
+        };
+        this.ik = { pelvis: [bodyX, hipY - Math.abs(Math.cos(ph * TAU)) * 4], n: foot(0), f: foot(.5) };
+        this.p.x = bodyX;
+        const sw = Math.sin(ph * TAU);
+        if (!keepUmb) { this.p.nSh = -sw * 16; this.p.fSh = sw * 16; }
+        this.p.hat = keepHat;
+        this.render();
+      };
+      if (Director.reduced) { pose(total); this.ik = null; done && done(); return this; }
+      let lastStep = -1;
+      const off = Loop.add(() => {
+        const t = Math.min(now() - t0, total); pose(t);
+        const k = Math.floor(t / stepMs + .02);
+        if (k !== lastStep && k < steps) { lastStep = k; this.stepSound({ wet: !!keepUmb }); }
+        if (t >= total) { off(); this._cyc = null; const keep = Object.assign({}, this.p); this.ik = null; this.p = keep; done && done(); }
+      });
+      this._cyc = off;
+      return this;
+    }
+    /* a full turn on the spot */
+    spinTurn(ms = 700, turns = 1, done) {
+      const from = this.p.spin || 0;
+      if (Director.reduced) { done && done(); return this; }
+      tween(ms, (e) => { this.p.spin = from + e * 360 * turns; this.render(); }, ease.inOut, () => { this.p.spin = 0; this.render(); done && done(); });
+      return this;
+    }
+    /* a frozen copy of the current silhouette, for stroboscopic trails */
+    ghost(opacity = .2, color) {
+      const g = h('g.fig-ghost', { opacity });
+      const parts = this.q['fg-parts'].cloneNode(true);
+      parts.removeAttribute('id'); parts.setAttribute('class', 'fg-ghost-parts');
+      parts.querySelectorAll('[id]').forEach(e => e.removeAttribute('id'));
+      parts.querySelectorAll('.p-aoA, .p-aoL, .p-tw, .p-fGlint, .p-nGlint').forEach(e => e.remove());
+      parts.querySelectorAll('path').forEach(e => { if (e.getAttribute('fill') !== 'none') e.setAttribute('fill', color || this.ink); e.removeAttribute('stroke'); e.removeAttribute('clip-path'); e.removeAttribute('filter'); e.removeAttribute('class'); });
+      g.append(parts);
+      const root = this.el.querySelector('.fg-root');
+      root.insertBefore(g, root.querySelector('.fg-fx'));
+      return g;
+    }
+    /* a ghost that fades away (stroboscopic trail) */
+    trail(opacity = .22, ms = 1600, color) {
+      const g = this.ghost(opacity, color);
+      g.style.transition = `opacity ${ms}ms linear`;
+      requestAnimationFrame(() => requestAnimationFrame(() => { g.style.opacity = 0; }));
+      setTimeout(() => g.remove(), ms + 100);
+      return g;
+    }
+    clearGhosts() { this.el.querySelectorAll('.fig-ghost').forEach(g => g.remove()); }
+    /* the point (stage px) of a joint, e.g. 'nA.W' or 'headC' */
+    stagePt(path) { const v = path.split('.').reduce((o, k) => o && o[k], this.J); return v ? this.toStage(v[0], v[1]) : null; }
+    /* named places on the body, in stage px: hat, head, hand, sock, feet, chest, hip */
+    anchor(name) {
+      const J = this.J, B = this.B; if (!J) return [0, 0];
+      let v;
+      if (name === 'hat') v = mv(J.headC, J.faceA + 90, 62 * J.hk);
+      else if (name === 'head') v = J.headC;
+      else if (name === 'hand') v = mv(J.nA.W, J.nA.a3, B.hand * .42);
+      else if (name === 'fhand') v = mv(J.fA.W, J.fA.a3, B.hand * .42);
+      else if (name === 'sock') v = mix(J.nL.K, J.nL.A, .93);
+      else if (name === 'fsock') v = mix(J.fL.K, J.fL.A, .93);
+      else if (name === 'feet') v = [(J.nL.A[0] + J.fL.A[0]) / 2, 0];
+      else if (name === 'chest') v = mix(J.waist, J.neckB, .6);
+      else if (name === 'hip') v = J.pelvis;
+      else v = J.pelvis;
+      return this.toStage(v[0], v[1]);
+    }
+    setShadow(mode, k, sc) {
+      this.shadow = mode; if (k != null) this.castK = k; if (sc != null) this.castS = sc;
+      this.q['fg-cast'].style.display = mode === 'cast' ? '' : 'none'; this.q['fg-pool'].style.display = mode === 'none' ? 'none' : '';
+      this.render(); return this;
+    }
+    /* face the other way, keeping the figure where it stands on stage */
+    setFace(f) {
+      if (f === this.face) return this;
+      this.face = f; this.p.x = -(this.p.x || 0);
+      this.setLight(); this.render();
+      return this;
+    }
+    /* an invisible hit area (figure units, around the pelvis) for clicking or dragging the figure */
+    hitbox(w = 240, top = -760) {
+      const r = h('rect.fg-hit', { x: -w / 2, y: top, width: w, height: -top + 10, fill: 'transparent' });
+      this.el.querySelector('.fg-root').append(r);
+      this._hit = r; this._hitW = w; this.render();
+      return r;
+    }
+  }
+  function splitCol(col) {
+    if (!col) return ['#000', 0];
+    const m = String(col).match(/rgba?\(([^)]+)\)/);
+    if (m) { const v = m[1].split(',').map(s => s.trim()); return [`rgb(${v[0]}, ${v[1]}, ${v[2]})`, v[3] != null ? +v[3] : 1]; }
+    return [col, 1];
+  }
+  return { Fig, POSES, BASE, COSTUMES, HI };
+})();
+</script>

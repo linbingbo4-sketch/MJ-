@@ -1,0 +1,333 @@
+<script>
+/* ═══ LIGHT ENGINE — the follow spot ═══
+   #mask (normal blend) = darkness with holes cut out (and the vignette), sitting ON TOP of the content,
+   so whatever is outside the light really is in the dark.
+   #glow (screen blend) = the visible beam in the haze and the halos. Redrawn only when a light changes.
+   #fx   (screen blend, lower resolution, capped frame rate) = dust in the beams and the era particles.
+   Nothing here draws a frame when nothing on stage is moving. */
+const Light = (() => {
+  const mask = $('#mask'), glow = $('#glow'), fxc = $('#fx');
+  const mc = mask.getContext('2d'), gc = glow.getContext('2d'), fc = fxc.getContext('2d');
+  let k = 1, fk = .5, lastScale = 1, lastFx = 0, fxShown = false;
+  const S = { ambient: 1, warm: 1, haze: 0, dust: 0, wash: 0, bloom: 0, lights: new Map() };
+  const tweens = [];
+  const glowLayers = new Set(), maskLayers = new Set(), fxLayers = new Set();
+  const stats = { mask: 0, glow: 0, fx: 0 };   /* redraw counters, for diagnostics */
+  let dirty = true, still = false, reduced = false, t0 = now();
+  const NUM = ['x', 'y', 'rx', 'ry', 'soft', 'i', 'sx', 'sy', 'ang', 'spread', 'len', 'w', 'h', 'r', 'flick', 'rim'];
+  const DEF = {
+    spot: { x: 960, y: 540, rx: 320, ry: 320, soft: .05, i: 1, flick: 1, rim: 0 },
+    beam: { x: 960, y: -40, ang: 90, spread: 12, len: 1300, i: 1, flick: 1 },
+    rect: { x: 960, y: 540, w: 800, h: 450, r: 12, soft: 40, i: 1, flick: 1 },
+  };
+
+  function setScale(s) {
+    lastScale = s;
+    const nk = clamp(Math.round(s * 20) / 20, .5, Q.p.canvasMax), nf = Math.round(nk * Q.p.fxRes * 20) / 20;
+    if (nk === k && nf === fk && mask.width === Math.round(W * nk) && fxc.width === Math.round(W * nf)) return;
+    k = nk; fk = nf;
+    for (const c of [mask, glow]) { c.width = Math.round(W * k); c.height = Math.round(H * k); }
+    fxc.width = Math.round(W * fk); fxc.height = Math.round(H * fk);
+    dirty = true; fxShown = true; Loop.kick();
+  }
+  Q.on(() => setScale(lastScale));
+
+  function to(o, key, b, dur, ez, delay = 0) {
+    for (let i = tweens.length - 1; i >= 0; i--) if (tweens[i].o === o && tweens[i].k === key) tweens.splice(i, 1);
+    if (!(dur > 0)) { o[key] = b; return; }
+    tweens.push({ o, k: key, a: o[key] ?? b, b, t0: now() + delay * 1000, dur: dur * 1000, ez });
+  }
+
+  /* spec: { ambient, warm, haze, dust, wash, bloom, lights:[{id,type,...}] }  opt: { dur, ease, instant } */
+  function set(spec = {}, opt = {}) {
+    const inst = !!opt.instant;
+    const dur = inst ? 0 : (reduced ? Math.min(.2, opt.dur ?? .9) : (opt.dur ?? .9));
+    const ez = opt.ease || ease.inOut;
+    for (const key of ['ambient', 'warm', 'haze', 'dust', 'wash', 'bloom']) if (spec[key] != null) to(S, key, spec[key], dur, ez);
+    if (spec.lights) {
+      const want = new Set();
+      spec.lights.forEach(src => {
+        const type = src.type || 'spot';
+        const l = Object.assign({}, DEF[type], src, { type });
+        if (l.ry == null && type === 'spot') l.ry = l.rx;
+        want.add(l.id);
+        let cur = S.lights.get(l.id);
+        const ld = inst ? 0 : (reduced ? Math.min(.2, l.dur ?? dur) : (l.dur ?? dur));
+        const ldel = inst ? 0 : (l.delay || 0);
+        const lez = l.ease ? (ease[l.ease] || ez) : ez;
+        if (!cur || cur.type !== type) {
+          cur = Object.assign({}, l, { i: 0 });
+          if (l.from) Object.assign(cur, l.from);
+          if (inst) cur.i = l.i;
+          S.lights.set(l.id, cur);
+        }
+        cur.dead = false; cur.col = l.col || null; cur.cone = l.cone !== false; cur.halo = l.halo !== false;
+        for (const p of NUM) if (typeof l[p] === 'number') to(cur, p, l[p], ld, lez, ldel);
+        if (l.sx == null) { cur.sx = undefined; } if (l.sy == null) { cur.sy = undefined; }
+      });
+      for (const [id, cur] of S.lights) if (!want.has(id) && !cur.dead) {
+        cur.dead = true; to(cur, 'i', 0, inst ? 0 : (opt.fadeOut ?? Math.max(.25, dur * .8)), ez);
+      }
+    }
+    dirty = true; Loop.kick();
+  }
+
+  /* scripted intensity flicker (dying lamp, bulb warming up) */
+  function flicker(id, frames, then) {
+    const l = S.lights.get(id); if (!l) return;
+    const t1 = now(); let i = 0;
+    const off = Loop.add(() => {
+      const t = (now() - t1) / 1000;
+      while (i < frames.length - 1 && frames[i + 1][0] <= t) i++;
+      const [ta, va] = frames[i], [tb, vb] = frames[Math.min(i + 1, frames.length - 1)];
+      l.flick = tb > ta ? lerp(va, vb, clamp((t - ta) / (tb - ta), 0, 1)) : vb;
+      dirty = true;
+      if (t >= frames[frames.length - 1][0]) { l.flick = frames[frames.length - 1][1]; off(); then && then(); }
+    });
+  }
+
+  const COLD = [188, 210, 255], WARM = [255, 222, 176], AMBER = [255, 182, 104];
+  function tint(w) {
+    if (w <= 1) return COLD.map((c, i) => Math.round(lerp(c, WARM[i], clamp(w, 0, 1))));
+    return WARM.map((c, i) => Math.round(lerp(c, AMBER[i], clamp(w - 1, 0, 1))));
+  }
+  const hexRgb = (hx) => { const n = parseInt(hx.replace('#', ''), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
+  const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+
+  /* soft-edged beam sprite, built once */
+  const beamSprite = (() => {
+    const c = document.createElement('canvas'); c.width = 512; c.height = 256; const x = c.getContext('2d');
+    const N = 16;
+    for (let n = 0; n < N; n++) {
+      const f = 1 - n / N;
+      x.beginPath(); x.moveTo(0, 128 - 4 * f); x.lineTo(512, 128 - 126 * f); x.lineTo(512, 128 + 126 * f); x.lineTo(0, 128 + 4 * f); x.closePath();
+      const g = x.createLinearGradient(0, 0, 512, 0);
+      g.addColorStop(0, `rgba(255,255,255,${1.7 / N})`); g.addColorStop(1, `rgba(255,255,255,${.75 / N})`);
+      x.fillStyle = g; x.fill();
+    }
+    x.globalCompositeOperation = 'destination-in';
+    const f = x.createLinearGradient(0, 0, 512, 0);
+    f.addColorStop(0, 'rgba(0,0,0,.0)'); f.addColorStop(.06, 'rgba(0,0,0,1)'); f.addColorStop(.72, 'rgba(0,0,0,1)'); f.addColorStop(1, 'rgba(0,0,0,0)');
+    x.fillStyle = f; x.fillRect(0, 0, 512, 256);
+    return c;
+  })();
+  const tinted = new Map();
+  function beamTinted(c) {
+    const key = c.join(','); if (tinted.has(key)) return tinted.get(key);
+    const cv = document.createElement('canvas'); cv.width = 512; cv.height = 256; const x = cv.getContext('2d');
+    x.drawImage(beamSprite, 0, 0); x.globalCompositeOperation = 'source-in'; x.fillStyle = rgba(c, 1); x.fillRect(0, 0, 512, 256);
+    tinted.set(key, cv); return cv;
+  }
+
+  function lvl(l) { return clamp(l.i, 0, 1.5) * (l.flick ?? 1); }
+
+  function cutSpot(c, l) {
+    const i = Math.min(1, lvl(l)); if (i <= .002) return;
+    const rx = Math.max(1, l.rx), ry = Math.max(1, l.ry), soft = clamp(l.soft, .004, 1), inner = 1 - soft;
+    c.save(); c.translate(l.x, l.y); c.scale(1, ry / rx);
+    const g = c.createRadialGradient(0, 0, 0, 0, 0, rx);
+    g.addColorStop(0, `rgba(0,0,0,${i})`);
+    g.addColorStop(Math.max(0, inner), `rgba(0,0,0,${i})`);
+    g.addColorStop(Math.min(1, inner + soft * .45), `rgba(0,0,0,${i * .42})`);
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = g; c.beginPath(); c.arc(0, 0, rx, 0, TAU); c.fill(); c.restore();
+  }
+  function cutBeam(c, l) {
+    const i = Math.min(1, lvl(l)); if (i <= .002) return;
+    c.save(); c.translate(l.x, l.y); c.rotate(l.ang * Math.PI / 180);
+    const hw = Math.tan(clamp(l.spread, .5, 80) * Math.PI / 180) * l.len;
+    c.scale(l.len / 512, Math.max(.01, hw * 2 / 252));
+    c.globalAlpha = i; c.drawImage(beamSprite, 0, -128); c.restore();
+  }
+  function rrect(c, x, y, w, h, r) {
+    r = Math.max(0, Math.min(r, w / 2, h / 2));
+    c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath();
+  }
+  function cutRect(c, l) {
+    const i = Math.min(1, lvl(l)); if (i <= .002) return;
+    const N = 8, a = 1 - Math.pow(1 - Math.min(i, .999), 1 / N), soft = Math.max(1, l.soft);
+    c.fillStyle = 'rgba(0,0,0,1)';
+    for (let n = 0; n < N; n++) {
+      const inset = soft * (n / (N - 1)) - soft / 2;
+      c.globalAlpha = a;
+      rrect(c, l.x - l.w / 2 + inset, l.y - l.h / 2 + inset, l.w - inset * 2, l.h - inset * 2, l.r + Math.max(0, -inset));
+      c.fill();
+    }
+    c.globalAlpha = 1;
+  }
+
+  /* glow: cone in haze + inner warmth + halo ring */
+  function glowSpot(c, l, col) {
+    const i = lvl(l); if (i <= .002) return;
+    const rx = Math.max(1, l.rx), ry = Math.max(1, l.ry);
+    const lc = l.col ? hexRgb(l.col) : col;
+    if (S.haze > .001 && l.cone) {
+      /* the beam through the haze: a soft-edged sprite from the lamp to the pool of light */
+      const sx = l.sx ?? (W / 2 + (l.x - W / 2) * .38), sy = l.sy ?? -180;
+      const dx = l.x - sx, dy = l.y - sy, dist = Math.hypot(dx, dy) || 1;
+      const len = dist + ry * .55, halfW = Math.max(rx, ry) * .98;
+      c.save(); c.translate(sx, sy); c.rotate(Math.atan2(dy, dx));
+      c.scale(len / 512, Math.max(.01, halfW * 2 / 252));
+      c.globalAlpha = clamp(S.haze * i * .24, 0, 1);
+      c.drawImage(beamTinted(col), 0, -128); c.restore();
+    }
+    c.save(); c.translate(l.x, l.y); c.scale(1, ry / rx);
+    const g2 = c.createRadialGradient(0, 0, 0, 0, 0, rx * 1.28);
+    const edge = 1 / 1.28, inner = Math.min(edge - .006, (1 - clamp(l.soft, .004, 1)) * edge);
+    g2.addColorStop(0, rgba(col, .075 * i));
+    g2.addColorStop(inner, rgba(col, .05 * i));
+    if (l.halo) { g2.addColorStop(edge, rgba(lc, (.075 + (l.rim || 0) * .4) * i)); g2.addColorStop(Math.min(.99, edge + .08), rgba(lc, (.02 + (l.rim || 0) * .1) * i)); }
+    g2.addColorStop(1, rgba(lc, 0));
+    c.fillStyle = g2; c.beginPath(); c.arc(0, 0, rx * 1.28, 0, TAU); c.fill(); c.restore();
+  }
+  function glowBeam(c, l, col) {
+    const i = lvl(l); if (i <= .002) return;
+    const lc = l.col ? hexRgb(l.col) : col;
+    c.save(); c.translate(l.x, l.y); c.rotate(l.ang * Math.PI / 180);
+    const hw = Math.tan(clamp(l.spread, .5, 80) * Math.PI / 180) * l.len;
+    c.scale(l.len / 512, Math.max(.01, hw * 2 / 252));
+    c.globalAlpha = clamp(i * (.1 + S.haze * .28), 0, 1); c.drawImage(beamTinted(lc), 0, -128); c.restore();
+  }
+  function glowRect(c, l, col) {
+    const i = lvl(l); if (i <= .002) return;
+    c.save(); c.globalAlpha = .05 * i; c.fillStyle = rgba(l.col ? hexRgb(l.col) : col, 1);
+    rrect(c, l.x - l.w / 2, l.y - l.h / 2, l.w, l.h, l.r); c.fill(); c.restore();
+  }
+
+  /* the vignette, drawn into the darkness (one full-screen layer fewer) */
+  function vignette(c) {
+    c.save(); c.translate(W / 2, H * .48); c.scale(1, (H * .7) / (W * .72));
+    const r = W * .72, g = c.createRadialGradient(0, 0, 0, 0, 0, r);
+    g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(.58, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.55)');
+    c.fillStyle = g; c.fillRect(-W, -r * 2, W * 2, r * 4); c.restore();
+  }
+
+  /* dust motes living in the beams */
+  const dust = Array.from({ length: 220 }, (_, n) => {
+    const r = Math.random;
+    return { x: r() * W, y: r() * H, z: r(), vx: (r() - .5) * 8, vy: (r() - .5) * 6 - 2, ph: r() * TAU, sp: .4 + r() * 1.6 };
+  });
+  function litFactor(px, py) {
+    let f = 0;
+    for (const l of S.lights.values()) {
+      const i = lvl(l); if (i <= .01) continue;
+      if (l.type === 'spot') {
+        const dx = (px - l.x) / l.rx, dy = (py - l.y) / l.ry, d = dx * dx + dy * dy;
+        if (d < 1.1) f = Math.max(f, i * clamp((1.1 - d) * 2.2, 0, 1));
+        if (S.haze > .01 && l.cone) {
+          const sx = l.sx ?? (W / 2 + (l.x - W / 2) * .38), sy = l.sy ?? -180;
+          const ax = l.x - sx, ay = l.y - sy, al = ax * ax + ay * ay;
+          const t = ((px - sx) * ax + (py - sy) * ay) / al;
+          if (t > 0 && t < 1) {
+            const cx = sx + ax * t, cy = sy + ay * t, wd = lerp(16, Math.max(l.rx, l.ry), t);
+            const off = Math.hypot(px - cx, py - cy);
+            if (off < wd) f = Math.max(f, i * S.haze * .9 * t * clamp((wd - off) / (wd * .35), 0, 1));
+          }
+        }
+      } else if (l.type === 'beam') {
+        const a = l.ang * Math.PI / 180, ux = Math.cos(a), uy = Math.sin(a);
+        const qx = px - l.x, qy = py - l.y, along = qx * ux + qy * uy;
+        if (along > 0 && along < l.len) {
+          const across = Math.abs(-qx * uy + qy * ux), wd = Math.tan(l.spread * Math.PI / 180) * along;
+          if (across < wd) f = Math.max(f, i * .8 * clamp((wd - across) / (wd * .4 + 1), 0, 1) * (1 - along / l.len * .6));
+        }
+      } else if (l.type === 'rect') {
+        if (Math.abs(px - l.x) < l.w / 2 && Math.abs(py - l.y) < l.h / 2) f = Math.max(f, i * .5);
+      }
+    }
+    return f;
+  }
+
+  function frame(t, dt) {
+    let animating = false;
+    const tn = now();
+    for (let n = tweens.length - 1; n >= 0; n--) {
+      const tw = tweens[n]; if (tn < tw.t0) { animating = true; continue; }
+      const p = clamp((tn - tw.t0) / tw.dur, 0, 1);
+      tw.o[tw.k] = lerp(tw.a, tw.b, tw.ez(p));
+      if (p >= 1) tweens.splice(n, 1); else animating = true;
+    }
+    for (const [id, l] of S.lights) if (l.dead && l.i <= .001 && !tweens.some(tw => tw.o === l)) S.lights.delete(id);
+    const live = animating || dirty;
+    const col = tint(S.warm);
+    const time = (tn - t0) / 1000;
+
+    /* darkness: only when a light moved, or a mask layer (torch, disco ball) is running */
+    if (live || maskLayers.size) {
+      stats.mask++;
+      mc.setTransform(k, 0, 0, k, 0, 0);
+      mc.globalCompositeOperation = 'source-over'; mc.globalAlpha = 1;
+      mc.clearRect(0, 0, W, H);
+      const amb = clamp(S.ambient * (1 - S.wash), 0, 1);
+      if (amb > .001) {
+        mc.fillStyle = `rgba(0,0,0,${amb})`; mc.fillRect(0, 0, W, H);
+        mc.globalCompositeOperation = 'destination-out';
+        for (const l of S.lights.values()) { if (l.type === 'spot') cutSpot(mc, l); else if (l.type === 'beam') cutBeam(mc, l); else cutRect(mc, l); }
+        for (const f of maskLayers) f(mc, time, dt, S);
+        mc.globalCompositeOperation = 'source-over';
+      }
+      vignette(mc);
+    }
+
+    /* glow: the same rule */
+    if (live || glowLayers.size) {
+      stats.glow++;
+      gc.setTransform(k, 0, 0, k, 0, 0);
+      gc.globalCompositeOperation = 'source-over'; gc.globalAlpha = 1;
+      gc.clearRect(0, 0, W, H);
+      for (const l of S.lights.values()) { if (l.type === 'spot') glowSpot(gc, l, col); else if (l.type === 'beam') glowBeam(gc, l, col); else glowRect(gc, l, col); }
+      if (S.wash > .001) { gc.fillStyle = rgba(AMBER, .16 * S.wash); gc.fillRect(0, 0, W, H); }
+      if (S.bloom > .001) {
+        const g = gc.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, W * .75);
+        g.addColorStop(0, rgba([255, 244, 226], .9 * S.bloom)); g.addColorStop(.55, rgba([255, 226, 186], .55 * S.bloom)); g.addColorStop(1, rgba([255, 206, 150], .3 * S.bloom));
+        gc.fillStyle = g; gc.fillRect(0, 0, W, H);
+      }
+      for (const f of glowLayers) f(gc, time, dt, S);
+    }
+
+    /* particles: their own small canvas, at a capped frame rate, and only while there are any */
+    const P = Q.p, wantFx = P.fx > 0 && !reduced && (S.dust > .01 || [...fxLayers].some(l => l.active()));
+    if (wantFx) {
+      if (tn - lastFx >= 1000 / P.fxFps - 4) {
+        const fdt = Math.min(.15, lastFx ? (tn - lastFx) / 1000 : dt); lastFx = tn; stats.fx++;
+        fc.setTransform(fk, 0, 0, fk, 0, 0); fc.globalCompositeOperation = 'source-over'; fc.globalAlpha = 1;
+        fc.clearRect(0, 0, W, H);
+        if (S.dust > .01) {
+          fc.globalCompositeOperation = 'lighter';
+          const n = Math.ceil(dust.length * P.fx);
+          for (let q = 0; q < n; q++) {
+            const p = dust[q];
+            if (!still) {
+              p.x += (p.vx + Math.sin(time * .3 + p.ph) * 4) * fdt * p.sp; p.y += (p.vy + Math.cos(time * .23 + p.ph) * 3) * fdt * p.sp;
+              if (p.x < -10) p.x = W + 10; if (p.x > W + 10) p.x = -10; if (p.y < -10) p.y = H + 10; if (p.y > H + 10) p.y = -10;
+            }
+            const f = litFactor(p.x, p.y); if (f <= .02) continue;
+            const tw = .55 + .45 * Math.sin(time * p.sp * 2.1 + p.ph);
+            const a = clamp(S.dust * f * tw * (.35 + p.z * .65), 0, 1);
+            const r = .9 + p.z * 2.1;
+            fc.fillStyle = rgba(col, a); fc.beginPath(); fc.arc(p.x, p.y, r, 0, TAU); fc.fill();
+          }
+          fc.globalCompositeOperation = 'source-over';
+        }
+        for (const l of fxLayers) if (l.active()) l.draw(fc, time, fdt, P.fx);
+        fxShown = true;
+      }
+    } else if (fxShown) { fc.setTransform(1, 0, 0, 1, 0, 0); fc.clearRect(0, 0, fxc.width, fxc.height); fxShown = false; lastFx = 0; }
+    dirty = false;
+  }
+  Loop.add(frame);
+
+  return {
+    set, flicker, setScale, S, stats, why: () => ({ tweens: tweens.length, dirty, maskLayers: maskLayers.size, glowLayers: glowLayers.size, fxLayers: [...fxLayers].filter(l => l.active()).length, dust: S.dust }),
+    get: id => S.lights.get(id),
+    glowLayer(f) { glowLayers.add(f); Loop.kick(); return () => { glowLayers.delete(f); dirty = true; }; },
+    /* particles: draw(ctx, time, dt, share) where share (0–1) is the part of the particles this device draws */
+    fxLayer(draw, active) { const l = { draw, active }; fxLayers.add(l); Loop.kick(); return () => fxLayers.delete(l); },
+    maskLayer(f) { maskLayers.add(f); Loop.kick(); return () => { maskLayers.delete(f); dirty = true; }; },
+    touch() { dirty = true; Loop.kick(); },
+    setReduced(v) { reduced = !!v; },
+    setStill(v) { still = !!v; },
+    tint, rgba, hexRgb,
+  };
+})();
+</script>

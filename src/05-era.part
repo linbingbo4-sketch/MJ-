@@ -1,0 +1,198 @@
+<style>
+/* era films: overlays that change with the decade */
+.ov { position: absolute; inset: 0; opacity: 0; visibility: hidden; transition: opacity 1.8s linear; pointer-events: none; }
+#ov-leak { mix-blend-mode: screen; }
+/* the leaks are soft radial gradients already; a 60px blur on top cost a full-screen filter every frame */
+#ov-leak::before, #ov-leak::after { content: ''; position: absolute; border-radius: 50%; }
+#ov-leak::before { width: 1020px; height: 1220px; left: -580px; top: -180px; background: radial-gradient(closest-side, rgba(255, 128, 40, .62), rgba(255, 90, 30, .3) 35%, rgba(255, 70, 20, .12) 62%, transparent); animation: leakA 11s ease-in-out infinite alternate; }
+#ov-leak::after { width: 880px; height: 1020px; right: -520px; bottom: -320px; background: radial-gradient(closest-side, rgba(255, 196, 80, .5), rgba(255, 140, 60, .24) 35%, rgba(255, 90, 40, .1) 62%, transparent); animation: leakB 13s ease-in-out infinite alternate; }
+@keyframes leakA { 0% { transform: translate(0, 0) scale(1); opacity: .65; } 45% { opacity: 1; } 100% { transform: translate(120px, 80px) scale(1.15); opacity: .5; } }
+@keyframes leakB { 0% { transform: translate(0, 0); opacity: .5; } 60% { opacity: .95; } 100% { transform: translate(-140px, -60px) scale(1.1); opacity: .7; } }
+#ov-scan { background: repeating-linear-gradient(to bottom, rgba(0, 0, 0, .28) 0 1px, transparent 1px 3px); }
+#ov-scan::after { content: ''; position: absolute; left: 0; right: 0; height: 260px; top: -260px; background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, .035), transparent); animation: roll 8s linear infinite; }
+@keyframes roll { to { transform: translateY(1600px); } }
+#ov-cold { background: linear-gradient(180deg, rgba(120, 140, 170, .16), rgba(40, 50, 70, .22)); mix-blend-mode: color; }
+#ov-warm { background: radial-gradient(ellipse 80% 70% at 50% 75%, rgba(255, 168, 70, .32), transparent 72%); mix-blend-mode: soft-light; }
+#stage.desat #scenes, #stage.desat #bg { filter: saturate(.3) contrast(1.02); }
+#scenes, #bg { transition: filter 1.8s linear; }
+#stage.reduced #ov-leak::before, #stage.reduced #ov-leak::after, #stage.reduced #ov-scan::after { animation: none; }
+</style>
+
+<script>
+/* ═══ ERAS — every decade gets its own film stock ═══ */
+const ERAS = {
+  cold:      { bg: 'radial-gradient(ellipse 60% 45% at 50% 82%, #120d09 0%, #060504 60%, #030302 100%)', grain: .07, light: { ambient: .975, warm: 1, haze: .95, dust: 1 } },
+  cinema:    { bg: 'radial-gradient(ellipse 70% 60% at 50% 45%, #0d1118 0%, #040507 65%, #000 100%)', grain: .06, light: { ambient: .93, warm: .35, haze: .25, dust: .8 } },
+  title:     { bg: 'radial-gradient(ellipse 70% 55% at 50% 50%, #130e09 0%, #060504 62%, #020202 100%)', grain: .07, light: { ambient: .95, warm: 1, haze: .5, dust: .7 } },
+  gary:      { bg: 'radial-gradient(ellipse 85% 70% at 50% 42%, #5a3a1e 0%, #2e1c0f 48%, #160c06 100%)', grain: .17, over: { leak: .9 }, light: { ambient: .5, warm: 1.25, haze: .22, dust: .35 }, fx: { motes: .6 },
+               grade: { background: 'linear-gradient(180deg, rgba(255, 170, 70, .22), rgba(150, 60, 20, .28))', mixBlendMode: 'soft-light', opacity: 1 } },
+  otw:       { bg: 'radial-gradient(ellipse 80% 65% at 50% 30%, #2c2418 0%, #0f0c08 58%, #050403 100%)', grain: .09, light: { ambient: .72, warm: .95, haze: .2, dust: .3 }, fx: { disco: 1 },
+               grade: { background: 'linear-gradient(180deg, rgba(240, 210, 150, .12), rgba(30, 20, 10, .2))', mixBlendMode: 'soft-light', opacity: 1 } },
+  thriller:  { bg: 'radial-gradient(ellipse 75% 65% at 50% 40%, #220b0d 0%, #0b0506 60%, #040203 100%)', grain: .1, over: { scan: .75 }, light: { ambient: .86, warm: .85, haze: .18, dust: .25 },
+               grade: { background: 'radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(120, 0, 10, .25))', mixBlendMode: 'multiply', opacity: 1 } },
+  bad:       { bg: 'radial-gradient(ellipse 80% 70% at 50% 18%, #1f2e60 0%, #0c1532 50%, #050916 100%)', grain: .08, light: { ambient: .8, warm: .75, haze: .5, dust: .45 },
+               grade: { background: 'linear-gradient(180deg, rgba(60, 90, 200, .1), rgba(5, 10, 40, .3))', mixBlendMode: 'soft-light', opacity: 1 } },
+  dangerous: { bg: 'radial-gradient(ellipse 80% 70% at 50% 35%, #2a1f0e 0%, #0d0a06 58%, #050403 100%)', grain: .09, light: { ambient: .74, warm: 1, haze: .3, dust: .5 }, fx: { gold: 1 },
+               grade: { background: 'linear-gradient(180deg, rgba(255, 200, 100, .1), rgba(90, 10, 20, .22))', mixBlendMode: 'soft-light', opacity: 1 } },
+  shadow:    { bg: 'linear-gradient(180deg, #1a1e24 0%, #121519 55%, #0b0d10 100%)', grain: .12, over: { cold: 1 }, desat: true, light: { ambient: .38, warm: 0, haze: 0, dust: 0 } },
+  seoul:     { bg: 'radial-gradient(ellipse 80% 70% at 62% 30%, #15295a 0%, #0a1634 52%, #040a1a 100%)', grain: .07, light: { ambient: .55, warm: .55, haze: .12, dust: .15 }, fx: { bokeh: 1 } },
+  tii:       { bg: 'radial-gradient(ellipse 70% 70% at 72% 18%, #3d3d42 0%, #232326 52%, #141416 100%)', grain: .1, light: { ambient: .82, warm: .15, haze: .55, dust: 1 } },
+  legacy:    { bg: 'radial-gradient(ellipse 85% 75% at 50% 62%, #7a4b1a 0%, #40280f 48%, #1c1007 100%)', grain: .07, over: { warm: 1 }, light: { ambient: .3, warm: 1.3, haze: .2, dust: .3 }, fx: { rise: 1 } },
+  finale:    { bg: 'radial-gradient(ellipse 60% 45% at 50% 82%, #120d09 0%, #060504 60%, #030302 100%)', grain: .07, light: { ambient: .965, warm: 1, haze: .85, dust: 1 } },
+};
+
+/* ═══ FX — particles that belong to a decade (drawn into the particle canvas, at the share this device can afford) ═══ */
+const FX = (() => {
+  const lv = { motes: 0, disco: 0, gold: 0, bokeh: 0, rise: 0, rain: 0, crowd: 0 };
+  const stops = {};
+  let reduced = false, discoOff = null;
+  const R = rng(83);
+  const P = (n, f) => Array.from({ length: n }, (_, i) => f(i));
+  const motes = P(70, () => ({ x: R() * W, y: R() * H, r: .6 + R() * 1.8, vx: (R() - .5) * 10, vy: -4 - R() * 8, ph: R() * TAU }));
+  const gold = P(120, () => ({ x: R() * W, y: R() * H, r: .6 + R() * 2.2, vy: -6 - R() * 16, sw: 10 + R() * 30, ph: R() * TAU, tw: 1 + R() * 3 }));
+  const bokeh = P(30, () => ({ x: R() * W, y: R() * H * .8, r: 26 + R() * 90, c: R() < .55 ? [127, 176, 255] : (R() < .7 ? [255, 236, 200] : [255, 190, 110]), a: .05 + R() * .08, vx: (R() - .5) * 6, vy: (R() - .5) * 4, ph: R() * TAU }));
+  const rise = P(110, () => ({ x: R() * W, y: H + R() * H, r: .8 + R() * 2.6, vy: 18 + R() * 46, sw: 8 + R() * 24, ph: R() * TAU }));
+  const rain = P(160, () => ({ x: R() * (W + 300), y: R() * H, l: 28 + R() * 60, v: 820 + R() * 420, a: .05 + R() * .08 }));
+  const crowd = P(360, () => ({ x: R() * W, y: 880 + Math.pow(R(), .7) * 210, r: .6 + R() * 1.6, ph: R() * TAU, f: 0, warm: R() < .5 }));
+  const disco = P(72, () => ({ lon: R() * TAU, lat: (R() - .5) * 1.7, s: .5 + R() * .7 }));
+
+  function set(cfg = {}, dur = 1.8) {
+    for (const k of Object.keys(lv)) {
+      const target = cfg[k] || 0; if (stops[k]) stops[k]();
+      const a = lv[k];
+      if (a === target) continue;
+      stops[k] = tween(dur * 1000, (e) => { lv[k] = lerp(a, target, e); }, ease.inOutSine);
+    }
+    if ((cfg.disco || 0) > 0 && !discoOff && Q.p.disco) discoOff = Light.maskLayer(discoMask);
+    if (!(cfg.disco > 0) && discoOff) setTimeout(() => { if (lv.disco <= .001 && discoOff) { discoOff(); discoOff = null; } }, dur * 1000 + 50);
+  }
+
+  function discoPos(d, t) {
+    const a = d.lon + t * .11, c = Math.cos(a);
+    if (c < .08) return null;
+    return { x: W / 2 + Math.sin(a) * W * .64, y: H * .46 + Math.sin(d.lat) * H * .62 + Math.cos(a) * 18, rx: (8 + 16 * d.s) * (.45 + c * .7), f: Math.min(1, (c - .08) * 3) };
+  }
+  function discoMask(c, t) {
+    if (lv.disco <= .001) return;
+    for (const d of disco) {
+      const p = discoPos(d, reduced ? 0 : t); if (!p) continue;
+      const i = lv.disco * .5 * p.f;
+      const g = c.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.rx);
+      g.addColorStop(0, `rgba(0,0,0,${i})`); g.addColorStop(.55, `rgba(0,0,0,${i * .8})`); g.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = g; c.beginPath(); c.ellipse(p.x, p.y, p.rx, p.rx * .78, 0, 0, TAU); c.fill();
+    }
+  }
+
+  const take = (a, share) => (share >= 1 ? a : a.slice(0, Math.ceil(a.length * share)));
+  Light.fxLayer((c, t, dt, share) => {
+    const live = !reduced;
+    c.globalCompositeOperation = 'lighter';
+    if (lv.motes > .01) for (const p of take(motes, share)) {
+      if (live) { p.x += (p.vx + Math.sin(t * .4 + p.ph) * 5) * dt; p.y += p.vy * dt; if (p.y < -10) { p.y = H + 10; p.x = Math.random() * W; } if (p.x < -10) p.x = W + 10; if (p.x > W + 10) p.x = -10; }
+      c.fillStyle = `rgba(255,214,150,${.16 * lv.motes * (.6 + .4 * Math.sin(t * 1.3 + p.ph))})`;
+      c.beginPath(); c.arc(p.x, p.y, p.r, 0, TAU); c.fill();
+    }
+    if (lv.disco > .01) for (const d of take(disco, share)) {
+      const p = discoPos(d, live ? t : 0); if (!p) continue;
+      const g = c.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.rx * 1.6);
+      g.addColorStop(0, `rgba(255,236,196,${.32 * lv.disco * p.f})`); g.addColorStop(1, 'rgba(255,236,196,0)');
+      c.fillStyle = g; c.beginPath(); c.arc(p.x, p.y, p.rx * 1.6, 0, TAU); c.fill();
+    }
+    if (lv.gold > .01) for (const p of take(gold, share)) {
+      if (live) { p.y += p.vy * dt; if (p.y < -12) { p.y = H + 12; p.x = Math.random() * W; } }
+      const x = p.x + Math.sin(t * .5 + p.ph) * p.sw;
+      const a = lv.gold * (.18 + .5 * Math.pow(Math.max(0, Math.sin(t * p.tw + p.ph)), 6));
+      c.fillStyle = `rgba(236,196,104,${a})`; c.beginPath(); c.arc(x, p.y, p.r, 0, TAU); c.fill();
+    }
+    if (lv.bokeh > .01) for (const b of take(bokeh, share)) {
+      if (live) { b.x += b.vx * dt; b.y += b.vy * dt; if (b.x < -120) b.x = W + 120; if (b.x > W + 120) b.x = -120; if (b.y < -120) b.y = H * .8; if (b.y > H * .85) b.y = -100; }
+      const a = b.a * lv.bokeh * (.75 + .25 * Math.sin(t * .6 + b.ph));
+      const g = c.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r);
+      g.addColorStop(0, Light.rgba(b.c, a * .55)); g.addColorStop(.82, Light.rgba(b.c, a * .75)); g.addColorStop(.92, Light.rgba(b.c, a)); g.addColorStop(1, Light.rgba(b.c, 0));
+      c.fillStyle = g; c.beginPath(); c.arc(b.x, b.y, b.r, 0, TAU); c.fill();
+    }
+    if (lv.rise > .01) for (const p of take(rise, share)) {
+      if (live) { p.y -= p.vy * dt; if (p.y < -20) { p.y = H + 20 + Math.random() * 200; p.x = Math.random() * W; } }
+      const x = p.x + Math.sin(t * .7 + p.ph) * p.sw, f = clamp(p.y / H, 0, 1);
+      const a = lv.rise * .55 * f * (.6 + .4 * Math.sin(t * 2 + p.ph));
+      const g = c.createRadialGradient(x, p.y, 0, x, p.y, p.r * 4);
+      g.addColorStop(0, `rgba(255,200,120,${a})`); g.addColorStop(.3, `rgba(255,170,80,${a * .4})`); g.addColorStop(1, 'rgba(255,150,60,0)');
+      c.fillStyle = g; c.beginPath(); c.arc(x, p.y, p.r * 4, 0, TAU); c.fill();
+    }
+    if (lv.rain > .01) {
+      c.lineWidth = 1.2; c.lineCap = 'round';
+      for (const r of take(rain, share)) {
+        if (live) { r.y += r.v * dt; r.x -= r.v * .2 * dt; if (r.y > H + 60) { r.y = -60 - Math.random() * 200; r.x = Math.random() * (W + 300); } }
+        c.strokeStyle = `rgba(200,214,232,${r.a * lv.rain})`;
+        c.beginPath(); c.moveTo(r.x, r.y); c.lineTo(r.x + r.l * .2, r.y - r.l); c.stroke();
+      }
+    }
+    if (lv.crowd > .01) for (const p of take(crowd, share)) {
+      if (live) { if (p.f > 0) p.f = Math.max(0, p.f - dt * 3.2); else if (Math.random() < dt * .09) p.f = 1; }
+      const base = .1 + .08 * Math.sin(t * 1.7 + p.ph);
+      const a = lv.crowd * (base + p.f * .9);
+      c.fillStyle = p.warm ? `rgba(255,214,150,${a})` : `rgba(235,242,255,${a})`;
+      c.beginPath(); c.arc(p.x, p.y, p.r * (1 + p.f * 1.4), 0, TAU); c.fill();
+    }
+    c.globalCompositeOperation = 'source-over';
+  }, () => Object.values(lv).some(v => v > .01));
+
+  return { set, lv, setReduced(v) { reduced = !!v; } };
+})();
+
+/* film grain tile, generated once */
+(function makeGrain() {
+  try {
+    const c = document.createElement('canvas'); c.width = c.height = 256;
+    const x = c.getContext('2d'), img = x.createImageData(256, 256), d = img.data, r = rng(7);
+    for (let i = 0; i < d.length; i += 4) { const v = 128 + (r() + r() + r() - 1.5) * 120; d[i] = d[i + 1] = d[i + 2] = clamp(v, 0, 255); d[i + 3] = 255; }
+    x.putImageData(img, 0, 0);
+    $('#grain').style.backgroundImage = `url(${c.toDataURL('image/png')})`;
+  } catch (e) { /* grain is decoration */ }
+})();
+
+/* overlays */
+(function makeOverlays() {
+  const o = $('#overlays');
+  ['leak', 'scan', 'cold', 'warm'].forEach(k => o.append(h('div.ov#ov-' + k)));
+})();
+
+const Era = (() => {
+  let cur = null, plateKey = 'A';
+  function apply(key, { dur = 1.8, instant = false } = {}) {
+    const e = ERAS[key] || ERAS.cold;
+    const stage = $('#stage');
+    const d = instant ? 0 : dur;
+    if (key !== cur) {
+      const next = plateKey === 'A' ? 'B' : 'A';
+      const a = $('#bg' + plateKey), b = $('#bg' + next);
+      b.style.transitionDuration = a.style.transitionDuration = d + 's';
+      b.style.background = e.bg; b.dataset.bg = e.bg; b.classList.add('on'); a.classList.remove('on');
+      plateKey = next;
+      stage.dataset.era = key;
+      cur = key;
+    }
+    const g = $('#grain'); g.style.transitionDuration = d + 's'; fadeVis(g, e.grain ?? .07, d);
+    ['leak', 'scan', 'cold', 'warm'].forEach(k => { const el = $('#ov-' + k); el.style.transitionDuration = d + 's'; fadeVis(el, (e.over && e.over[k]) || 0, d); });
+    const gr = $('#grade'); gr.style.transition = `opacity ${d}s linear`;
+    if (e.grade) { Object.assign(gr.style, { background: e.grade.background, mixBlendMode: e.grade.mixBlendMode || 'normal' }); fadeVis(gr, e.grade.opacity ?? 1, d); }
+    else fadeVis(gr, 0, d);
+    stage.classList.toggle('desat', !!e.desat);
+    FX.set(e.fx || {}, d);
+  }
+  /* swap the background plate without changing era (finale: the house turns to light) */
+  function plate(bg, dur = 1.8) {
+    const e = ERAS[cur] || ERAS.cold;
+    const want = bg || e.bg;
+    const a = $('#bg' + plate.cur());
+    if (a.style.background === want || a.dataset.bg === want) return;
+    const nextKey = plateKey === 'A' ? 'B' : 'A';
+    const b = $('#bg' + nextKey);
+    a.style.transitionDuration = b.style.transitionDuration = dur + 's';
+    b.style.background = want; b.dataset.bg = want; b.classList.add('on'); a.classList.remove('on');
+    plateKey = nextKey;
+  }
+  plate.cur = () => plateKey;
+  return { apply, plate, get cur() { return cur; }, light: (key) => (ERAS[key] || ERAS.cold).light };
+})();
+</script>

@@ -1,0 +1,71 @@
+<style>
+/* ── photographs: real prints of him, pinned into the scenes ── */
+.photo { padding: 12px 12px 0; background: #f2ebdd; box-shadow: 0 26px 60px rgba(0, 0, 0, .62), 0 2px 0 rgba(255, 255, 255, .12) inset; border-radius: 2px; }
+.photo .ph-img { position: relative; overflow: hidden; background: #1b1714; }
+.photo img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: var(--pos, 50% 25%); filter: contrast(1.04) saturate(.9); }
+.photo .ph-cap { padding: 11px 4px 4px; font: 500 21px/1.25 var(--f-ko); color: #2a221a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.photo .ph-cap .zh { font-family: var(--f-zh); }
+[data-lang="bi"] .photo .ph-cap .zh { opacity: .75; }
+.photo .ph-cr { padding: 2px 4px 10px; font: 500 11px/1.3 var(--f-num); letter-spacing: .06em; color: rgba(42, 34, 26, .55); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.photo-w.nophoto { display: none; }
+.hero { position: relative; }
+.hero.nophoto { display: none; }
+.hero .hero-in { position: absolute; inset: 0; overflow: hidden; -webkit-mask-image: radial-gradient(ellipse 58% 66% at 50% 42%, #000 52%, transparent 100%); mask-image: radial-gradient(ellipse 58% 66% at 50% 42%, #000 52%, transparent 100%); }
+.hero img { width: 100%; height: 100%; object-fit: cover; object-position: var(--pos, 50% 25%); filter: grayscale(1) sepia(.28) contrast(1.18) brightness(.96); opacity: 0; transform: scale(1.08); transition: opacity 1.6s ease, transform 14s linear; }
+.hero.loaded img { opacity: 1; }
+.rv.on .hero.loaded img, .hero.loaded.live img { transform: scale(1); }
+.hero .hero-cr { position: absolute; right: 96px; top: 150px; writing-mode: vertical-rl; font: 500 12px/1.3 var(--f-num); letter-spacing: .08em; color: rgba(239, 232, 218, .42); white-space: nowrap; }
+</style>
+
+<script>
+/* ═══ PHOTOS — freely licensed photographs from Wikimedia Commons ═══
+   Each slot loads media/photos/<file> first (works offline and inside the artifact preview once uploaded),
+   then the Commons original (works on GitHub Pages and locally), and hides itself if neither loads. */
+const PHOTOS = {
+  j5_1969: { file: '1969-jackson-5.jpg', commons: 'Jackson_5_1969.jpg', pos: '50% 35%',
+    cap: L('1969 · 잭슨 5, 〈에드 설리번 쇼〉 홍보 사진', '1969 · 杰克逊五兄弟《艾德·沙利文秀》宣传照'), credit: 'Bernie Ilson, Inc. · Public domain · Wikimedia Commons' },
+  mj_1969: { file: '1969-michael.jpg', commons: 'Michael_Jackson_1969.jpg', pos: '50% 20%',
+    cap: L('1969 · 열한 살', '1969 · 十一岁'), credit: 'Bernie Ilson, Inc. · Public domain · Wikimedia Commons' },
+  mj_1983: { file: '1983-michael.jpg', commons: 'Michael_Jackson_1983.jpg', pos: '50% 22%',
+    cap: L('1983 · 〈Thriller〉의 해', '1983 · 《Thriller》那一年'), credit: 'Epic Records · Public domain · Wikimedia Commons' },
+  mj_1984: { file: '1984-white-house.jpg', commons: 'Michael_Jackson_1984.jpg', pos: '50% 22%',
+    cap: L('1984. 5. 14 · 백악관', '1984.5.14 · 白宫'), credit: 'White House Photo Office · Public domain · Wikimedia Commons' },
+  bad_1988: { file: '1988-bad-tour-vienna.jpg', commons: 'Michael_Jackson_in_1988.jpg', pos: '50% 25%',
+    cap: L('1988. 6. 2 · 빈, Bad 월드 투어', '1988.6.2 · 维也纳，Bad 世界巡演'), credit: 'Zoran Veselinović · CC BY-SA 2.0 · Wikimedia Commons' },
+  dw_1992: { file: '1992-dangerous-tour-bucharest.jpg', commons: 'Michael_Jackson_Live_in_Bucharest_1992_Toni_Salabasev.jpg', pos: '50% 30%',
+    cap: L('1992 · 부쿠레슈티, Dangerous 월드 투어', '1992 · 布加勒斯特，Dangerous 世界巡演'), credit: 'Toni Salabasev · CC BY-SA 4.0 · Wikimedia Commons' },
+};
+/* a photograph as the centre of a whole page (the title): no paper print, the picture itself, toned and feathered into the dark */
+function heroPhoto(slot, o = {}) {
+  const p = PHOTOS[slot];
+  const img = h('img', { alt: '', decoding: 'async', draggable: 'false', referrerpolicy: 'no-referrer' });
+  const el = h('div.hero', { style: { width: (o.w || 760) + 'px', height: (o.h || 1000) + 'px', '--pos': o.pos || p.pos } }, h('div.hero-in', {}, img), h('div.hero-cr', { text: p.credit }));
+  const src = photoSources(p); let n = 0;
+  img.addEventListener('error', () => { n++; if (n < src.length) img.src = src[n]; else el.classList.add('nophoto'); });
+  img.addEventListener('load', () => el.classList.add('loaded'));
+  img.src = src[0];
+  return el;
+}
+const photoSources = (p) => ['media/photos/' + p.file, 'https://commons.wikimedia.org/wiki/Special:FilePath/' + encodeURIComponent(p.commons) + '?width=900'];
+
+/* a print: photograph, caption, credit. o: x, y, w, h (image area), rot, show, d, cls */
+function photoPrint(slot, o) {
+  const p = PHOTOS[slot];
+  const img = h('img', { alt: '', decoding: 'async', loading: 'lazy', draggable: 'false', referrerpolicy: 'no-referrer' });
+  /* the reveal moves the outer box; the print inside leans toward the pointer */
+  /* the print is exactly as wide as its photo: small type under a browser's minimum font size must not widen it */
+  const print = h('div.photo', { style: { rotate: (o.rot || 0) + 'deg', '--pos': p.pos, width: (o.w + 24) + 'px' } },
+    h('div.ph-img', { style: { width: o.w + 'px', height: o.h + 'px' } }, img),
+    h('div.ph-cap', {}, T(p.cap)), h('div.ph-cr', { text: p.credit }));
+  const el = A('div.photo-w', o.x, o.y, { show: o.show, d: o.d, cls: o.cls || 'drop' }, print);
+  const src = photoSources(p);
+  let n = 0;
+  img.addEventListener('error', () => { n++; if (n < src.length) img.src = src[n]; else el.classList.add('nophoto'); });
+  img.addEventListener('load', () => el.classList.add('loaded'));
+  img.src = src[0];
+  tiltify(print, 8);
+  return el;
+}
+/* the light that a print needs on a dark stage (none when the photo could not be loaded) */
+const photoLight = (id, el, o = {}) => (el.classList.contains('nophoto') ? [] : [textLight(id, el, { i: o.i ?? .82, pad: 26, padY: 26, soft: 60, delay: o.delay || 0 })]);
+</script>

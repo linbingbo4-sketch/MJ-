@@ -1,0 +1,526 @@
+<script>
+/* ═══ SOUND — era music decks (local file or YouTube), three volume levels, ducking, synthesized SFX ═══ */
+const ytId = (src) => {
+  if (!src) return null;
+  const s = String(src).trim();
+  if (/^[\w-]{11}$/.test(s)) return s;
+  const m = s.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([\w-]{11})/);
+  return m ? m[1] : null;
+};
+const isFileSrc = (src) => !!src && !ytId(src) && /\.(mp3|m4a|aac|ogg|oga|wav|flac|mp4|webm|mov|m4v)(\?.*)?$/i.test(String(src).trim());
+
+/* Local media is pulled into memory once. Blob URLs are always seekable (python's http.server has no
+   Range support, so start points and cue points would otherwise be ignored) and nothing buffers mid-talk. */
+const MediaCache = (() => {
+  const urls = new Map(), pending = new Map(), failed = new Map();
+  function url(src) {
+    if (!src || /^(blob:|data:)/.test(src) || location.protocol === 'file:') return Promise.resolve(src);
+    if (urls.has(src)) return Promise.resolve(urls.get(src));
+    /* a file that is not there is not asked for again on every scene change (a minute later it may have been added) */
+    if (failed.has(src) && now() - failed.get(src).at < 60000) return Promise.reject(failed.get(src).err);
+    if (pending.has(src)) return pending.get(src);
+    const p = fetch(src).then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.blob(); })
+      .then(b => { const u = URL.createObjectURL(b); urls.set(src, u); pending.delete(src); return u; })
+      .catch(err => { pending.delete(src); failed.set(src, { at: now(), err }); throw err; });
+    pending.set(src, p);
+    return p;
+  }
+  /* warm every configured local file in the background, one at a time */
+  async function warmAll() {
+    const s = Settings.get();
+    const list = [...Object.values(s.tracks).map(t => (t.src || '').trim()), ...Object.values(s.videos).map(v => (v.src || '').trim())].filter(isFileSrc);
+    for (const src of list) { try { await url(src); } catch (e) { /* reported by the pre-flight */ } }
+  }
+  return { url, warmAll, ready: (src) => urls.has(src) };
+})();
+
+/* ═══ MUSIC — one deck per era track ═══
+   A deck tries its sources in order: the configured one (normally the local file in media/music/), then the
+   official uploads on YouTube. YouTube decks share a pool of three hidden players: the one fading out, the one
+   playing and the next era's, which is cued while the current era runs so a change of era starts at once.
+   A new era never leaves a gap: the old track keeps playing until the new one is actually sounding, then the
+   two cross with an equal-power curve timed to the visual dissolve. */
+const Music = (() => {
+  const decks = {};            /* key → deck */
+  let active = null, mode = 'off', muted = false, ducked = false, primed = null;
+  let decayTimer = 0, fadeTimer = 0, unduckTimer = 0;
+  const listeners = new Set();
+  const emit = () => listeners.forEach(f => f(status()));
+  const SILENT = ['off', 'cut', 'cut6', 'video'];
+
+  function levelOf(m) {
+    const v = Settings.get().vol;
+    switch (m) {
+      case 'card': return v.card / 100;
+      case 'speech': return v.speech / 100;
+      case 'low': return v.low / 100;
+      case 'max': return v.max / 100;
+      case 'video': return v.video / 100;
+      case 'rise': return v.card / 100;
+      case 'fadeout': return v.max / 100;
+      default: return 0;
+    }
+  }
+  const master = () => muted ? 0 : Settings.get().vol.master / 100;
+
+  /* the configured source first, then the official uploads (skipped when the user picked a YouTube link of their own) */
+  function sourcesOf(key) {
+    const cfg = Settings.get().tracks[key] || {}, src = (cfg.src || '').trim(), list = [];
+    if (src) list.push(ytId(src) ? { kind: 'yt', id: ytId(src) } : { kind: 'file', src });
+    (TRACKS[key].yt || []).forEach(id => { if (!list.some(s => s.id === id)) list.push({ kind: 'yt', id }); });
+    return list;
+  }
+
+  /* hidden YouTube players, shared */
+  const pool = [];
+  function acquire(d) {
+    if (d.slot) return d.slot;
+    const cur = decks[active];
+    const idle = (o) => o !== cur && o !== primed && o.gain < .002;
+    let p = pool.find(x => !x.owner) || pool.find(x => idle(x.owner));
+    if (!p && pool.length < (LITE ? 1 : 3)) { p = { slot: Video.bgSlot('m' + pool.length), owner: null }; pool.push(p); }
+    if (!p) p = pool.find(x => x.owner !== cur) || pool[0];
+    if (p.owner && p.owner !== d) release(p.owner);
+    p.owner = d; d.slot = p.slot;
+    return d.slot;
+  }
+  function release(d) {
+    const p = pool.find(x => x.owner === d);
+    if (p) { p.owner = null; try { p.slot.stop(); } catch (e) { /* ignore */ } }
+    d.slot = null; d.ready = false;
+  }
+
+  function makeDeck(key) {
+    const cfg = Settings.get().tracks[key] || {};
+    const d = { key, cfgSrc: (cfg.src || '').trim(), start: +cfg.start || 0, list: sourcesOf(key), at: 0, gain: 0, state: 'idle', error: null, stop: null, kind: null, el: null, node: null, slot: null, ready: false };
+    if (!d.list.length) d.state = 'unset';
+    const cur = () => d.list[d.at];
+    d.setVol = (g) => {
+      const v = clamp(g, 0, 1);
+      if (d.kind === 'file' && d.el) { if (d.node) d.node.gain.value = v; else d.el.volume = v; }
+      else if (d.kind === 'yt' && d.slot) d.slot.setVolume(Math.round(v * 100));
+    };
+    function audio() {
+      if (d.el) return d.el;
+      const a = new Audio(); a.preload = 'auto'; a.loop = true; a.volume = 0;
+      a.addEventListener('playing', () => { if (d.kind === 'file') { d.state = 'playing'; emit(); } });
+      d.el = a; return a;
+    }
+    function playFile(src) {
+      d.kind = 'file';
+      return MediaCache.url(src).then(u => new Promise((res) => {
+        const a = audio();
+        if (a.getAttribute('src') !== u) { a.src = u; d.ready = false; }
+        /* through Web Audio when it runs: element volume is ignored on iOS */
+        if (!d.node) d.node = SFX.route(a);
+        if (d.node) a.volume = 1;
+        d.setVol(d.gain * master());
+        const go = () => {
+          if (!d.ready) { try { a.currentTime = d.start; } catch (e) { /* ignore */ } }
+          d.ready = false;
+          const p = a.play();
+          (p && p.then ? p : Promise.resolve()).then(() => res(true)).catch(err => {
+            if (err && err.name === 'NotAllowedError') { d.state = 'blocked'; Music.pendingGesture = true; res('blocked'); }
+            else { d.error = String(err && err.message || err); res(false); }
+          });
+        };
+        if (a.readyState >= 1) go(); else { a.addEventListener('loadedmetadata', go, { once: true }); a.addEventListener('error', () => { d.error = '文件格式无法播放'; res(false); }, { once: true }); }
+      })).catch(err => { d.error = '文件无法加载：' + src + '（' + (err && err.message || err) + '）'; return false; });
+    }
+    function playYt(id) {
+      d.kind = 'yt';
+      const slot = acquire(d);
+      d.setVol(d.gain * master());
+      if (d.ready && d.readyId === id && slot.want && slot.want.id === id) { d.ready = false; return slot.resume().then(ok => ok || (d.error = slot.error || 'YouTube', false)); }
+      d.ready = false;
+      return slot.load({ id, start: d.start, muted: false, loop: true, autoplay: true }).then(ok => { if (!ok) d.error = slot.error || YTAPI.reason || 'YouTube'; return ok; });
+    }
+    function tryFrom(i) {
+      if (i >= d.list.length) {
+        d.at = 0; d.state = d.list.length ? 'error' : 'unset'; d.error = d.list.length ? (d.error || '音源都无法播放') : null;
+        emit(); return Promise.resolve(false);
+      }
+      d.at = i; d.state = 'loading'; emit();
+      const s = d.list[i];
+      if (s.kind === 'yt' && d.kind === 'file' && d.el) { try { d.el.pause(); } catch (e) { /* ignore */ } }
+      return (s.kind === 'file' ? playFile(s.src) : playYt(s.id)).then(r => {
+        if (r === 'blocked') { emit(); return false; }
+        if (r) { d.state = 'playing'; d.error = null; emit(); return true; }
+        if (s.kind === 'yt') release(d);
+        return tryFrom(i + 1);
+      });
+    }
+    d.play = () => tryFrom(d.at);
+    /* get the first seconds ready without making a sound */
+    d.prime = () => {
+      const s = cur(); if (!s || d.state === 'playing' || d.state === 'loading' || d.ready) return;
+      if (s.kind === 'file') {
+        MediaCache.url(s.src).then(u => { const a = audio(); if (a.getAttribute('src') !== u) { a.src = u; a.load(); } const seek = () => { try { a.currentTime = d.start; } catch (e) { /* ignore */ } d.ready = true; }; if (a.readyState >= 1) seek(); else a.addEventListener('loadedmetadata', seek, { once: true }); })
+          .catch(() => { if (d.at < d.list.length - 1) { d.at++; d.prime(); } });
+      } else {
+        if (LITE || YTAPI.state === 'failed') return;
+        d.kind = 'yt';
+        const slot = acquire(d); slot.setVolume(0);
+        slot.load({ id: s.id, start: d.start, muted: false, loop: true, autoplay: false }).then(ok => { if (ok && d.slot === slot) { d.ready = true; d.readyId = s.id; } });
+      }
+    };
+    d.pause = () => { if (d.kind === 'file' && d.el) { try { d.el.pause(); } catch (e) { /* ignore */ } } else if (d.slot) d.slot.pause(); };
+    d.show = () => {};
+    return d;
+  }
+  function deck(key) {
+    const cfg = Settings.get().tracks[key] || {};
+    let d = decks[key];
+    if (d && d.cfgSrc !== (cfg.src || '').trim()) { try { d.pause(); } catch (e) { /* ignore */ } release(d); d = null; }
+    if (!d) d = decks[key] = makeDeck(key);
+    d.start = +cfg.start || 0;
+    return d;
+  }
+  /* curve: 'in' / 'out' = the halves of an equal-power crossfade, otherwise a plain sine ease */
+  function ramp(d, to, dur, onDone, curve) {
+    if (d.stop) d.stop();
+    const from = d.gain;
+    if (!(dur > 0)) { d.gain = to; d.setVol(to * master()); onDone && onDone(); return; }
+    const f = curve === 'in' ? (p) => from + (to - from) * Math.sin(p * Math.PI / 2)
+      : curve === 'out' ? (p) => to + (from - to) * Math.cos(p * Math.PI / 2)
+        : (p) => lerp(from, to, ease.inOutSine(p));
+    d.stop = tween(dur * 1000, (e, p) => { d.gain = f(p); d.setVol(d.gain * master()); }, ease.linear, () => { d.stop = null; onDone && onDone(); });
+  }
+  function stopDeck(d, dur, curve) {
+    ramp(d, 0, dur, () => {
+      if (active === d.key) return;
+      d.pause(); d.state = d.state === 'error' || d.state === 'unset' ? d.state : 'idle';
+      if (d.kind === 'yt' && d !== primed) release(d);
+      emit();
+    }, curve);
+  }
+
+  /* called by the director for every beat. enter: how the scene came in (dissolve | blackout | houselights) on its first beat */
+  function apply(track, m, { dir = 1, instant = false, enter = null } = {}) {
+    clearTimeout(decayTimer); clearTimeout(fadeTimer); clearTimeout(unduckTimer); ducked = false;
+    mode = m || 'speech';
+    if (dir < 0 && (mode === 'card' || mode === 'rise')) mode = 'speech';
+    if (dir < 0 && mode === 'fadeout') mode = 'max';
+    const target = track ? levelOf(mode) : 0;
+    const old = active && active !== track ? decks[active] : null;
+    if (!track) {
+      if (old) stopDeck(old, instant ? .3 : mode === 'cut' ? .15 : enter === 'blackout' ? .9 : 2, enter === 'blackout' ? 'out' : null);
+      active = null; emit(); return;
+    }
+    const d = deck(track);
+    if (primed === d) primed = null;
+    const isNew = active !== track || d.state === 'idle' || d.state === 'blocked';
+    active = track;
+    const settle = (afterMs) => { clearTimeout(decayTimer); decayTimer = setTimeout(() => { if (active === track && (mode === 'card' || mode === 'rise')) { mode = 'speech'; ramp(d, levelOf('speech'), 1.6); emit(); } }, afterMs); };
+    if (isNew) {
+      d.gain = 0; d.setVol(0);
+      if (SILENT.includes(mode)) { if (old) stopDeck(old, instant ? .3 : 1.2); emit(); return; }
+      /* crossfade length follows the picture: era dissolve 1.8 s, house lights 1.6 s, a blackout's 0.8 s lift */
+      const xf = instant ? .4 : enter === 'dissolve' ? 2.6 : enter === 'houselights' ? 3.4 : enter === 'blackout' ? (mode === 'card' ? 1.4 : 2.2) : (mode === 'rise' ? 3 : mode === 'card' ? 1.2 : 2);
+      let sounding = false;
+      /* if the new track is slow to start, the old one does not wait for ever */
+      if (old) setTimeout(() => { if (!sounding && active !== old.key) stopDeck(old, 1.8, 'out'); }, 2600);
+      d.play().then(ok => {
+        sounding = true;
+        if (old && active !== old.key) stopDeck(old, ok ? xf : 1.2, 'out');
+        if (!(ok && active === track)) return;
+        ramp(d, levelOf(mode), mode === 'rise' ? Math.max(3, xf) : xf, null, 'in'); NowPlaying.show(track);
+        if (mode === 'card' || mode === 'rise') settle(xf * 1000 + 2000);
+      });
+    } else {
+      const dur = { cut: .15, cut6: .6, off: 1, video: .9, card: .8, max: 2.2, rise: 3, fadeout: 1.2, low: 1.5 }[mode] || 1.2;
+      ramp(d, target, instant ? .3 : dur);
+      if (mode === 'cut' || mode === 'cut6') setTimeout(() => { if (active === track && (mode === 'cut' || mode === 'cut6')) { d.pause(); d.state = 'idle'; emit(); } }, (dur + .1) * 1000);
+    }
+    if (!isNew && (mode === 'card' || mode === 'rise')) settle(mode === 'rise' ? 5000 : 2800);
+    if (mode === 'fadeout') fadeTimer = setTimeout(() => { if (active === track && mode === 'fadeout') ramp(d, 0, 14); }, 9000);
+    emit();
+  }
+  /* cue the next era's track while this one plays */
+  function prime(track) {
+    if (!track || track === active || VIEW !== 'stage') return;
+    const d = deck(track);
+    if (primed && primed !== d && primed.gain < .002 && primed.key !== active) { const p = primed; primed = null; if (p.kind === 'yt') release(p); }
+    primed = d; d.prime();
+  }
+  /* videos with sound push the music out of the way */
+  function duck(on) {
+    clearTimeout(unduckTimer);
+    const d = active && decks[active]; if (!d) return;
+    if (on) { ducked = true; ramp(d, levelOf('video'), .9); }
+    else unduckTimer = setTimeout(() => { ducked = false; if (d.state !== 'playing' && mode !== 'off') { d.play().then(ok => ok && ramp(d, levelOf('speech'), 1.6)); } else ramp(d, mode === 'video' ? levelOf('speech') : levelOf(mode), 1.6); if (mode === 'video') mode = 'speech'; emit(); }, 1500);
+  }
+  function setMuted(v) { muted = !!v; Object.values(decks).forEach(d => d.setVol(d.gain * master())); emit(); }
+  function refreshVolumes() { Object.values(decks).forEach(d => d.setVol(d.gain * master())); }
+  function retry() { const d = active && decks[active]; if (d && (d.state === 'blocked' || d.state === 'idle') && !SILENT.includes(mode)) { d.play().then(ok => ok && ramp(d, levelOf(mode), 1.2, null, 'in')); } }
+  function stopAll() { Object.values(decks).forEach(d => { if (d.stop) d.stop(); d.stop = null; d.gain = 0; d.setVol(0); d.pause(); if (d.kind === 'yt') release(d); if (d.state === 'playing' || d.state === 'loading') d.state = 'idle'; }); active = null; primed = null; emit(); }
+  function srcLabel(d) { const s = d && d.list[d.at]; return !s ? '' : s.kind === 'file' ? '本地文件' : (d.at === 0 && d.cfgSrc ? 'YouTube' : 'YouTube 官方音源'); }
+  function status() {
+    const d = active && decks[active];
+    return { track: active, title: active ? TRACKS[active].title : null, mode, ducked, muted, level: d ? Math.round(d.gain * 100) : 0, state: d ? d.state : 'idle', error: d && d.error, kind: d && d.kind, source: srcLabel(d) };
+  }
+  /* preview a track from its start point (settings panel) */
+  function preview(key, secs = 8) {
+    const d = deck(key); stopAll(); active = key; d.gain = 0; d.setVol(0);
+    return d.play().then(ok => { if (ok) { ramp(d, levelOf('card'), .5); setTimeout(() => { if (active === key) { active = null; stopDeck(d, 1); } emit(); }, secs * 1000); } return ok; });
+  }
+  function position(key) { const d = decks[key]; if (!d) return null; if (d.kind === 'file' && d.el) return d.el.currentTime; if (d.kind === 'yt' && d.slot) return d.slot.time(); return null; }
+  /* pre-flight: the first source that would play */
+  async function probe(key) {
+    const list = sourcesOf(key); if (!list.length) return { ok: false, why: '未设置' };
+    const notes = [];
+    for (const s of list) {
+      if (s.kind === 'yt') {
+        const r = await Video.probe(s.id);
+        if (r.ok) return { ok: true, why: (notes.length ? notes.join(' · ') + ' → ' : '') + 'YouTube · ' + r.why + ' · ' + s.id };
+        notes.push('YouTube ' + s.id + '：' + r.why);
+        continue;
+      }
+      const r = await MediaCache.url(s.src).then(u => new Promise(res => {
+        const a = new Audio(); let done = false;
+        const fin = (ok, why) => { if (done) return; done = true; res({ ok, why }); };
+        a.preload = 'auto'; a.addEventListener('loadedmetadata', () => fin(true, '本地文件 · ' + fmt(a.duration) + ' · 已载入内存'), { once: true });
+        a.addEventListener('error', () => fin(false, '文件格式无法播放'), { once: true });
+        setTimeout(() => fin(false, '超时'), 10000); a.src = u;
+      })).catch(() => ({ ok: false, why: '没有本地文件' }));
+      if (r.ok) return r;
+      notes.push(r.why);
+    }
+    return { ok: false, why: notes.join(' · ') };
+  }
+  const debug = () => Object.values(decks).map(d => ({ key: d.key, kind: d.kind, src: srcLabel(d), at: d.at, gain: Math.round(d.gain * 100) / 100, state: d.state, ready: d.ready, slot: d.slot ? d.slot.name : null, paused: d.el ? d.el.paused : null, t: d.el ? Math.round(d.el.currentTime * 10) / 10 : null, error: d.error }));
+  return { debug, apply, prime, duck, setMuted, refreshVolumes, retry, stopAll, status, preview, position, probe, sourcesOf, on: f => (listeners.add(f), () => listeners.delete(f)), get muted() { return muted; }, pendingGesture: false };
+})();
+
+/* ═══ SFX — synthesized, no files: the sounds of a theatre and its follow spot ═══
+   One bus (gain → gentle compressor) with a small generated hall reverb. Nothing pitched sits under the
+   music: transitions are filtered noise and sub-bass, so they never clash with the key of the next song. */
+const SFX = (() => {
+  let ctx = null, out = null, wet = null, noise = null;
+  const ensure = () => {
+    try {
+      if (!ctx) { ctx = new (window.AudioContext || window.webkitAudioContext)(); build(); }
+      if (ctx.state === 'suspended') ctx.resume();
+    } catch (e) { ctx = null; }
+    return ctx;
+  };
+  function build() {
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -16; comp.knee.value = 12; comp.ratio.value = 3; comp.attack.value = .004; comp.release.value = .25;
+    out = ctx.createGain(); out.connect(comp); comp.connect(ctx.destination);
+    /* hall: 2.4 s of decaying noise, darker at the tail */
+    const sr = ctx.sampleRate, n = Math.floor(sr * 2.4), ir = ctx.createBuffer(2, n, sr);
+    for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); let lp = 0; for (let i = 0; i < n; i++) { const t = i / n; lp += ((Math.random() * 2 - 1) - lp) * (.9 - .75 * t); d[i] = lp * Math.pow(1 - t, 2.6); } }
+    const conv = ctx.createConvolver(); conv.buffer = ir;
+    wet = ctx.createGain(); wet.gain.value = .55; wet.connect(conv); conv.connect(out);
+    const nb = ctx.createBuffer(1, sr * 3, sr), nd = nb.getChannelData(0);
+    for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+    noise = nb;
+  }
+  const on = () => VIEW === 'stage' && Settings.get().sfx && !Music.muted && !Director.reduced;
+  const vol = () => (Settings.get().vol.sfx ?? 70) / 100 * Settings.get().vol.master / 100;
+  const fired = [];
+  const ready = (name) => { const ok = on() && ensure() && ctx.state === 'running'; if (ok && name) { fired.push([name, Math.round(now())]); if (fired.length > 40) fired.shift(); } return ok; };
+
+  /* building blocks */
+  function voice(gain, { pan = 0, send = 0 } = {}) {
+    const g = ctx.createGain(); g.gain.value = 0;
+    let node = g;
+    if (pan && ctx.createStereoPanner) { const p = ctx.createStereoPanner(); p.pan.value = pan; g.connect(p); node = p; }
+    node.connect(out);
+    if (send) { const s = ctx.createGain(); s.gain.value = send; node.connect(s); s.connect(wet); }
+    g.peak = gain * vol();
+    return g;
+  }
+  function noiseSrc(t0, dur) { const s = ctx.createBufferSource(); s.buffer = noise; s.loop = true; s.loopStart = Math.random() * 2; s.start(t0, Math.random() * 2); s.stop(t0 + dur + .05); return s; }
+  function filt(type, f, q = .7) { const b = ctx.createBiquadFilter(); b.type = type; b.frequency.value = f; b.Q.value = q; return b; }
+  function env(param, t0, peak, attack, hold, release) {
+    param.setValueAtTime(0, t0);
+    param.linearRampToValueAtTime(peak, t0 + attack);
+    param.setValueAtTime(peak, t0 + attack + hold);
+    param.exponentialRampToValueAtTime(.0001, t0 + attack + hold + release);
+  }
+  function sub(t0, f0, f1, peak, dur, send = .3) {
+    const o = ctx.createOscillator(); o.type = 'sine';
+    o.frequency.setValueAtTime(f0, t0); o.frequency.exponentialRampToValueAtTime(f1, t0 + dur * .8);
+    const g = voice(peak, { send }); env(g.gain, t0, g.peak, .008, .02, dur);
+    o.connect(g); o.start(t0); o.stop(t0 + dur + .1);
+  }
+
+  /* era dissolve: air moving across the room, loudest where the two songs cross */
+  function whoosh(dur = 2.3, peakAt = .5, gain = .32) {
+    if (!ready('whoosh')) return;
+    const t0 = ctx.currentTime + .02, tp = t0 + dur * peakAt, t1 = t0 + dur;
+    const s = noiseSrc(t0, dur);
+    const bp = filt('bandpass', 260, 1.1);
+    bp.frequency.setValueAtTime(260, t0); bp.frequency.exponentialRampToValueAtTime(2300, tp); bp.frequency.exponentialRampToValueAtTime(520, t1);
+    const g = voice(gain, { send: .45 });
+    g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(g.peak * .25, t0 + (tp - t0) * .5); g.gain.linearRampToValueAtTime(g.peak, tp); g.gain.exponentialRampToValueAtTime(.0001, t1);
+    let tail = bp;
+    if (ctx.createStereoPanner) { const p = ctx.createStereoPanner(); p.pan.setValueAtTime(-.55, t0); p.pan.linearRampToValueAtTime(.55, t1); bp.connect(p); tail = p; }
+    s.connect(bp); tail.connect(g);
+    /* a low bed under it */
+    const s2 = noiseSrc(t0, dur), lp = filt('lowpass', 140, .5), g2 = voice(gain * .9);
+    g2.gain.setValueAtTime(0, t0); g2.gain.linearRampToValueAtTime(g2.peak, tp); g2.gain.exponentialRampToValueAtTime(.0001, t1);
+    s2.connect(lp); lp.connect(g2);
+  }
+  /* blackout: the big switch on the lighting board, the hall answering */
+  function lampOff(gain = .55) {
+    if (!ready('lampOff')) return;
+    const t0 = ctx.currentTime + .01;
+    const c = noiseSrc(t0, .05), hp = filt('highpass', 1800), gc = voice(gain * .8, { send: .5 }); env(gc.gain, t0, gc.peak, .001, .004, .045); c.connect(hp); hp.connect(gc);
+    const r = noiseSrc(t0, .25), bp = filt('bandpass', 620, 3), gr = voice(gain * .45, { send: .6 }); env(gr.gain, t0 + .004, gr.peak, .002, .01, .16); r.connect(bp); bp.connect(gr);
+    sub(t0, 92, 38, gain, .75, .7);
+  }
+  /* lights up: a carbon-arc follow spot striking, its hum settling */
+  function lampOn(gain = .4) {
+    if (!ready('lampOn')) return;
+    const t0 = ctx.currentTime + .01;
+    const c = noiseSrc(t0, .06), hp = filt('highpass', 2600), gc = voice(gain * .55, { send: .4 }); env(gc.gain, t0, gc.peak, .001, .006, .05); c.connect(hp); hp.connect(gc);
+    const f = noiseSrc(t0, .5), bp = filt('bandpass', 3400, 2.2), gf = voice(gain * .32, { send: .3 }); env(gf.gain, t0 + .01, gf.peak, .01, .04, .3); f.connect(bp); bp.connect(gf);
+    const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 100;
+    const lp = filt('lowpass', 320, .8), gh = voice(gain * .14, { send: .2 });
+    gh.gain.setValueAtTime(0, t0); gh.gain.linearRampToValueAtTime(gh.peak, t0 + .18); gh.gain.exponentialRampToValueAtTime(.0001, t0 + 1.9);
+    o.connect(lp); lp.connect(gh); o.start(t0); o.stop(t0 + 2);
+    sub(t0, 70, 50, gain * .7, .4, .3);
+  }
+  /* house lights coming up: the room filling, slow */
+  function house(dur = 1.8, gain = .3) {
+    if (!ready('house')) return;
+    const t0 = ctx.currentTime + .02, t1 = t0 + dur;
+    const s = noiseSrc(t0, dur + 2.6), lp = filt('lowpass', 260, .4), g = voice(gain, { send: .6 });
+    lp.frequency.setValueAtTime(260, t0); lp.frequency.exponentialRampToValueAtTime(2400, t1);
+    g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(g.peak, t1); g.gain.exponentialRampToValueAtTime(.0001, t1 + 2.5);
+    s.connect(lp); lp.connect(g);
+    sub(t0 + dur * .7, 55, 42, gain * .8, 1.6, .6);
+  }
+  /* a chapter card landing: one soft sub hit in the hall */
+  function boom(gain = .42) {
+    if (!ready('boom')) return;
+    const t0 = ctx.currentTime + .01;
+    sub(t0, 60, 36, gain, 1.7, .6);
+    const s = noiseSrc(t0, .4), lp = filt('lowpass', 700, .6), g = voice(gain * .5, { send: .7 }); env(g.gain, t0, g.peak, .004, .02, .32); s.connect(lp); lp.connect(g);
+  }
+  /* film leader: projector clatter (24 fps) with its motor */
+  function projector(dur = 2.6) {
+    if (!ready('projector')) return;
+    const sr = ctx.sampleRate, n = Math.floor(sr * dur), buf = ctx.createBuffer(1, n, sr), d = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) {
+      const t = i / sr, ph = (t * 24) % 1;
+      const click = ph < .09 ? (Math.random() * 2 - 1) * Math.exp(-ph * 55) : 0;
+      const gate = ((t * 24 + .5) % 1) < .05 ? (Math.random() * 2 - 1) * .35 : 0;
+      d[i] = click * .55 + gate * .25 + Math.sin(TAU * 48 * t) * .06 + Math.sin(TAU * 96 * t) * .025 + (Math.random() * 2 - 1) * .018;
+    }
+    const s = ctx.createBufferSource(); s.buffer = buf;
+    const bp = filt('bandpass', 1400, .6), lo = filt('lowpass', 5200);
+    const g = voice(.8, { send: .15 }); const t0 = ctx.currentTime;
+    g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(g.peak, t0 + .12); g.gain.setValueAtTime(g.peak, t0 + dur - .5); g.gain.linearRampToValueAtTime(0, t0 + dur);
+    s.connect(bp); bp.connect(lo); lo.connect(g); s.start();
+  }
+  /* the reel running out: clatter slowing to a stop */
+  function runout(dur = 1.4) {
+    if (!ready('runout')) return;
+    const sr = ctx.sampleRate, n = Math.floor(sr * dur), buf = ctx.createBuffer(1, n, sr), d = buf.getChannelData(0);
+    let ph = 0;
+    for (let i = 0; i < n; i++) {
+      const t = i / sr, rate = 24 * Math.pow(1 - t / dur, 1.6) + 2;
+      ph += rate / sr; const p = ph % 1;
+      d[i] = (p < .1 ? (Math.random() * 2 - 1) * Math.exp(-p * 50) * .6 : 0) + Math.sin(TAU * 48 * (1 - t / dur * .5) * t) * .05 * (1 - t / dur);
+    }
+    const s = ctx.createBufferSource(); s.buffer = buf;
+    const bp = filt('bandpass', 1200, .6), g = voice(.6, { send: .2 }); const t0 = ctx.currentTime;
+    g.gain.setValueAtTime(g.peak, t0); g.gain.linearRampToValueAtTime(0, t0 + dur);
+    s.connect(bp); bp.connect(g); s.start();
+  }
+  /* the clapperboard closing: a dry wooden crack with a short ring and the hall behind it */
+  function clap(gain = .75) {
+    if (!ready('clap')) return;
+    const t0 = ctx.currentTime + .005;
+    const c = noiseSrc(t0, .09), bp = filt('bandpass', 2600, .9), gc = voice(gain, { send: .35 }); env(gc.gain, t0, gc.peak, .0008, .003, .055); c.connect(bp); bp.connect(gc);
+    const lo = noiseSrc(t0, .12), lp = filt('lowpass', 900, .7), gl = voice(gain * .55, { send: .4 }); env(gl.gain, t0, gl.peak, .001, .004, .08); lo.connect(lp); lp.connect(gl);
+    [[1180, .2], [1960, .12], [3100, .07]].forEach(([f, g]) => {
+      const o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.value = f;
+      const gv = voice(gain * g, { send: .3 }); env(gv.gain, t0, gv.peak, .001, .002, .07); o.connect(gv); o.start(t0); o.stop(t0 + .12);
+    });
+  }
+  /* the voice as a drum kit (Off the Wall): a falsetto "hoo", a breath, the vocal hiccup.
+     A saw through two vowel formants reads as a voice; the falsetto sits on B, the key of the song under it. */
+  function vowel(t0, f0, f1, dur, F, gain, send = .45) {
+    const o = ctx.createOscillator(); o.type = 'sawtooth';
+    o.frequency.setValueAtTime(f0, t0); o.frequency.linearRampToValueAtTime(f1, t0 + dur * .7);
+    const vib = ctx.createOscillator(), vg = ctx.createGain(); vib.frequency.value = 5.6; vg.gain.value = f0 * .012; vib.connect(vg); vg.connect(o.frequency);
+    const g = voice(gain, { send });
+    F.forEach(([f, q, a]) => { const b = filt('bandpass', f, q), ga = ctx.createGain(); ga.gain.value = a; o.connect(b); b.connect(ga); ga.connect(g); });
+    g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(g.peak, t0 + Math.min(.09, dur * .2)); g.gain.setValueAtTime(g.peak, t0 + dur * .6); g.gain.exponentialRampToValueAtTime(.0001, t0 + dur);
+    o.start(t0); vib.start(t0); o.stop(t0 + dur + .05); vib.stop(t0 + dur + .05);
+  }
+  function falsetto(gain = .5) {
+    if (!ready('falsetto')) return;
+    const t0 = ctx.currentTime + .01;
+    vowel(t0, 880, 987.8, 1.05, [[330, 5, 1], [880, 7, 1.4], [2600, 6, .25]], gain, .6);
+    const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.setValueAtTime(880, t0); o.frequency.linearRampToValueAtTime(987.8, t0 + .7);
+    const g = voice(gain * .35, { send: .6 }); env(g.gain, t0, g.peak, .08, .55, .4); o.connect(g); o.start(t0); o.stop(t0 + 1.1);
+  }
+  function breath(gain = .55) {
+    if (!ready('breath')) return;
+    const t0 = ctx.currentTime + .01;
+    const n = noiseSrc(t0, 1.1), bp = filt('bandpass', 1700, .6), hp = filt('highpass', 500), g = voice(gain, { send: .35 });
+    bp.frequency.setValueAtTime(1300, t0); bp.frequency.linearRampToValueAtTime(2300, t0 + .45);
+    g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(g.peak, t0 + .42); g.gain.linearRampToValueAtTime(g.peak * .15, t0 + .5);
+    g.gain.linearRampToValueAtTime(g.peak * .5, t0 + .62); g.gain.exponentialRampToValueAtTime(.0001, t0 + 1.05);
+    n.connect(hp); hp.connect(bp); bp.connect(g);
+  }
+  function hiccup(gain = .6) {
+    if (!ready('hiccup')) return;
+    const t0 = ctx.currentTime + .01;
+    [0, .21].forEach((dt, k) => {
+      const t = t0 + dt;
+      const c = noiseSrc(t, .03), hp = filt('highpass', 2400), gc = voice(gain * .5, { send: .2 }); env(gc.gain, t, gc.peak, .001, .002, .02); c.connect(hp); hp.connect(gc);
+      vowel(t + .004, k ? 700 : 760, 330, .11, [[310, 6, 1], [2300, 8, 1.1], [3000, 6, .4]], gain, .25);
+    });
+  }
+  /* a footstep on a wooden stage: heel, then the sole; wet = a rainy street, slide = the moonwalk's glide */
+  function step({ gain = .3, pan = 0, wet = false, slide = false } = {}) {
+    if (!ready(slide ? 'slide' : 'step')) return;
+    const t0 = ctx.currentTime + .005, r = .85 + Math.random() * .3, P = { pan: clamp(pan, -.8, .8), send: .25 };
+    if (slide) {
+      const n = noiseSrc(t0, .4), bp = filt('bandpass', 1500 * r, .8), g = voice(gain * .55, P);
+      g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(g.peak, t0 + .08); g.gain.exponentialRampToValueAtTime(.0001, t0 + .36);
+      n.connect(bp); bp.connect(g); return;
+    }
+    const o = ctx.createOscillator(); o.type = 'sine';
+    o.frequency.setValueAtTime(110 * r, t0); o.frequency.exponentialRampToValueAtTime(52, t0 + .07);
+    const gh = voice(gain, P); env(gh.gain, t0, gh.peak, .002, .004, .09); o.connect(gh); o.start(t0); o.stop(t0 + .14);
+    const n = noiseSrc(t0, .16), lp = filt(wet ? 'bandpass' : 'lowpass', wet ? 2600 : 1400 * r, wet ? 1.2 : .7), gn = voice(gain * (wet ? .7 : .55), P);
+    env(gn.gain, t0 + .012, gn.peak, .003, .01, wet ? .14 : .07); n.connect(lp); lp.connect(gn);
+    if (!wet) { const s2 = noiseSrc(t0 + .07, .1), l2 = filt('lowpass', 900, .6), g2 = voice(gain * .3, P); env(g2.gain, t0 + .07, g2.peak, .004, .01, .06); s2.connect(l2); l2.connect(g2); }
+  }
+  function staticBurst(dur = .55) {
+    if (!ready('staticBurst')) return;
+    const t0 = ctx.currentTime;
+    const s = noiseSrc(t0, dur), hp = filt('highpass', 900), g = voice(.28);
+    g.gain.setValueAtTime(g.peak, t0); g.gain.exponentialRampToValueAtTime(.001, t0 + dur);
+    s.connect(hp); hp.connect(g);
+  }
+
+  /* a scene change, matched to how the picture changes (timings from the director) */
+  function transition(kind, sc) {
+    if (!on()) return;
+    if (kind === 'blackout') { setTimeout(() => lampOff(), 480); setTimeout(() => lampOn(), 1040); return; }
+    if (kind === 'houselights') { house(1.8); return; }
+    whoosh(sc && sc.act === 0 ? 1.9 : 2.3, .5, sc && sc.act === 0 ? .22 : .32);
+    if (sc && sc.chapter) setTimeout(() => boom(.36), 1250);
+  }
+
+  /* a media element through Web Audio (volume that works on iOS); null when the context is not running yet */
+  function route(el) {
+    try {
+      if (!ensure() || ctx.state !== 'running' || el.__routed) return null;
+      const src = ctx.createMediaElementSource(el), g = ctx.createGain(); g.gain.value = 0;
+      src.connect(g); g.connect(ctx.destination); el.__routed = true;
+      return g;
+    } catch (e) { return null; }
+  }
+  return { fired, ensure, route, transition, clap, step, falsetto, breath, hiccup, whoosh, lampOff, lampOn, house, boom, projector, runout, staticBurst, get state() { return ctx ? ctx.state : 'none'; } };
+})();
+</script>

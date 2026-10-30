@@ -1,0 +1,192 @@
+<style>
+/* ── interaction layer: the clicker drives the show; the pointer may explore it ── */
+.scene * { pointer-events: none; }
+.scene .tilt, .scene .hov { pointer-events: auto; }
+.scene .tilt *, .scene .hov *, .scene .int *, .scene .drag * { pointer-events: none; }
+.scene .int, .scene .drag, .scene .tilt .int, .scene .tilt .drag, .scene .hov .int, .scene .hov .drag { pointer-events: auto; }
+/* nothing that is faded out may catch the pointer */
+.scene .rv:not(.on) .tilt, .scene .rv:not(.on) .hov, .scene .rv:not(.on) .int, .scene .rv:not(.on) .drag, .scene .rv:not(.on) .fg-hit,
+.scene .rv.tilt:not(.on), .scene .rv.int:not(.on), .scene .rv.drag:not(.on), .scene .rv.hov:not(.on) { pointer-events: none !important; }
+/* on a phone the stage is for watching: taps anywhere turn the page, nothing on stage swallows them */
+/* touch: tilting and hover pieces react to a mouse only; anything you can click or drag on the desktop is tappable on a phone */
+#stage.touch .scene .tilt, #stage.touch .scene .hov { pointer-events: none !important; }
+#stage.touch .scene .int, #stage.touch .scene .drag, #stage.touch .scene .fg-hit { pointer-events: auto; }
+#stage.touch .scene .drag { touch-action: none; }
+.scene .int { cursor: pointer; }
+.scene .drag { cursor: grab; touch-action: none; }
+.scene .drag:active, .scene .drag.grabbing { cursor: grabbing; }
+#vp.idle .scene .int, #vp.idle .scene .drag { cursor: none; }
+
+.figbox { width: 0; height: 0; }
+.pool { position: absolute; border-radius: 50%; translate: -50% -50%; background: radial-gradient(ellipse at 50% 50%, rgba(255, 214, 160, .2), rgba(255, 190, 120, .07) 48%, transparent 70%); }
+
+/* depth layers drift against the pointer. They carry no transform at rest: a full-screen layer with a 3D
+   transform is its own composited layer, and on Safari each one costs (1920×1080 × pixel ratio²) of memory */
+.layer { position: absolute; inset: 0; }
+.scene.px-live > .layer { will-change: transform; }
+#stage.reduced .layer { transform: none !important; }
+
+/* cards that lean toward the pointer (3D only while the pointer is on them) */
+.tilt { transition: transform .7s var(--e-stage); }
+.tilt.hot { transform: perspective(1200px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition-duration: .16s; }
+.tilt > .glare { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 9; opacity: 0; transition: opacity .5s ease;
+  background: radial-gradient(circle at var(--gx, 50%) var(--gy, 30%), rgba(255, 250, 240, .26), rgba(255, 250, 240, .06) 28%, transparent 58%); mix-blend-mode: screen; }
+.tilt.hot > .glare { opacity: 1; }
+#stage.reduced .tilt { transform: none !important; }
+
+/* a whisper that appears next to things you can touch, only while the pointer is moving */
+.itip { position: absolute; z-index: 30; padding: 7px 14px 7px 12px; border-radius: 999px; border: 1px solid rgba(255, 220, 170, .35); background: rgba(10, 8, 6, .62);
+  font: 500 19px/1 var(--f-ko); color: rgba(255, 233, 200, .86); white-space: nowrap; opacity: 0; translate: -50% 8px; transition: opacity .5s ease, translate .5s var(--e-stage); pointer-events: none !important; }
+.itip .zh { font-family: var(--f-zh); }
+.itip::before { content: ''; display: inline-block; width: 8px; height: 8px; margin-right: 9px; border-radius: 50%; background: var(--acc); box-shadow: 0 0 10px var(--acc); vertical-align: 1px; }
+#stage.pointing .scene.active .itip.on::before { animation: itipP 1.6s ease-in-out infinite; }
+@keyframes itipP { 50% { opacity: .35; } }
+#stage.pointing .scene.active .itip.on { opacity: 1; translate: -50% 0; }
+</style>
+
+<script>
+/* where the stage sits in the window (written by App.fit). Pointer maths uses this rather than
+   getBoundingClientRect, whose meaning under CSS zoom differs between browsers and versions. */
+const StageFit = { s: 1, ox: 0, oy: 0 };
+/* an element's box in stage coordinates, from layout (offset* plus CSS translate; reveal transforms ignored).
+   Right under transform or zoom scaling alike. */
+function stageBox(el) {
+  const shift = (e) => {
+    const t = getComputedStyle(e).translate;
+    if (!t || t === 'none') return [0, 0];
+    const [a, b = '0px'] = t.split(' '), v = (s, size) => s.endsWith('%') ? parseFloat(s) / 100 * size : parseFloat(s) || 0;
+    return [v(a, e.offsetWidth), v(b, e.offsetHeight)];
+  };
+  let x = 0, y = 0;
+  for (let e = el; e && e.id !== 'stage' && !e.classList.contains('scene'); e = e.offsetParent) { const [sx, sy] = shift(e); x += e.offsetLeft + sx; y += e.offsetTop + sy; }
+  return { x, y, w: el.offsetWidth, h: el.offsetHeight };
+}
+
+/* ═══ POINTER — stage-space pointer, shared by parallax, tilt, torch and drag ═══ */
+const Pointer = (() => {
+  const stage = $('#stage');
+  const P = { x: W / 2, y: H / 2, nx: 0, ny: 0, px: 0, py: 0, t: -1e9, type: '', inside: false };
+  const live = VIEW === 'stage';
+  const toStage = (cx, cy) => [(cx - StageFit.ox) / StageFit.s, (cy - StageFit.oy) / StageFit.s];
+  function move(e) {
+    const [x, y] = toStage(e.clientX, e.clientY);
+    P.x = x; P.y = y; P.nx = clamp(x / W * 2 - 1, -1, 1); P.ny = clamp(y / H * 2 - 1, -1, 1);
+    P.inside = x >= 0 && x <= W && y >= 0 && y <= H; P.type = e.pointerType || 'mouse'; P.t = now();
+    Loop.kick();
+  }
+  if (live) {
+    window.addEventListener('pointermove', move, { passive: true });
+    window.addEventListener('pointerdown', move, { passive: true });
+    document.documentElement.addEventListener('pointerleave', () => { P.inside = false; });
+  }
+  const blocked = () => (typeof Panel !== 'undefined' && Panel.isOpen()) || (typeof Overview !== 'undefined' && Overview.open);
+  const active = (ms = 3000) => live && P.inside && P.type !== 'touch' && now() - P.t < ms && !Director.reduced && !blocked();
+  /* parallax: only the active scene's layers move, by an inline transform, and only while the pointer is about;
+     at rest they have no transform at all (no compositing, no style work on the other scenes) */
+  let lx = 0, ly = 0, wasPointing = false, curSc = null, layers = [];
+  const settle = () => { layers.forEach(([l]) => { l.style.transform = ''; }); if (curSc) curSc.classList.remove('px-live'); };
+  Loop.add(() => {
+    const a = active(4000) && Q.tier !== 'low';
+    P.px += ((a ? P.nx : 0) - P.px) * .045; P.py += ((a ? P.ny : 0) - P.py) * .045;
+    const sc = $('.scene.active', stage);
+    if (sc !== curSc) { settle(); curSc = sc; layers = sc ? $$(':scope > .layer', sc).map(l => [l, parseFloat(l.style.getPropertyValue('--dp')) || 0]) : []; lx = ly = 0; }
+    const resting = Math.abs(P.px) < .0006 && Math.abs(P.py) < .0006;
+    if (resting) { if (lx || ly) { lx = ly = 0; settle(); } }
+    else if (Math.abs(P.px - lx) > .0004 || Math.abs(P.py - ly) > .0004) {
+      lx = P.px; ly = P.py; if (curSc) curSc.classList.add('px-live');
+      layers.forEach(([l, dp]) => { l.style.transform = `translate(${(P.px * dp * 28).toFixed(2)}px, ${(P.py * dp * 16).toFixed(2)}px)`; });
+    }
+    const pointing = active(2600);
+    if (pointing !== wasPointing) { wasPointing = pointing; stage.classList.toggle('pointing', pointing); }
+  });
+  return { P, active, toStage, live };
+})();
+
+/* ═══ TILT — cards lean toward the pointer, with a moving glare ═══ */
+(() => {
+  if (VIEW !== 'stage') return;
+  const root = $('#scenes');
+  let cur = null;
+  const reset = (t) => { t.classList.remove('hot'); t.style.setProperty('--rx', '0deg'); t.style.setProperty('--ry', '0deg'); };
+  let box = null;
+  root.addEventListener('pointermove', (e) => {
+    if (e.pointerType === 'touch' || Director.reduced) return;
+    const t = e.target.closest && e.target.closest('.tilt');
+    if (t !== cur) { if (cur) reset(cur); cur = t; box = t ? stageBox(t) : null; }
+    if (!t || !box || !box.w || !box.h) return;
+    const [sx, sy] = Pointer.toStage(e.clientX, e.clientY);
+    const u = clamp((sx - box.x) / box.w, 0, 1), v = clamp((sy - box.y) / box.h, 0, 1), m = +(t.dataset.tilt || 10);
+    t.style.setProperty('--ry', ((u - .5) * 2 * m).toFixed(2) + 'deg'); t.style.setProperty('--rx', (-(v - .5) * 2 * m * .8).toFixed(2) + 'deg');
+    t.style.setProperty('--gx', (u * 100).toFixed(1) + '%'); t.style.setProperty('--gy', (v * 100).toFixed(1) + '%');
+    t.classList.add('hot');
+  }, { passive: true });
+  root.addEventListener('pointerleave', () => { if (cur) reset(cur); cur = null; });
+})();
+/* make an element a tilt card (adds the glare) */
+function tiltify(el, max) { el.classList.add('tilt'); if (max) el.dataset.tilt = max; if (!el.querySelector(':scope > .glare')) el.append(h('div.glare')); return el; }
+
+/* ═══ TORCH — a soft hand-held light that follows the pointer through the dark ═══
+   'soft' while exploring; 'full' when the finale hands the light to the audience. */
+const Torch = (() => {
+  let level = 0, x = W / 2, y = H / 2, full = 0, fullTarget = 0, off = null, glowOff = null;
+  const R0 = 165, R1 = 330;
+  let on = store.get('torch', true);
+  const enabled = () => Pointer.live && on;
+  function cut(c) {
+    if (level < .02) return;
+    const r = lerp(R0, R1, full), a = lerp(.7, 1, full) * level;
+    const g = c.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, `rgba(0,0,0,${a})`); g.addColorStop(.45, `rgba(0,0,0,${a * .82})`); g.addColorStop(.8, `rgba(0,0,0,${a * .3})`); g.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = g; c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill();
+  }
+  function glow(c) {
+    if (level < .02) return;
+    const r = lerp(R0, R1, full) * 1.25, col = Light.tint(Light.S.warm);
+    const g = c.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, Light.rgba(col, .07 * level * (1 + full))); g.addColorStop(.75, Light.rgba(col, .035 * level)); g.addColorStop(.82, Light.rgba(col, .05 * level * full)); g.addColorStop(1, Light.rgba(col, 0));
+    c.fillStyle = g; c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill();
+  }
+  Loop.add(() => {
+    const want = enabled() && Pointer.active(full > .5 ? 6000 : 2400) ? 1 : 0;
+    level += (want - level) * (want > level ? .12 : .06);
+    full += (fullTarget - full) * .05;
+    const P = Pointer.P;
+    x += (P.x - x) * .2; y += (P.y - y) * .2;
+    /* the torch's layers redraw the light every frame, so they are dropped as soon as it is too faint to see */
+    if (level > .02 && !off) { off = Light.maskLayer(cut); glowOff = Light.glowLayer(glow); }
+    if (level <= .02 && want === 0 && off) { off(); glowOff(); off = glowOff = null; level = 0; Light.touch(); }
+  });
+  return {
+    setFull(v) { fullTarget = v ? 1 : 0; },
+    get level() { return level; }, get x() { return x; }, get y() { return y; },
+    toggle() { on = !on; store.set('torch', on); return on; },
+  };
+})();
+
+/* ═══ DRAG — pointer-captured dragging in stage coordinates ═══ */
+function draggable(el, { down, move, up } = {}) {
+  el.classList.add('drag');
+  el.addEventListener('pointerdown', (e) => {
+    if (!Pointer.live || e.button > 0) return;
+    e.preventDefault(); e.stopPropagation();
+    try { el.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+    el.classList.add('grabbing');
+    const [x0, y0] = Pointer.toStage(e.clientX, e.clientY);
+    down && down(x0, y0, e);
+    const mv = (ev) => { const [x, y] = Pointer.toStage(ev.clientX, ev.clientY); move && move(x, y, x - x0, y - y0, ev); };
+    const end = (ev) => { el.classList.remove('grabbing'); el.removeEventListener('pointermove', mv); el.removeEventListener('pointerup', end); el.removeEventListener('pointercancel', end); up && up(ev); };
+    el.addEventListener('pointermove', mv); el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
+  });
+  return el;
+}
+/* a click target that never advances the show */
+function clickable(el, fn) {
+  el.classList.add('int');
+  el.addEventListener('click', (e) => { if (!Pointer.live) return; e.stopPropagation(); fn(e); });
+  return el;
+}
+/* an interaction whisper: '드래그해 보세요' near an interactive thing */
+function itip(x, y, label, show) { const t = A('div.itip', x, y, { anchor: '' }, T(label)); if (show != null) t.dataset.tipShow = show; return t; }
+/* depth layer helper */
+function layer(depth, ...kids) { const l = h('div.layer', { style: { '--dp': depth } }); l.append(...kids.flat().filter(Boolean)); return l; }
+</script>

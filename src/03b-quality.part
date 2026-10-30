@@ -1,0 +1,71 @@
+<style>
+/* ── quality tiers ──
+   RULE: a tier changes how much a feature costs, never whether it is there. The phone (low tier) shows everything the
+   desktop shows: grain, overlays, colour grade, particles, 3D entrances, twinkles, tappable pieces — drawn cheaper.
+   tests/parity.js compares desktop and phone beat by beat and fails if the phone is missing anything.
+   high      every effect, moving grain and light leaks, blend modes
+   standard  grain and leaks hold still, plain blending for the light layers, half the particles
+   low       phones: no blend modes (each would need a full-stage offscreen surface), no SVG filters on figures,
+             particles at a third and 20 fps; overlays are toned down so plain blending reads like the real thing */
+#stage:not(.q-high) #grain, #stage:not(.q-high) #ov-leak::before, #stage:not(.q-high) #ov-leak::after, #stage:not(.q-high) #ov-scan::after { animation: none !important; }
+#stage:not(.q-high) #glow, #stage:not(.q-high) #fx { mix-blend-mode: normal; }
+#stage.q-low #ov-leak, #stage.q-low #ov-cold, #stage.q-low #ov-warm, #stage.q-low #grade { mix-blend-mode: normal !important; }
+#stage.q-low #ov-leak::before, #stage.q-low #ov-leak::after { opacity: .55; }
+#stage.q-low #ov-cold { background: linear-gradient(180deg, rgba(120, 140, 170, .07), rgba(40, 50, 70, .14)); }
+#stage.q-low #ov-warm { background: radial-gradient(ellipse 80% 70% at 50% 75%, rgba(255, 168, 70, .16), transparent 72%); }
+#stage.q-low #grade { opacity: .55 !important; }
+/* figures carry their own SVG filters; the rest of the page keeps its CSS filters (photo toning, glows) */
+#stage.q-low .fig *:not(.fg-fx) { filter: none !important; }
+#stage.q-low #glow { opacity: .8; }
+</style>
+
+<script>
+/* ═══ QUALITY — what this device can afford ═══
+   Picked once at start (URL ?q=… · the setting · phone → low · Safari → standard · otherwise high, or what this
+   device was lowered to last time), then lowered one step at a time by the frame monitor if the show stutters. */
+const WEBKIT = /Apple/.test(navigator.vendor || '');
+/* WebKit sizes every composited layer by the device pixel ratio alone and ignores CSS transform scale, so on
+   Safari / iOS the stage is scaled with `zoom` (layers get the size they are drawn at). ?zoom=0 / ?zoom=1 forces it. */
+const ZOOMED = /[?&]zoom=1/.test(location.search) || (WEBKIT && !/[?&]zoom=0/.test(location.search));
+const Q = (() => {
+  const TIERS = ['high', 'standard', 'low'];
+  const P = {
+    high: { canvasMax: 1, fx: 1, fxRes: .6, fxFps: 30, disco: true },
+    standard: { canvasMax: .75, fx: .5, fxRes: .5, fxFps: 24, disco: false },
+    low: { canvasMax: .6, fx: .34, fxRes: .4, fxFps: 20, disco: false },
+  };
+  const NAME = { high: '高', standard: '标准', low: '省电' };
+  const url = (location.search.match(/[?&]q=(high|standard|low)/) || [])[1];
+  const subs = new Set();
+  let tier = 'high', why = '';
+  function pick() {
+    const pref = (Settings.get().quality || 'auto');
+    const saved = store.get('qauto', null);
+    if (url) { tier = url; why = '网址参数'; }
+    else if (VIEW === 'preview') { tier = 'low'; why = '预览窗口'; }
+    else if (pref !== 'auto' && TIERS.includes(pref)) { tier = pref; why = '手动设置'; }
+    else if (LITE) { tier = 'low'; why = '自动 · 手机 / 平板'; }
+    else if (saved && TIERS.includes(saved.tier)) { tier = saved.tier; why = `自动 · 这台电脑上次检测到约 ${saved.fps} fps`; }
+    else { tier = WEBKIT ? 'standard' : 'high'; why = WEBKIT ? '自动 · Safari' : '自动'; }
+    apply();
+  }
+  function apply() {
+    const st = $('#stage'); if (!st) return;
+    TIERS.forEach(t => st.classList.toggle('q-' + t, t === tier));
+    subs.forEach(f => { try { f(tier); } catch (e) { console.error(e); } });
+  }
+  return {
+    get tier() { return tier; }, get why() { return why; }, get p() { return P[tier]; }, get name() { return NAME[tier]; },
+    TIERS, NAME, pick, on(f) { subs.add(f); return () => subs.delete(f); },
+    /* may the frame monitor lower the tier on its own? */
+    auto: () => !url && VIEW === 'stage' && (Settings.get().quality || 'auto') === 'auto' && tier !== 'low',
+    step(fps) {
+      const i = TIERS.indexOf(tier); if (i >= TIERS.length - 1) return false;
+      tier = TIERS[i + 1]; why = `自动 · 检测到约 ${fps} fps，已降一级`;
+      store.set('qauto', { tier, fps, at: Date.now() });
+      apply(); return true;
+    },
+    forget() { store.del('qauto'); },
+  };
+})();
+</script>

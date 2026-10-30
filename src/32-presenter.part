@@ -1,0 +1,196 @@
+<style>
+/* presenter view (laptop screen) */
+body.pv-mode { overflow: auto; background: #0d0b09; }
+body.pv-mode #vp, body.pv-mode #hint { display: none; }
+#pv { min-height: 100vh; display: grid; grid-template-rows: auto 1fr auto; gap: 14px; padding: 14px max(16px, env(safe-area-inset-right, 0px)) 14px max(16px, env(safe-area-inset-left, 0px)); }
+.pv-top { display: flex; align-items: stretch; gap: 10px; flex-wrap: wrap; }
+.pv-stat { background: var(--o-bg2); border: 1px solid var(--o-line); border-radius: 12px; padding: 10px 16px; min-width: 120px; }
+.pv-stat small { display: block; color: var(--o-dim); font-size: 12px; letter-spacing: .06em; }
+.pv-stat b { display: block; font: 600 30px/1.1 var(--f-mono); letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+.pv-stat.dev b { font-size: 26px; }
+.pv-stat.dev.slow b { color: var(--o-warn); } .pv-stat.dev.late b { color: var(--o-bad); } .pv-stat.dev.fast b { color: #8fc6ff; }
+.pv-stat.dev em { font-style: normal; font: 500 13px/1 var(--f-zh); margin-left: 6px; color: inherit; }
+.pv-conn { display: flex; align-items: center; gap: 8px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--o-line); color: var(--o-dim); }
+.pv-conn i { width: 10px; height: 10px; border-radius: 50%; background: var(--o-bad); }
+.pv-conn.ok i { background: var(--o-ok); box-shadow: 0 0 10px var(--o-ok); }
+.pv-spacer { flex: 1; }
+.pv-top .row { align-self: center; }
+.pv-main { display: grid; grid-template-columns: minmax(230px, 280px) minmax(0, 1fr) minmax(300px, 400px); gap: 14px; min-height: 0; }
+@media (max-width: 1100px) { .pv-main { grid-template-columns: 1fr; } }
+.pv-card { background: var(--o-bg2); border: 1px solid var(--o-line); border-radius: 14px; padding: 16px; min-width: 0; }
+.pv-scene .sn { color: var(--o-dim); font: 500 12px/1 var(--f-mono); letter-spacing: .1em; }
+.pv-scene .st { margin-top: 6px; font: 600 24px/1.25 var(--f-ko-h); }
+.pv-scene .st small { display: block; font: 400 14px/1.4 var(--f-zh); color: var(--o-dim); }
+.pv-dots { display: flex; flex-wrap: wrap; gap: 6px; margin: 14px 0; }
+.pv-dots i { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid #5a5042; }
+.pv-dots i.done { background: #5a5042; }
+.pv-dots i.cur { background: var(--o-acc); border-color: var(--o-acc); box-shadow: 0 0 10px rgba(255, 207, 135, .6); }
+.pv-dots i.cut { border-style: dashed; }
+.pv-dots i.skip { opacity: .3; }
+.pv-budget { height: 10px; border-radius: 6px; background: #2b251e; overflow: hidden; }
+.pv-budget i { display: block; height: 100%; width: 0; background: var(--o-ok); transition: width .3s linear, background .3s; }
+.pv-budget.near i { background: var(--o-warn); } .pv-budget.over i { background: var(--o-bad); }
+.pv-blabel { display: flex; justify-content: space-between; margin-top: 6px; font: 500 12.5px/1 var(--f-mono); color: var(--o-dim); }
+.pv-list { margin-top: 16px; display: flex; flex-direction: column; gap: 2px; max-height: 46vh; overflow: auto; }
+.pv-list button { appearance: none; display: grid; grid-template-columns: 26px minmax(0, 1fr) 48px 48px; align-items: center; gap: 6px; text-align: left; background: transparent; border: 0; border-radius: 8px; padding: 6px 8px; cursor: pointer; color: var(--o-ink); }
+.pv-list button:hover { background: var(--o-bg3); }
+.pv-list button.cur { background: rgba(255, 207, 135, .12); }
+.pv-list .n { font: 500 11px/1 var(--f-mono); color: var(--o-dim); }
+.pv-list .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13.5px; }
+.pv-list .bd, .pv-list .ac { font: 500 11.5px/1 var(--f-mono); color: var(--o-dim); text-align: right; }
+.pv-list .ac.over { color: var(--o-bad); } .pv-list .ac.ok { color: var(--o-ok); }
+.pv-script .tag { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; color: var(--o-dim); font-size: 13px; }
+.pv-script .tag b { font: 600 22px/1 var(--f-ko); color: var(--o-acc); }
+.pv-script .tag .cutmark { color: var(--o-warn); border: 1px solid rgba(242, 194, 92, .4); border-radius: 6px; padding: 1px 7px; }
+.pv-ko { margin-top: 14px; font: 500 clamp(24px, 2.35vw, 40px)/1.55 var(--f-ko); letter-spacing: -.005em; word-break: keep-all; }
+.pv-ko.silent { color: var(--o-dim); }
+.pv-zh { margin-top: 12px; font: 400 clamp(15px, 1.25vw, 20px)/1.6 var(--f-zh); color: var(--o-dim); }
+.pv-note { margin-top: 14px; padding: 10px 12px; border-radius: 10px; background: rgba(242, 194, 92, .1); border: 1px solid rgba(242, 194, 92, .3); color: #f6d891; font-size: 14px; }
+.pv-next { margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--o-line); color: #7d7262; }
+.pv-next .nt { font: 500 12.5px/1.4 var(--f-zh); }
+.pv-next .nk { margin-top: 6px; font: 400 clamp(16px, 1.4vw, 22px)/1.5 var(--f-ko); color: #8d826f; word-break: keep-all; }
+.pv-prev-frame { position: relative; width: 100%; aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden; background: #000; border: 1px solid var(--o-line); }
+.pv-prev-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; pointer-events: none; }
+.pv-prev-frame .pl { position: absolute; left: 10px; top: 8px; font: 600 11px/1 var(--f-mono); letter-spacing: .2em; color: rgba(255,255,255,.7); text-shadow: 0 1px 4px #000; z-index: 2; }
+.pv-media { margin-top: 14px; display: flex; flex-direction: column; gap: 12px; }
+.pv-media .mr { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pv-media .mt { font-weight: 500; }
+.pv-meter { flex: 1; min-width: 80px; height: 6px; border-radius: 4px; background: #2b251e; overflow: hidden; }
+.pv-meter i { display: block; height: 100%; background: var(--o-acc); width: 0; transition: width .2s linear; }
+.pv-bottom { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.pv-bottom .big { font-size: 18px; padding: 14px 26px; border-radius: 12px; }
+.pv-bottom .btn.on { border-color: var(--o-acc); color: var(--o-acc); }
+</style>
+
+<script>
+/* ═══ PRESENTER VIEW (#presenter) ═══ */
+const Presenter = (() => {
+  let st = null, lastMsg = 0, root, els = {};
+  function mount() {
+    document.body.classList.add('pv-mode');
+    root = h('div#pv.op');
+    document.body.append(root);
+    const stat = (k, label) => { const e = h('div.pv-stat', {}, h('small', { text: label }), h('b', { text: '—' })); els[k] = e; return e; };
+    els.conn = h('div.pv-conn', {}, h('i'), h('span', { text: '未连接舞台' }));
+    const top = h('div.pv-top', {}, els.conn, stat('el', '总用时'), stat('rem', '剩余（上限 15:00）'), stat('dev', '节奏偏差'), stat('plan', '本拍计划'),
+      h('div.pv-spacer'),
+      h('div.row', {},
+        els.langBtn = h('button.btn', { type: 'button', text: '画面：韩文 (L)', on: { click: () => send('lang') } }),
+        els.trimBtn = h('button.btn', { type: 'button', text: '✂ 跳过：关', on: { click: () => Settings.set('trim', !Settings.get().trim) } }),
+        els.clockBtn = h('button.btn', { type: 'button', text: '暂停计时', on: { click: () => send(st && st.timer && st.timer.pausedAt == null && st.timer.start != null ? 'pause' : 'resume') } }),
+        h('button.btn', { type: 'button', text: '设置 (S)', on: { click: () => Panel.toggle() } })));
+    els.dev.classList.add('dev');
+    /* left */
+    els.sn = h('div.sn'); els.st = h('div.st'); els.dots = h('div.pv-dots');
+    els.budget = h('div.pv-budget', {}, h('i')); els.blabel = h('div.pv-blabel', {}, h('span'), h('span'));
+    els.list = h('div.pv-list', {}, ...SCENES.map((sc, i) => { const b = h('button', { type: 'button', on: { click: () => send('go', { beat: sc.first }) } }, h('span.n', { text: String(i).padStart(2, '0') }), h('span.nm', { text: sc.short.zh, title: sc.short.ko }), h('span.bd', { text: fmt(sc.budget) }), h('span.ac', { text: '' })); b.dataset.i = i; return b; }));
+    const left = h('div.pv-card.pv-scene', {}, els.sn, els.st, els.dots, els.budget, els.blabel, els.list);
+    /* center */
+    els.tag = h('div.tag'); els.ko = h('div.pv-ko'); els.zh = h('div.pv-zh'); els.note = h('div.pv-note', { hidden: true });
+    els.next = h('div.pv-next', {}, h('div.nt'), h('div.nk'));
+    const center = h('div.pv-card.pv-script', {}, els.tag, els.ko, els.zh, els.note, els.next);
+    /* right */
+    const frame = h('div.pv-prev-frame', {}, h('span.pl', { text: 'NEXT' }), h('iframe', { src: location.pathname + location.search + '#preview', title: '下一拍预览', tabindex: '-1' }));
+    els.music = h('div.mr'); els.video = h('div.mr'); els.cues = h('div.mr');
+    const right = h('div.pv-card', {}, frame, h('div.pv-media', {}, els.music, els.video, els.cues));
+    const main = h('div.pv-main', {}, left, center, right);
+    const bottom = h('div.pv-bottom', {},
+      h('button.btn.big', { type: 'button', text: '◀ 上一页', on: { click: () => send('prev') } }),
+      h('button.btn.big.pri', { type: 'button', text: '下一页 ▶', on: { click: () => send('next') } }),
+      els.blackBtn = h('button.btn', { type: 'button', text: '黑场 (B)', on: { click: () => send('black') } }),
+      els.muteBtn = h('button.btn', { type: 'button', text: '静音 (M)', on: { click: () => send('mute') } }),
+      h('button.btn', { type: 'button', text: '场景总览 (G)', on: { click: () => send('overview') } }),
+      h('button.btn', { type: 'button', text: '打开舞台窗口', on: { click: () => { const w = window.open(location.pathname + location.search, 'bts-stage'); if (!w) toast('浏览器拦截了弹窗：请手动在另一个标签页打开本页'); } } }),
+      h('span.muted', { style: { marginLeft: 'auto' }, html: '翻页器在这个窗口也能用 · <kbd>→</kbd> 下一页 <kbd>←</kbd> 上一页 <kbd>1</kbd>–<kbd>4</kbd> 提示点 <kbd>K</kbd> 播放 <kbd>C</kbd> 记录' }));
+    root.append(top, main, bottom);
+    Bus.on(onMsg);
+    Bus.on((m) => { if (m && m.type === 'toast') toast(m.html, m.ms, { local: true }); });
+    setInterval(() => Bus.send({ type: 'hello', from: 'presenter' }), 1000);
+    Bus.send({ type: 'hello', from: 'presenter' });
+    Loop.add(tick);
+    Settings.on(() => { computePlan(Scenes.rate()); render(); });
+    computePlan(Scenes.rate());
+    render();
+  }
+  function send(cmd, extra = {}) { Bus.send(Object.assign({ type: 'cmd', cmd }, extra)); }
+  function onMsg(m) {
+    if (!m || m.type !== 'state') return;
+    const changed = !st || st.beat !== m.beat || st.lang !== m.lang || st.trim !== m.trim;
+    st = m; lastMsg = Date.now();
+    if (changed) render(); else renderMedia();
+  }
+  function elapsed() { const t = st && st.timer; if (!t || t.start == null) return 0; return Math.max(0, ((t.pausedAt ?? Date.now()) - t.start - t.pausedTotal) / 1000); }
+  function tick() {
+    if (!root) return;
+    const ok = Date.now() - lastMsg < 2600;
+    els.conn.classList.toggle('ok', ok); els.conn.lastChild.textContent = ok ? '舞台已连接' : '未连接舞台';
+    const e = elapsed();
+    els.el.lastChild.textContent = fmt(e);
+    const rem = HARD_LIMIT - e; els.rem.lastChild.textContent = fmt(rem); els.rem.lastChild.style.color = rem < 60 ? 'var(--o-bad)' : '';
+    const b = st && BEATS[st.beat];
+    els.dev.classList.remove('slow', 'late', 'fast');
+    if (b && st.timer && st.timer.start != null) {
+      const enter = st.enteredAt ?? e;
+      const dev = Math.max(enter - b.planStart, e - b.planStart - b.planDur);
+      els.dev.lastChild.innerHTML = `${fmtSigned(dev)}<em>${Math.abs(dev) < 1 ? '准时' : dev > 0 ? '慢了' : '快了'}</em>`;
+      els.dev.classList.add(dev > 20 ? 'late' : dev > 5 ? 'slow' : dev < -5 ? 'fast' : 'x');
+      els.plan.lastChild.textContent = `${fmt(b.planStart)}–${fmt(b.planStart + b.planDur)}`;
+      const sc = SCENES[b.scene]; const used = e - (st.sceneEnteredAt ?? e);
+      const p = used / sc.budget; $('i', els.budget).style.width = Math.min(100, p * 100) + '%';
+      els.budget.classList.toggle('near', p >= .8 && p <= 1); els.budget.classList.toggle('over', p > 1);
+      els.blabel.firstChild.textContent = `本场 ${fmt(used)}`; els.blabel.lastChild.textContent = `预算 ${fmt(sc.budget)}`;
+    } else { els.dev.lastChild.textContent = '—'; els.plan.lastChild.textContent = b ? `${fmt(b.planStart)}–${fmt(b.planStart + b.planDur)}` : '—'; }
+    if (st && st.video && st.video.slot) { const v = st.video; const vt = $('.vt', els.video); if (vt) vt.textContent = `${fmt(v.t + (v.playing ? (Date.now() - st.at) / 1000 : 0), true)} / ${fmt(v.dur)}`; }
+  }
+  function render() {
+    if (!root) return;
+    const b = st ? BEATS[st.beat] : null;
+    const trim = Settings.get().trim;
+    els.trimBtn.textContent = '✂ 跳过：' + (trim ? '开' : '关'); els.trimBtn.classList.toggle('on', trim);
+    els.langBtn.textContent = '画面：' + ({ ko: '韩文', zh: '中文', bi: '双语' }[st ? st.lang : Settings.get().lang] || '韩文') + ' (L)';
+    els.blackBtn.classList.toggle('on', !!(st && st.blackout)); els.muteBtn.classList.toggle('on', !!(st && st.muted));
+    els.clockBtn.textContent = st && st.timer && st.timer.start != null && st.timer.pausedAt == null ? '暂停计时' : '继续计时';
+    if (!b) {
+      els.sn.textContent = '待命 · 黑场'; els.st.innerHTML = ''; els.st.append(document.createTextNode('按 → 开始'), h('small', { text: '第一拍：冷开场 ① 场记板。按下后计时开始。' }));
+      els.tag.innerHTML = ''; els.ko.textContent = BEATS[0].ko; els.ko.classList.remove('silent'); els.zh.textContent = BEATS[0].zh; els.note.hidden = true;
+      $('.nt', els.next).textContent = ''; $('.nk', els.next).textContent = '';
+      els.dots.innerHTML = '';
+    } else {
+      const sc = SCENES[b.scene];
+      els.sn.textContent = `场景 ${String(b.scene).padStart(2, '0')} / 12 · 节拍 ${b.index + 1} / ${BEATS.length}`;
+      els.st.innerHTML = ''; els.st.append(document.createTextNode(sc.short.ko), h('small', { text: `${sc.short.zh} · 预算 ${fmt(sc.budget)}` }));
+      els.dots.innerHTML = ''; sc.beats.forEach(x => els.dots.append(h('i', { cls: [x.index < b.index ? 'done' : '', x.index === b.index ? 'cur' : '', x.cut ? 'cut' : '', Director.skippable(x) ? 'skip' : ''].join(' '), title: x.tag + ' ' + x.vis })));
+      els.tag.innerHTML = ''; els.tag.append(...[h('b', { text: b.tag }), h('span', { text: b.vis }), b.cut ? h('span.cutmark', { text: '✂ 可跳过' }) : null, b.optional && Director.skippable(b) ? h('span.cutmark', { text: '未设置视频 · 自动跳过' }) : null].filter(Boolean));
+      els.ko.textContent = b.ko; els.ko.classList.toggle('silent', !!b.silent);
+      els.zh.textContent = b.zh;
+      const notes = [b.note, b.keys === 'angle' ? '↑ ↓ 可以现场调整量角器角度' : null, b.video && b.video.key === 'sc' ? '视频到点自动停；数字键 1–4 跳到提示点' : null].filter(Boolean);
+      els.note.hidden = !notes.length; els.note.textContent = notes.join(' · ');
+      let ni = b.index + 1; while (ni < BEATS.length && Director.skippable(BEATS[ni])) ni++;
+      const nb = BEATS[ni];
+      $('.nt', els.next).textContent = nb ? `下一拍 ${SCENES[nb.scene] !== sc ? '→ ' + SCENES[nb.scene].short.zh + ' ' : ''}${nb.tag} · ${nb.vis}` : '最后一拍 · 再按一次结束计时';
+      $('.nk', els.next).textContent = nb ? nb.ko : '';
+    }
+    $$('button', els.list).forEach(btn => {
+      const i = +btn.dataset.i; btn.classList.toggle('cur', !!b && b.scene === i);
+      const ac = st && st.sceneTimes && st.sceneTimes[i]; const a = $('.ac', btn);
+      a.textContent = ac != null ? fmt(ac) : ''; a.className = 'ac ' + (ac != null ? (ac > SCENES[i].budget ? 'over' : 'ok') : '');
+    });
+    renderMedia();
+  }
+  function renderMedia() {
+    if (!root) return;
+    const m = st && st.music, v = st && st.video;
+    els.music.innerHTML = '';
+    els.music.append(h('span.mt', { text: '♪ ' + (m && m.title ? m.title : '无音乐') }), h('span.chip', { cls: m && m.state === 'playing' ? 'ok' : m && (m.state === 'error' || m.state === 'unset') ? 'warn' : '', text: m ? ({ playing: '播放中', error: '无法播放', unset: '未设置音源', loading: '加载中', blocked: '等待按键', idle: '静止' }[m.state] || m.state) : '—' }),
+      h('div.pv-meter', {}, h('i', { style: { width: (m ? m.level : 0) + '%' } })), h('span.mono.muted', { text: (m ? m.level : 0) + '%' + (m && m.muted ? ' · 静音' : '') }));
+    els.video.innerHTML = '';
+    if (v && v.slot) els.video.append(h('span.mt', { text: '▶ ' + ((VIDEOS[v.key] && VIDEOS[v.key].name.zh) || v.key || '视频') }), h('span.chip', { cls: v.error ? 'bad' : v.playing ? 'ok' : '', text: v.error ? v.error : v.playing ? '播放中' : '暂停' }), h('span.mono.vt.muted', { text: '' }), h('button.btn.sm', { type: 'button', text: 'K 播放/暂停', on: { click: () => send('toggle') } }));
+    else els.video.append(h('span.muted', { text: '▶ 没有视频在播放' }), h('button.btn.sm', { type: 'button', text: 'K 播放本拍视频', on: { click: () => send('toggle') } }));
+    els.cues.innerHTML = '';
+    const cues = Settings.get().videos.sc.cues;
+    els.cues.append(h('span.muted', { text: '提示点' }), ...cues.map((c, n) => h('button.btn.sm', { type: 'button', disabled: c.start == null, text: `${n + 1}${c.start != null ? ' · ' + fmt(c.start) : ' · 未设'}`, on: { click: () => send('cue', { n: n + 1 }) } })),
+      h('span.muted', { text: 'C 下次记录：提示点' + ((v && v.capture) || '1 起点') }));
+  }
+  return { mount, send, get beat() { return st ? st.beat : -1; } };
+})();
+</script>

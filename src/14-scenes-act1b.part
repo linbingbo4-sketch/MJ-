@@ -1,0 +1,603 @@
+<style>
+/* the moonwalk wipe into Billie Jean */
+#mwipe { position: absolute; inset: 0; z-index: 7; pointer-events: none; visibility: hidden; overflow: hidden; }
+#mwipe.on { visibility: visible; }
+#mwipe .mw-curtain { position: absolute; left: 0; top: 0; bottom: 0; width: 1920px; background: linear-gradient(90deg, #060405 0, #060405 calc(100% - 120px), rgba(6, 4, 5, 0)); }
+#mwipe .mw-spot { position: absolute; left: 0; top: 0; width: 720px; height: 1080px; background: radial-gradient(ellipse 260px 470px at 50% 62%, rgba(255, 236, 246, .2), transparent 70%); }
+#mwipe .mw-floor { position: absolute; left: 0; right: 0; top: 1000px; height: 2px; background: linear-gradient(90deg, transparent, rgba(255, 220, 236, .35), transparent); }
+#mwipe .mw-fig { position: absolute; left: 0; top: 0; width: 1px; height: 1px; }
+
+/* ── III · Thriller (jacket red, CRT) ── */
+[data-era="thriller"] { --ink: #f4eeee; --acc: #e0233a; --acc2: #ff5a5f; --dim: rgba(244, 238, 238, .56); --faint: rgba(244, 238, 238, .22); --line: rgba(244, 238, 238, .15); }
+[data-scene="thriller"] .cc-en { font: italic 500 108px/1 var(--f-en); color: var(--acc); letter-spacing: -.01em; text-shadow: 0 0 40px rgba(224, 35, 58, .4); }
+.plat { display: grid; grid-template-columns: repeat(14, 62px); gap: 14px; }
+.disc { width: 62px; height: 62px; border-radius: 50%; position: relative; opacity: 0; transform: scale(.3) rotate(-90deg); transition: opacity .45s ease, transform .6s var(--e-drop); transition-delay: calc(var(--k) * 16ms); }
+.plat.on .disc { opacity: 1; transform: none; }
+.disc.us { background: radial-gradient(circle, #1a1a1a 0 13%, #d9dde3 14% 17%, transparent 18%), conic-gradient(from 20deg, #f6f7f9, #9aa1ab, #eef0f3, #7d848e, #f6f7f9, #a7aeb7, #f6f7f9); box-shadow: 0 0 14px rgba(220, 225, 235, .25); }
+.disc.us::after { content: ''; position: absolute; inset: 0; border-radius: 50%; background: repeating-radial-gradient(circle, transparent 0 3px, rgba(0,0,0,.08) 3px 4px); }
+.disc.est { border: 2px solid rgba(244, 238, 238, .42); }
+.disc.est::after { content: ''; position: absolute; inset: 40%; border-radius: 50%; border: 2px solid rgba(244, 238, 238, .3); }
+.legend { display: flex; gap: 60px; font: 400 30px/1.3 var(--f-ko); }
+.legend .zh { font-family: var(--f-zh); }
+.legend span { display: inline-flex; align-items: center; gap: 14px; white-space: nowrap; }
+.legend i { width: 26px; height: 26px; border-radius: 50%; display: inline-block; }
+.legend .l-us { background: conic-gradient(#f6f7f9, #9aa1ab, #eef0f3, #7d848e, #f6f7f9); }
+.legend .l-est { border: 2px solid rgba(244, 238, 238, .5); }
+/* CRT television */
+.tv { width: 760px; height: 600px; }
+.tv-body { position: absolute; inset: 0 0 50px 0; border-radius: 34px; background: linear-gradient(180deg, #2a2622, #171512 60%, #0f0e0c); box-shadow: inset 0 2px 0 rgba(255,255,255,.08), inset 0 -6px 12px rgba(0,0,0,.6), 0 40px 80px rgba(0,0,0,.6); }
+.tv-body::before { content: ''; position: absolute; left: 22px; top: 22px; width: 560px; height: 456px; border-radius: 30px; background: #0c0b0a; box-shadow: inset 0 0 0 6px #1d1b18, inset 0 0 30px rgba(0,0,0,.9); }
+.tv-scr { position: absolute; left: 50px; top: 50px; width: 504px; height: 400px; border-radius: 46px / 40px; overflow: hidden; background: #0a0a0a; }
+.tv-scr .snow { position: absolute; inset: 0; opacity: 0; transition: opacity .3s ease; }
+.tv-scr.static .snow { opacity: 1; }
+.tv-scr .bars { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(7, 1fr); opacity: 0; transition: opacity .4s ease; }
+.tv-scr .bars i { display: block; }
+.tv-scr.bars-on .bars { opacity: 1; }
+.tv-scr .tv-card { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; background: radial-gradient(ellipse, #2a0d10, #0a0606 75%); opacity: 0; transition: opacity .5s ease; }
+.tv-scr.card-on .tv-card { opacity: 1; }
+.tv-card b { font: italic 600 64px/1 var(--f-en); color: #fff; }
+.tv-card span { font: 600 22px/1 var(--f-num); letter-spacing: .3em; color: rgba(255,255,255,.7); }
+.tv-panel { position: absolute; right: 26px; top: 40px; width: 130px; bottom: 90px; display: flex; flex-direction: column; align-items: center; gap: 26px; padding-top: 20px; }
+.tv-knob { width: 70px; height: 70px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #4a453f, #1c1a17 70%); box-shadow: 0 4px 8px rgba(0,0,0,.6), inset 0 0 0 3px #2a2723; position: relative; }
+.tv-knob::after { content: ''; position: absolute; left: 50%; top: 8px; width: 4px; height: 22px; margin-left: -2px; background: #8d857a; border-radius: 2px; }
+.tv-knob.k2 { width: 52px; height: 52px; }
+.tv-grill { width: 96px; flex: 1; border-radius: 10px; background: repeating-linear-gradient(0deg, #0b0a09 0 3px, #2a2622 3px 6px); }
+.tv-brand { position: absolute; left: 44px; bottom: 66px; font: 600 15px/1 var(--f-num); letter-spacing: .5em; color: rgba(255,255,255,.35); }
+.tv-leg { position: absolute; bottom: 0; width: 20px; height: 56px; background: #0f0e0c; }
+.tv-leg.l { left: 120px; transform: skewX(12deg); } .tv-leg.r { right: 120px; transform: skewX(-12deg); }
+.tv-ant { position: absolute; left: 50%; top: 0; width: 3px; height: 190px; background: linear-gradient(#8d857a, #3a3632); transform-origin: 50% 100%; translate: -50% -100%; }
+.tv-ant.a1 { rotate: -28deg; } .tv-ant.a2 { rotate: 24deg; }
+.tv-ant::after { content: ''; position: absolute; top: -6px; left: -4px; width: 11px; height: 11px; border-radius: 50%; background: #8d857a; }
+.wall { width: 420px; height: 210px; }
+.wall i { position: absolute; width: 100px; height: 46px; border-radius: 3px; background: linear-gradient(180deg, #6b2a26, #4a1c19); box-shadow: inset 0 0 0 2px rgba(0,0,0,.35), inset 0 3px 0 rgba(255,255,255,.08); transition: transform 1.2s cubic-bezier(.5, 0, .75, 0), opacity 1.2s ease; }
+.wall.broken i.fall { opacity: 0; }
+/* film strip */
+.film { width: 1500px; height: 250px; background: #0d0b0b; border-radius: 6px; box-shadow: 0 30px 70px rgba(0,0,0,.6); }
+.film::before, .film::after { content: ''; position: absolute; left: 0; right: 0; height: 26px; background: radial-gradient(circle at 50% 50%, #2b2626 0 6px, transparent 7px) 0 0 / 40px 26px repeat-x; }
+.film::before { top: 6px; } .film::after { bottom: 6px; }
+.film .frames { position: absolute; left: 20px; right: 20px; top: 40px; bottom: 40px; display: flex; gap: 14px; }
+.film .frames i { flex: 1; border-radius: 4px; background: radial-gradient(ellipse at 50% 60%, rgba(224, 35, 58, .25), #120808 70%); box-shadow: inset 0 0 0 1px rgba(255,255,255,.06); }
+.film .tc { position: absolute; right: 36px; top: 50%; translate: 0 -50%; font: 600 120px/1 var(--f-num); color: #fff; text-shadow: 0 0 30px rgba(224, 35, 58, .6); }
+.film .tl { position: absolute; left: 44px; top: 50%; translate: 0 -50%; font: italic 500 74px/1 var(--f-en); color: var(--acc2); }
+
+/* thriller · redesign */
+.plat2-wrap { width: 0; height: 0; }
+.plat2 { position: absolute; left: 0; top: 0; }
+.plat2-wrap.spin .plat2 { animation: vortex 90s linear infinite; }
+@keyframes vortex { to { rotate: 360deg; } }
+.plat2 .disc { position: absolute; width: 58px; height: 58px; margin: -29px 0 0 -29px; }
+.plat2.on .disc { opacity: 1; transform: none; }
+.plat2 .disc.hov { transition: opacity .45s ease, transform .6s var(--e-drop), scale .25s ease; transition-delay: calc(var(--k) * 16ms), calc(var(--k) * 16ms), 0s; }
+.plat2 .disc.hov:hover { scale: 1.35; z-index: 2; }
+.t-count { font: 600 158px/.9 var(--f-num); color: #fff; letter-spacing: -.01em; text-shadow: 0 0 50px rgba(224, 35, 58, .45); white-space: nowrap; }
+.bj { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 26%, #3a1430, #0a050c 72%); overflow: hidden; }
+.bj-floor { position: absolute; inset: 0; width: 100%; height: 100%; }
+.bj-floor polygon { fill: #1f141c; stroke: #0b070b; stroke-width: 2; transition: fill .7s ease; }
+.bj-floor polygon.lit { fill: #fff0f7; transition: fill .06s ease; }
+.bj-cap { position: absolute; left: 0; right: 0; top: 30px; text-align: center; font: 600 18px/1 var(--f-num); letter-spacing: .4em; color: rgba(255, 220, 240, .62); }
+.t-slate .slate { scale: .62; rotate: -4deg; }
+.t-8 { font: 600 760px/.76 var(--f-num); color: transparent; -webkit-text-stroke: 3px rgba(244, 213, 138, .5); }
+.gram.hov { transition: opacity .5s ease, filter .5s ease, scale .3s var(--e-drop); }
+.gram.hov:hover { scale: 1.25; }
+.film2 { width: 1700px; height: 280px; background: #0d0b0b; border-radius: 6px; box-shadow: 0 30px 70px rgba(0, 0, 0, .6); rotate: -4deg; }
+.film2::before, .film2::after { content: ''; position: absolute; left: 0; right: 0; height: 24px; background: radial-gradient(circle at 50% 50%, #2b2626 0 6px, transparent 7px) 0 0 / 40px 24px repeat-x; }
+.film2::before { top: 6px; } .film2::after { bottom: 6px; }
+.film2 .zf { position: absolute; top: 38px; width: 214px; height: 204px; border-radius: 4px; overflow: hidden; background: radial-gradient(ellipse at 50% 60%, rgba(224, 35, 58, .28), #120808 72%); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .06); }
+.film2 .zf:hover { box-shadow: inset 0 0 0 2px rgba(255, 90, 95, .7); }
+.film2 .tl { position: absolute; left: 30px; top: 50%; translate: 0 -50%; font: italic 500 60px/1 var(--f-en); color: var(--acc2); writing-mode: vertical-rl; rotate: 180deg; }
+.film2 .tc { position: absolute; right: 30px; top: 50%; translate: 0 -50%; font: 600 120px/1 var(--f-num); color: #fff; text-shadow: 0 0 30px rgba(224, 35, 58, .6); }
+
+/* ── IV · Bad (midnight blue, Art Deco) ── */
+[data-era="bad"] { --ink: #f2ebd8; --acc: #f2ebd8; --acc2: #6f93ff; --dim: rgba(242, 235, 216, .56); --faint: rgba(242, 235, 216, .22); --line: rgba(242, 235, 216, .15); }
+[data-scene="bad"] .cc-num { color: #f2ebd8; }
+[data-scene="bad"] .cc-en { font-family: 'Limelight', var(--f-en); font-size: 86px; letter-spacing: .06em; color: #f2ebd8; text-shadow: 0 0 34px rgba(111, 147, 255, .45); }
+.deco { width: 1920px; height: 1080px; }
+.deco svg { width: 100%; height: 100%; }
+.slv.deco-s .slv-t { font-family: 'Limelight', var(--f-en); font-size: 30px; letter-spacing: .02em; }
+.slv.deco-s .slv-face::before { content: ''; position: absolute; inset: 14px; border: 2px solid currentColor; opacity: .5; }
+.slv.deco-s .slv-face::after { content: ''; position: absolute; left: 50%; bottom: 0; width: 220px; height: 110px; translate: -50% 0; background: repeating-conic-gradient(from -90deg at 50% 100%, currentColor 0 2deg, transparent 2deg 12deg); opacity: .18; }
+.sleeves.five { gap: 34px; }
+.sleeves.five .slv { width: 254px; height: 254px; }
+.sleeves.five .slv-disc { width: 232px; height: 232px; top: 11px; left: 11px; }
+.sleeves.five .slv.on .slv-disc { transform: translateX(46px) rotate(220deg); }
+.frame { width: 1120px; height: 630px; }
+.frame .fr-b { position: absolute; inset: -22px; border: 2px solid rgba(242, 235, 216, .55); }
+.frame .fr-b::before { content: ''; position: absolute; inset: 8px; border: 1px solid rgba(242, 235, 216, .3); }
+.frame .fr-c { position: absolute; width: 60px; height: 60px; border: 2px solid rgba(242, 235, 216, .7); }
+.frame .fr-c.tl { left: -40px; top: -40px; border-right: 0; border-bottom: 0; }
+.frame .fr-c.tr { right: -40px; top: -40px; border-left: 0; border-bottom: 0; }
+.frame .fr-c.bl { left: -40px; bottom: -40px; border-right: 0; border-top: 0; }
+.frame .fr-c.br { right: -40px; bottom: -40px; border-left: 0; border-top: 0; }
+.frame .fr-in { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 45%, #18244a, #070b18 75%); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 18px; }
+.frame .fr-t { font: italic 500 112px/1 var(--f-en); color: #f2ebd8; }
+.frame .fr-k { font: 500 24px/1 var(--f-num); letter-spacing: .44em; color: var(--dim); }
+.cuetrack { width: 1120px; height: 70px; }
+.cuetrack .ct-line { position: absolute; left: 0; right: 0; top: 34px; height: 2px; background: var(--faint); }
+.cuetrack .ct-cue { position: absolute; top: 34px; translate: -50% -50%; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.cuetrack .ct-cue i { width: 18px; height: 18px; rotate: 45deg; border: 2px solid var(--acc); background: #0b1430; transition: background .4s ease, box-shadow .4s ease; }
+.cuetrack .ct-cue.lit i { background: var(--acc2); border-color: var(--acc2); box-shadow: 0 0 18px var(--acc2); }
+.cuetrack .ct-cue span { position: absolute; top: 22px; white-space: nowrap; font: 500 22px/1 var(--f-ko); color: var(--dim); }
+.cuetrack .ct-cue span .zh { font-family: var(--f-zh); }
+.cuetrack .ct-cue.lit span { color: var(--ink); }
+.proto { width: 820px; height: 720px; }
+.proto svg { width: 100%; height: 100%; overflow: visible; }
+.paper { width: 1340px; height: 700px; background: #efe7d3; color: #1d1a16; border-radius: 4px; box-shadow: 0 40px 100px rgba(0,0,0,.6); overflow: hidden; }
+.paper::before { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(0deg, rgba(0,0,0,.025) 0 1px, transparent 1px 4px); pointer-events: none; }
+.paper .pp-h { position: absolute; left: 50px; right: 50px; top: 36px; display: flex; justify-content: space-between; font: 500 22px/1 var(--f-mono); letter-spacing: .06em; border-bottom: 2px solid #1d1a16; padding-bottom: 14px; }
+.paper .pp-t { position: absolute; left: 50px; top: 92px; font: 600 24px/1.3 var(--f-mono); letter-spacing: .04em; max-width: 760px; }
+.paper .pp-fig { position: absolute; left: 30px; top: 150px; width: 760px; height: 470px; }
+.paper .pp-fig svg { width: 100%; height: 100%; overflow: visible; }
+.paper .pp-side { position: absolute; left: 820px; right: 50px; top: 170px; display: flex; flex-direction: column; gap: 30px; }
+.paper .pp-row { border-left: 4px solid #1d1a16; padding-left: 20px; }
+.paper .pp-row b { display: block; font: 600 18px/1 var(--f-num); letter-spacing: .3em; color: #6b6255; margin-bottom: 10px; }
+.paper .pp-row .t { font: 500 34px/1.3 var(--f-ko); }
+.paper .pp-row .t .zh { font-family: var(--f-zh); }
+.paper .pp-row.x .t { text-decoration: line-through; text-decoration-thickness: 3px; color: #6b6255; }
+.paper .pp-inv { position: absolute; left: 50px; right: 50px; bottom: 34px; border-top: 2px solid #1d1a16; padding-top: 14px; font: 500 21px/1.2 var(--f-mono); letter-spacing: .05em; transition: background .6s ease, color .6s ease; }
+.paper .pp-inv.hl { background: #1d1a16; color: #efe7d3; padding: 14px 16px; }
+.paper .pp-note { position: absolute; right: 50px; bottom: 96px; font: 500 16px/1 var(--f-num); letter-spacing: .3em; color: #8a8072; }
+.fig-peg { transition: transform .8s var(--e-stage) .4s; transform: translateY(70px); }
+.paper.on .fig-peg { transform: none; }
+.fig-shoe { transition: transform .9s var(--e-stage) 1.2s; transform: translateX(-90px); }
+.paper.on .fig-shoe { transform: none; }
+.fig-lean { transition: transform 1.2s var(--e-spot) 2.2s; transform: rotate(0deg); transform-box: view-box; transform-origin: 300px 360px; }
+.paper.on .fig-lean { transform: rotate(45deg); }
+/* bad · redesign */
+.door { width: 360px; height: 700px; }
+.door .d-glow { position: absolute; inset: 0; background: linear-gradient(180deg, #e9f0ff, #b9cbff 60%, #8ea8f0); box-shadow: 0 0 120px rgba(160, 190, 255, .55); }
+.door .d-frame { position: absolute; inset: -26px; border: 3px solid rgba(242, 235, 216, .65); box-shadow: inset 0 0 0 10px rgba(14, 24, 56, .9), inset 0 0 0 12px rgba(242, 235, 216, .35); }
+.door .d-frame::before { content: "CLUB 30's"; position: absolute; left: 50%; top: -74px; translate: -50% 0; font: 400 40px/1 'Limelight', var(--f-en); letter-spacing: .08em; color: #f2ebd8; text-shadow: 0 0 24px rgba(111, 147, 255, .7); white-space: nowrap; }
+.door-spill { width: 900px; height: 200px; background: radial-gradient(ellipse at 50% 0%, rgba(185, 205, 255, .35), transparent 70%); clip-path: polygon(30% 0, 70% 0, 100% 100%, 0 100%); }
+.casc .slv { width: 254px; height: 254px; box-shadow: 0 30px 60px rgba(0, 0, 0, .55); }
+.casc .slv-disc { width: 232px; height: 232px; top: 11px; left: 11px; }
+.casc .slv.on .slv-disc { transform: translateX(46px) rotate(220deg); }
+.casc .slv.tilt:hover .slv-disc { transform: translateX(104px) rotate(320deg); transition-delay: 0s; }
+.b-5 { font: 400 820px/.76 'Limelight', var(--f-en); color: transparent; -webkit-text-stroke: 2.5px rgba(242, 235, 216, .32); }
+.gauge { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: visible; }
+.b-ang { font: 600 250px/.9 var(--f-num); color: #fff; text-shadow: 0 0 50px rgba(111, 147, 255, .55); transition: color .3s ease; }
+.b-ang.over { color: #b9cbff; }
+.paper .fig { z-index: 2; }
+
+</style>
+
+<script>
+/* the Billie Jean pavement, in miniature: tiles light up under his feet */
+function bjMini() {
+  const wrap = h('div.bj');
+  const rows = 3, cols = 7, y0 = 268, y1 = 400, SW = 504;
+  const edge = (r) => y0 + (y1 - y0) * Math.pow(r / rows, 1.1), wid = (r) => .66 + .34 * (r / rows);
+  const xAt = (c, r) => SW / 2 + (c / cols - .5) * SW * 1.3 * wid(r);
+  let tiles = '';
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) tiles += `<polygon data-c="${c}" data-r="${r}" points="${xAt(c, r) + 2},${edge(r) + 2} ${xAt(c + 1, r) - 2},${edge(r) + 2} ${xAt(c + 1, r + 1) - 2},${edge(r + 1) - 2} ${xAt(c, r + 1) + 2},${edge(r + 1) - 2}"/>`;
+  wrap.append(svgEl(`<svg class="bj-floor" viewBox="0 0 504 400">${tiles}</svg>`), h('div.bj-cap', { text: 'BILLIE JEAN · 1983' }));
+  const fig = new Figure.Fig({ costume: 'billie', pose: 'stand', glowPx: 3, rimPx: 1, rim: '#ffd0ec', glow: 'rgba(255, 120, 200, .35)', shadow: 'none' });
+  const FX0 = 40, FY = 352, FH = 236;
+  fig.place(FX0, FY, FH);
+  wrap.append(fig.el);
+  const polys = $$('polygon', wrap), lit = new Array(polys.length).fill(0);
+  const midRow = 1, rowY = (edge(midRow) + edge(midRow + 1)) / 2;
+  let off = null, alive = false;
+  /* he moonwalks across the lit pavement: right to left, the way the dance goes, then back to the start */
+  const step = () => {
+    if (!alive) return;
+    fig.moonwalk({ steps: 7, stride: 56, stepMs: 560, x0: 430, done: () => setTimeout(step, 700) });
+  };
+  wrap.start = () => {
+    if (alive) return; alive = true; step();
+    off = Loop.add(() => {
+      const J = fig.J; if (!J) return;
+      for (const Lg of [J.nL, J.fL]) {
+        if (Lg.A[1] < -40) continue;                                  /* foot in the air */
+        const x = FX0 + Lg.A[0] * fig.scale;
+        for (let c = 0; c < cols; c++) if (x >= xAt(c, midRow + .5) && x < xAt(c + 1, midRow + .5)) lit[midRow * cols + c] = now() + 420;
+      }
+      const t = now(); polys.forEach((p, k) => p.classList.toggle('lit', lit[k] > t));
+    });
+  };
+  wrap.stop = () => { alive = false; fig.stop(); if (off) { off(); off = null; } polys.forEach(p => p.classList.remove('lit')); };
+  wrap.fig = fig;
+  return wrap;
+}
+/* the page turn into Billie Jean: a moonwalking silhouette crosses the stage from right to left, and the new
+   page opens behind him (a curtain follows his back) */
+function moonwalkWipe(ms = 2300) {
+  if (Director.reduced) return;
+  let box = $('#mwipe');
+  if (!box) {
+    box = h('div#mwipe', {}, h('div.mw-curtain'), h('div.mw-spot'), h('div.mw-floor'));
+    $('#stage').append(box);
+    box.fig = new Figure.Fig({ costume: 'billie', pose: 'stand', style: 'costume', glowPx: 10, rimPx: 2, rim: '#ffe3f0', glow: 'rgba(255, 160, 210, .55)', shadow: 'pool' });
+    box.figWrap = h('div.mw-fig'); box.figWrap.append(box.fig.el); box.append(box.figWrap);
+    box.fig.place(0, 1000, 660);
+  }
+  const cur = $('.mw-curtain', box), spot = $('.mw-spot', box), fw = box.figWrap, f = box.fig;
+  if (box.stop) box.stop();
+  box.classList.add('on');
+  const X0 = 2080, X1 = -260, t0 = now();
+  f.moonwalk({ steps: 5, stride: 74, stepMs: ms / 5.4, x0: 0, onStep: () => SFX.step({ slide: true, gain: .3 }) });
+  SFX.whoosh(ms / 1000, .45, .2);
+  const off = Loop.add(() => {
+    const p = clamp((now() - t0) / ms, 0, 1), x = lerp(X0, X1, ease.inOutSine(p));
+    fw.style.transform = `translateX(${x.toFixed(1)}px)`;
+    cur.style.width = Math.max(0, x + 40).toFixed(0) + 'px';
+    spot.style.transform = `translateX(${(x - 360).toFixed(1)}px)`;
+    if (p >= 1) { box.stop(); }
+  });
+  box.stop = () => { off(); f.stop(); box.classList.remove('on'); box.stop = null; };
+}
+/* ═══ 5 · III THRILLER ═══ */
+function tvSet() {
+  const tv = h('div.tv');
+  const scr = h('div.tv-scr', {}, h('canvas.snow', { width: 252, height: 200, style: { width: '100%', height: '100%' } }),
+    h('div.bars', {}, ...['#c0c0c0', '#c0c000', '#00c0c0', '#00c000', '#c000c0', '#c00000', '#0000c0'].map(c => h('i', { style: { background: c } }))),
+    h('div.tv-card', {}, bjMini()));
+  tv.append(h('div.tv-ant.a1'), h('div.tv-ant.a2'), h('div.tv-body', {}, scr, h('div.tv-panel', {}, h('div.tv-knob'), h('div.tv-knob.k2'), h('div.tv-grill')), h('div.tv-brand', { text: 'COLOR · 1983' })), h('div.tv-leg.l'), h('div.tv-leg.r'));
+  const cv = $('canvas', scr), cx = cv.getContext('2d');
+  let off = null;
+  tv.snow = (on) => {
+    scr.classList.toggle('static', on);
+    if (on && !off) off = Loop.add(() => { const img = cx.createImageData(252, 200), d = img.data; for (let i = 0; i < d.length; i += 4) { const v = Math.random() * 255; d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255; } cx.putImageData(img, 0, 0); });
+    if (!on && off) { off(); off = null; }
+  };
+  tv.scr = scr; tv.bj = $('.bj', scr);
+  return tv;
+}
+function brickWall() {
+  const w = h('div.wall');
+  const rows = [[0, 104, 208, 312], [-52, 52, 156, 260], [0, 104, 208, 312], [-52, 52, 156, 260]];
+  const fall = new Set(['1-1', '1-2', '2-1', '2-2', '0-2', '3-2']);
+  rows.forEach((xs, r) => xs.forEach((x, c) => {
+    if (x < 0) return;
+    const b = h('i', { style: { left: x + 'px', top: (r * 52) + 'px' } });
+    if (fall.has(r + '-' + c)) { b.classList.add('fall'); b.dataset.dx = ((c - 1.5) * 40 + (Math.random() - .5) * 60).toFixed(0); b.dataset.rot = ((Math.random() - .5) * 120).toFixed(0); }
+    w.append(b);
+  }));
+  w.crumble = (on, instant) => {
+    w.classList.toggle('broken', on);
+    $$('i.fall', w).forEach((b, k) => {
+      b.style.transitionDelay = instant ? '0s' : (k * .08) + 's';
+      if (instant) b.style.transition = 'none';
+      b.style.transform = on ? `translate(${b.dataset.dx}px, 380px) rotate(${b.dataset.rot}deg)` : '';
+      if (instant) { void b.offsetWidth; b.style.transition = ''; }
+    });
+  };
+  return w;
+}
+Scenes.define('thriller', {
+  build(el, sc) {
+    const back = layer(-.22), mid = layer(.08), stg = layer(.3);
+    el.append(back, mid, stg);
+    this.op = opener(mid, sc, { card: { num: 'III', title: L('스릴러', '《Thriller》'), en: 'Thriller', years: L('1982 — 1984') }, cardX: 640 });
+    /* photographs: 1983 (Motown 25 beat), 1984 at the White House (Grammy beat) */
+    mid.append(this.ph3 = photoPrint('mj_1983', { x: 890, y: 330, w: 270, h: 330, rot: -4, show: '3-3', d: 1.4 }),
+      this.ph5 = photoPrint('mj_1984', { x: 360, y: 725, w: 280, h: 320, rot: -3, show: '5-5', d: 1.6 }));
+    $('.cc', this.op.card).classList.add('endup');
+    this.zom = stageFig(stg, { costume: 'thriller', pose: 'zombie', style: 'costume', x: 1460, y: 1010, h: 880, show: '0-0', d: .5, rim: '#ff6b7d', glow: 'rgba(255, 40, 70, .45)', glowPx: 12 });
+    /* 1 · seventy million, as a vortex of platinum */
+    this.plat = h('div.plat2');
+    const R0 = 51;
+    for (let k = 0; k < 70; k++) { const a = k * 137.508 * Math.PI / 180, r = R0 * Math.sqrt(k + .6); this.plat.append(h('div.disc.hov', { cls: k < 34 ? 'us' : 'est', style: { '--k': k, left: (r * Math.cos(a)).toFixed(1) + 'px', top: (r * Math.sin(a)).toFixed(1) + 'px' } })); }
+    this.count = h('div.t-count', { text: '0' });
+    mid.append(A('div.plat2-wrap', 1360, 560, { show: '1-1' }, this.plat),
+      stack(120, 470, { anchor: 'ay', align: 'left', gap: 26 },
+        R('lab nowrap', '1-1', 0, T(L('1982. 11 · 〈Thriller〉', '1982年11月 ·《Thriller》')), 'down'),
+        R('', '1-1', .1, this.count, 'zoom'),
+        R('legend', '1-1', 1.6, h('div', { style: { display: 'contents' } }, h('span', {}, h('i.l-us'), T(L('미국 공식 인증 3,400만', '美国官方认证 3400 万'))), h('span', {}, h('i.l-est'), T(L('그 외 지역 추정', '其他地区估算'))))),
+        R('tag', '1-1', 2.4, T(L('역사상 가장 많이 팔린 앨범', '史上最畅销的专辑'))),
+        R('', '1-1', 2.8, mvSwitch('thriller', { color: 'var(--acc2)' }))));
+    /* 2 · the wall, and the screen that broke through it */
+    this.tv = tvSet();
+    this.wall = brickWall();
+    mid.append(
+      A('div', 1270, 560, { show: '2-2,4-4', cls: 'zoom' }, this.tv),
+      A('div.lab', 150, 300, { anchor: 'ay', show: '2-2', cls: 'left' }, 'MTV · 1981 —'),
+      A('div.b-l', 150, 400, { anchor: 'ay', show: '2-2', d: .2, cls: 'left', style: 'color:var(--dim)' }, T(L('흑인 아티스트의 뮤직비디오는<br>거의 방영되지 않았다', '黑人艺人的 MV<br>几乎不被播放'))),
+      A('div', 360, 625, { show: '2-2', d: .4 }, this.wall),
+      this.bjLine = A('div.h-m.nowrap', 150, 900, { anchor: 'ay', show: '2-2', d: 2.2, cls: 'up', style: 'color:var(--acc2)' }, T(L('〈Billie Jean〉, 그 벽을 넘다', '《Billie Jean》，越过那道墙'))),
+    );
+    Scenes.setRect('tvScreen', { x: 1270 - 380 + 50, y: 560 - 300 + 50, w: 504, h: 400 });
+    mid.append(mvAt('motown25', 1270, 898, { anchor: 'ac', show: '2-2', d: 1.4, label: 'LIVE', color: '#f3e9d8' }));
+    /* 3 · the same night again: a chronophotograph of the first moonwalk */
+    this.slate2 = slate({ prod: '<span class="fill">MOTOWN 25</span>', scene: '25', take: '1', roll: '83', loc: 'PASADENA, CA', date: '1983. 3. 25' });
+    this.slate2.classList.add('written'); $$('.sl-v', this.slate2).slice(-1)[0].style.fontSize = '25px';
+    this.mw2 = moonwalk(L('그리고, 문워크', '以及，太空步'), 'h-l');
+    this.mw2.style.setProperty('--mw-from', '220px'); this.mw2.style.color = 'var(--acc2)';
+    mid.append(A('div.t-slate', 380, 300, { show: '3-3', cls: 'zoom' }, this.slate2),
+      stack(130, 760, { anchor: 'ay', align: 'left', gap: 18 },
+        R('lab', '3-3', .3, '1983. 3. 25 · PASADENA'),
+        R('h-m nowrap', '3-3', .4, T(L('모타운 25주년 기념 공연', '摩城唱片 25 周年纪念演出'))),
+        R('b-m', '3-3', .6, T(L('공연 전체에서 유일한 비(非)모타운 곡 — 〈Billie Jean〉', '整场唯一一首非摩城歌曲——《Billie Jean》')), 'up', { color: 'var(--dim)' }),
+        R('', '3-3', .2, this.mw2, 'up', { marginTop: '18px' }),
+        R('', '3-3', 1.2, mvSwitch('motown25', { label: 'LIVE', color: 'var(--acc2)' }))));
+    this.bj = stageFig(stg, { costume: 'billie', pose: 'stand', x: 1540, y: 980, h: 720, show: '3-3', glowPx: 9, rim: '#ffd0d6' });
+    /* 4 · optional broadcast */
+    mid.append(A('div.lab', 150, 330, { anchor: 'ay', show: '4-4' }, '1983. 5. 16 · NBC'),
+      A('div.big2', 150, 520, { anchor: 'ay', show: '4-4', d: .3, style: 'font-size:150px;color:#fff' }, '47,000,000+'),
+      A('div.b-l', 150, 680, { anchor: 'ay', show: '4-4', d: .6 }, T(L('명이 이 장면을 봤다', '人看到了这一幕'))));
+    /* 5 · eight in one night, a crown of gramophones */
+    this.gm = stageFig(stg, { costume: 'grammy', pose: 'stand', style: 'costume', x: 640, y: 1000, h: 740, show: '5-5', glowPx: 9, rim: '#ffe7a8', glow: 'rgba(255, 210, 120, .45)' });
+    this.grams = Array.from({ length: 8 }, (_, k) => {
+      const a = (-70 + k * 20) * Math.PI / 180, x = 640 + Math.sin(a) * 470, y = 600 - Math.cos(a) * 470;
+      const g = h('div.gram.hov', { html: ICON.gram, style: { color: '#f4d58a' } });
+      stg.append(A('div', x, y, { show: '5-5' }, g)); return g;
+    });
+    back.append(A('div.t-8', 1420, 560, { show: '5-5', cls: 'zoom slow' }, '8'));
+    mid.append(A('div.lab.nowrap', 1840, 214, { anchor: 'ar', show: '5-5', cls: 'down' }, T(L('1980 · 그래미 1 → 1984 · 그래미 8', '1980 · 格莱美 1 → 1984 · 格莱美 8'))),
+      this.g8 = A('div.h-s.nowrap', 1420, 896, { anchor: 'ax', show: '5-5', d: 2 }, T(L('하룻밤에, 여덟 개', '一夜之间，八座'))));
+    /* 6 · fourteen minutes: the dance, frame by frame */
+    const Z = {
+      a: { turn: .62, lean: 8, chest: 8, neck: 22, head: 10, nSh: 96, nEl: 74, nWr: 26, nHand: 3, fSh: 84, fEl: 86, fWr: 24, fHand: 3, nHip: 22, nKnee: 40, nFoot: 92, fHip: -14, fKnee: 30, fFoot: 96, hat: 0 },
+      b: { turn: .6, lean: 10, neck: 18, nSh: 30, nEl: 84, nWr: 30, nHand: 3, fSh: 22, fEl: 88, fWr: 30, fHand: 3, nHip: 16, nKnee: 30, fHip: -10, fKnee: 22, hat: 0 },
+      c: { turn: .85, neck: 26, head: 12, nSh: -16, nEl: 8, fSh: 16, fEl: 8, nHand: 3, fHand: 3, nHip: -8, fHip: 8, hat: 0 },
+      d: { turn: .5, lean: -6, nSh: 70, nEl: 50, nWr: 20, nHand: 3, fSh: -40, fEl: 40, fHand: 3, nHip: 34, nKnee: 50, nFoot: 60, fHip: -16, fKnee: 6, hat: 0 },
+      e: { turn: .3, lean: 16, chest: 8, neck: 10, nSh: 84, nEl: 36, nWr: 34, nHand: 3, fSh: 72, fEl: 46, fWr: 34, fHand: 3, nHip: 22, nKnee: 34, fHip: -22, fKnee: 22, hat: 0 },
+      f: { turn: .3, lean: -14, neck: -8, nSh: 150, nEl: 40, nHand: 3, fSh: -40, fEl: 30, fHand: 3, nHip: 88, nKnee: 30, nFoot: 140, fHip: -8, fKnee: 3, hat: 0 },
+    };
+    this.Z = Z;
+    const strip = A('div.film2', 960, 560, { show: '6', cls: 'right slow' });
+    this.zfigs = Object.keys(Z).map((k, n) => {
+      const fr = h('div.zf.hov', { style: { left: (210 + n * 228) + 'px' } });
+      const f = new Figure.Fig({ costume: 'thriller', style: 'costume', p: Z[k], glowPx: 3, rimPx: 1.2, rim: '#ff8a96', glow: 'rgba(255, 40, 70, .4)', shadow: 'pool' });
+      f.place(104, 196, 196); fr.append(f.el); strip.append(fr);
+      fr.addEventListener('pointerenter', () => { if (!Pointer.live) return; const keys = Object.keys(Z); f.seq([[Object.assign({}, f.poseOf('stand'), Z[keys[(n + 1) % 6]]), 260, 60], [Object.assign({}, f.poseOf('stand'), Z[keys[(n + 2) % 6]]), 260, 60], [Object.assign({}, f.poseOf('stand'), Z[k]), 300]]); });
+      return f;
+    });
+    strip.append(h('div.tl', { text: 'Thriller' }), h('div.tc', { text: "14'" }));
+    mid.append(strip,
+      A('div.h-m.nowrap', 140, 200, { anchor: 'ay', show: '6', cls: 'down' }, T(L('14분짜리 쇼트 필름', '14 分钟的短片'))),
+      mvAt('thriller', 144, 292, { show: '6', d: 1, label: 'SHORT FILM', color: 'var(--acc2)' }),
+      this.mvLine = A('div.b-l.nowrap', 1800, 900, { anchor: 'ar', show: '6', d: .8 }, T(L('뮤직비디오 → 영화', 'MV → 电影'))));
+    /* interaction */
+    clickable($('.tv-knob', this.tv), () => {
+      if (this.i !== 2) return;
+      this.tv.snow(true); SFX.staticBurst(.35);
+      setTimeout(() => {
+        this.tv.snow(false);
+        if (!this.real && Video.configured('bj')) { this.real = true; Video.playRange('tv', 'bj', { start: +Settings.get().videos.bj.start || 0, muted: true, loop: true, rect: Scenes.rect('tvScreen') }); }
+        else { this.real = false; Video.stop('tv'); }
+      }, 520);
+    });
+    clickable(this.bj.hitbox(260), () => { if (this.i === 3) this.chrono(true); });
+    clickable(this.zom.hitbox(320), () => this.zom.seq(['a', 'b', 'c', 'e', 'a'].map(k => [Object.assign({}, this.zom.poseOf('stand'), Z[k]), 300, 80])));
+    mid.append(itip(1500, 200, L('손잡이를 돌리면 실제 뮤직비디오', '转动旋钮：切到真实 MV'), '2-2'), itip(1540, 220, L('클릭 · 다시 문워크', '点一下 · 再来一次'), '3-3'), itip(960, 820, L('프레임을 가리켜 보세요', '把指针移到胶片上'), '6'));
+  },
+  /* the moonwalk with every step left behind on the film */
+  chrono(fwd) {
+    const f = this.bj; f.stop(); f.clearGhosts();
+    const M = { steps: 5, stride: 64, stepMs: 620 };
+    f.pose('stand', { x: 0 });
+    if (!fwd || Director.reduced) {
+      for (let k = 0; k < M.steps; k++) { f.moonwalk(Object.assign({}, M, { x0: 0, frame: k * M.stepMs + M.stepMs * .55 })); f.ghost(.08 + k * .035, '#ffdfe4'); }
+      f.moonwalk(Object.assign({}, M, { x0: 0, frame: M.steps * M.stepMs - 1 })); const mid = (f.J.nL.A[0] + f.J.fL.A[0]) / 2; f.pose('toe', { x: mid });
+      return;
+    }
+    f.moonwalk(Object.assign({}, M, { x0: 0, onStep: (k) => f.ghost(.08 + k * .035, '#ffdfe4'), done: () => { const mid = (f.J.nL.A[0] + f.J.fL.A[0]) / 2; f.to(f.poseOf('toe', { x: mid }), 360); } }));
+  },
+  beat(i, ctx) {
+    const red = '#ff2d45';
+    this.i = i;
+    [this.zom, this.bj, this.gm, ...this.zfigs].forEach(f => f.stop());
+    this.tv.bj.stop();
+    if (i === 0) { this.op.run(ctx, { dock: false }); this.zom.pose('stand', this.Z.a); ctx.light({ lights: [{ id: 'a', x: 640, y: 500, rx: 640, ry: 420, soft: .12, rim: .9, col: red }, { id: 'z', x: 1460, y: 560, rx: 380, ry: 520, soft: .2, halo: false }] }); }
+    else this.op.hide();
+    this.plat.parentElement.classList.toggle('spin', i === 1);
+    this.plat.classList.toggle('on', i === 1);
+    if (i === 1) { countUp(this.count, 70000000, { dur: 2400, instant: !ctx.fwd }); ctx.light({ lights: [{ id: 'a', x: 1360, y: 560, rx: 560, ry: 520, soft: .3, rim: .5, col: red }, { id: 't', x: 520, y: 470, rx: 520, ry: 380, soft: .6, i: .95, cone: false }] }); }
+    else if (this.count._stop) this.count._stop();
+    const tvOn = i === 2 || i === 4;
+    if (i === 2) {
+      if (ctx.fwd && !ctx.first) moonwalkWipe();
+      Video.stop('tv');
+      const play = () => { this.tv.snow(false); this.tv.scr.classList.add('card-on'); this.tv.bj.start(); this.real = false; };
+      if (ctx.fwd) {
+        this.wall.crumble(false, true);
+        this.tv.snow(true); this.tv.scr.classList.remove('card-on', 'bars-on');
+        ctx.after(1100, () => { SFX.staticBurst(.5); ctx.after(450, () => { play(); this.wall.crumble(true); }); });
+      } else { play(); this.wall.crumble(true, true); }
+      ctx.light({ lights: [{ id: 'a', x: 1250, y: 520, rx: 470, ry: 420, soft: .2, rim: .55, col: red }, { id: 'b', x: 470, y: 600, rx: 520, ry: 470, soft: .45, i: .95 },
+        textLight('bj', this.bjLine, { i: .8, delay: ctx.fwd ? 2.2 : 0 })] });
+    } else if (i === 4) {
+      this.tv.snow(false); this.tv.scr.classList.remove('card-on'); this.tv.scr.classList.add('bars-on');
+      if (Video.configured('motown')) this.tv.scr.classList.remove('bars-on');
+      ctx.light({ lights: [{ id: 'a', x: 1250, y: 520, rx: 470, ry: 420, soft: .2, rim: .55, col: red }, { id: 'b', x: 470, y: 520, rx: 520, ry: 330, soft: .5 }] });
+    } else { this.tv.snow(false); const s = Video.slot('tv'); if (s.want && s.want.key === 'bj') Video.stop('tv'); }
+    if (!tvOn) this.tv.scr.classList.remove('bars-on');
+    if (i === 3) {
+      if (ctx.fwd) { this.slate2.open(); this.slate2.clap(); this.mw2.reset(); ctx.after(900, () => this.mw2.go()); ctx.after(400, () => this.chrono(true)); this.bj.pose('stand', { x: 0 }); }
+      else { this.slate2.classList.add('clap'); this.mw2.go(true); this.chrono(false); }
+      ctx.light({ lights: [{ id: 'a', x: 380, y: 300, rx: 300, ry: 260, soft: .03 }, { id: 'b', x: 560, y: 760, rx: 560, ry: 250, soft: .6, i: .95, cone: false }, { id: 's', x: 1380, y: 620, rx: 520, ry: 420, soft: .2, rim: .4, col: red }, ...photoLight('ph', this.ph3, { delay: ctx.fwd ? 1.4 : 0 })] });
+    } else this.bj.clearGhosts();
+    if (i === 5) {
+      const V = { turn: .55, neck: -14, nSh: 156, nEl: 14, nHand: Figure.HI('open'), fSh: 148, fEl: 14, fHand: Figure.HI('open'), nHip: 6, fHip: -6 };
+      if (ctx.fwd) { this.gm.pose('stand'); ctx.after(500, () => this.gm.to(Object.assign(this.gm.poseOf('stand'), V), 900, ease.outBack)); } else this.gm.pose('stand', V);
+      this.grams.forEach((g, k) => { g.classList.remove('on'); if (ctx.fwd) ctx.after(800 + k * 170, () => g.classList.add('on')); else g.classList.add('on'); });
+      ctx.light({ lights: [{ id: 'a', x: 640, y: 520, rx: 620, ry: 540, soft: .3, rim: .3, col: '#ffd27a' }, { id: 'e', x: 1420, y: 620, rx: 420, ry: 420, soft: .5, i: .9, cone: false }, { id: 'h', x: 1560, y: 150, rx: 360, ry: 70, soft: .9, i: .85, cone: false, halo: false },
+        textLight('g8', this.g8, { i: .8, delay: ctx.fwd ? 2 : 0 }), ...photoLight('ph', this.ph5, { delay: ctx.fwd ? 1.6 : 0 })] });
+    } else this.grams.forEach(g => g.classList.remove('on'));
+    if (i === 6) {
+      this.zfigs.forEach((f, n) => f.pose('stand', this.Z[Object.keys(this.Z)[n]]));
+      ctx.light({ lights: [{ id: 'a', x: 960, y: 560, rx: 1000, ry: 380, soft: .4, rim: .3, col: red }, { id: 'h', x: 420, y: 200, rx: 420, ry: 90, soft: .9, i: .85, cone: false, halo: false },
+        textLight('mv', this.mvLine, { i: .8, delay: ctx.fwd ? .8 : 0 })] });
+    }
+  },
+  leave() { this.tv.snow(false); this.tv.bj.stop(); [this.zom, this.bj, this.gm, ...this.zfigs].forEach(f => f.stop()); },
+});
+
+/* ═══ 6 · IV BAD ═══ */
+function decoSVG() {
+  let s = '';
+  for (let k = -9; k <= 9; k++) { const a = (k * 7 - 90) * Math.PI / 180; s += `<line x1="960" y1="1180" x2="${960 + Math.cos(a) * 1500}" y2="${1180 + Math.sin(a) * 1500}"/>`; }
+  return `<svg viewBox="0 0 1920 1080" fill="none" stroke="rgba(242,235,216,.07)" stroke-width="2">${s}<circle cx="960" cy="1180" r="420" stroke="rgba(242,235,216,.08)"/><circle cx="960" cy="1180" r="460" stroke="rgba(242,235,216,.05)"/></svg>`;
+}
+/* a protractor around the ankles, in stage coordinates */
+function leanGauge(px, py, R) {
+  let ticks = '', labels = '';
+  for (let a = 0; a <= 60; a += 5) {
+    const r1 = a % 15 === 0 ? R - 44 : R - 22, rad = a * Math.PI / 180;
+    ticks += `<line x1="${(px + Math.sin(rad) * r1).toFixed(1)}" y1="${(py - Math.cos(rad) * r1).toFixed(1)}" x2="${(px + Math.sin(rad) * R).toFixed(1)}" y2="${(py - Math.cos(rad) * R).toFixed(1)}" stroke-width="${a % 15 === 0 ? 3 : 1.6}"/>`;
+    if (a % 15 === 0) labels += `<text x="${(px + Math.sin(rad) * (R + 40)).toFixed(1)}" y="${(py - Math.cos(rad) * (R + 40) + 9).toFixed(1)}" text-anchor="middle">${a}°</text>`;
+  }
+  const r30 = 30 * Math.PI / 180, r60 = 60 * Math.PI / 180;
+  return `<svg class="gauge" viewBox="0 0 1920 1080" fill="none" stroke="currentColor">
+    <path class="psec" d="" fill="rgba(111,147,255,.14)" stroke="none"/>
+    <path d="M${px} ${py - R} A ${R} ${R} 0 0 1 ${(px + Math.sin(r60) * R).toFixed(1)} ${(py - Math.cos(r60) * R).toFixed(1)}" stroke-opacity=".7" stroke-width="2.5"/>
+    <g stroke-opacity=".75">${ticks}</g>
+    <g fill="currentColor" stroke="none" style="font: 500 28px var(--f-num); letter-spacing: .05em" fill-opacity=".85">${labels}</g>
+    <line x1="${px}" y1="${py}" x2="${px}" y2="${py - R - 20}" stroke-opacity=".35" stroke-dasharray="4 8" stroke-width="2"/>
+    <line x1="${px}" y1="${py}" x2="${(px + Math.sin(r30) * (R + 16)).toFixed(1)}" y2="${(py - Math.cos(r30) * (R + 16)).toFixed(1)}" stroke="#6f93ff" stroke-width="3" stroke-dasharray="10 9"/>
+    <text x="${(px + Math.sin(r30) * (R + 70)).toFixed(1)}" y="${(py - Math.cos(r30) * (R + 70)).toFixed(1)}" fill="#8fb0ff" stroke="none" text-anchor="middle" style="font: 500 22px var(--f-num); letter-spacing: .2em">LIMIT</text>
+    <line class="paxis" x1="${px}" y1="${py}" x2="${px}" y2="${py - R}" stroke="#fff" stroke-width="2" stroke-opacity=".8"/>
+    <line x1="${px - 260}" y1="${py + 30}" x2="${px + R + 120}" y2="${py + 30}" stroke-width="3" stroke-opacity=".7"/>
+    <circle cx="${px}" cy="${py}" r="9" fill="#f2ebd8" stroke="none"/>
+  </svg>`;
+}
+/* patent drawing: floor, hitch and labels; the figure itself is a line-drawn rig laid on top */
+function patentFig2() {
+  return `<svg viewBox="0 0 760 470" fill="none" stroke="#1d1a16" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+    <line x1="30" y1="400" x2="730" y2="400"/><line x1="30" y1="412" x2="730" y2="412" stroke-width="1.5"/>
+    <path d="${Array.from({ length: 17 }, (_, k) => `M${40 + k * 40} 412 l14 14`).join(' ')}" stroke-width="1.4"/>
+    <g class="fig-peg"><path d="M262 450 L262 404 L254 404 L270 386 L286 404 L278 404 L278 450 Z" fill="#efe7d3"/><path d="M256 450 L284 450"/></g>
+    <circle cx="270" cy="392" r="46" stroke-width="1.6" stroke-dasharray="5 6"/>
+    <g stroke-width="1.6"><path d="M240 366 L 120 250"/><path d="M300 420 L 420 452"/><path d="M640 400 L 682 340"/><path d="M470 150 L 560 112"/></g>
+    <g fill="#1d1a16" stroke="none" style="font: 600 19px var(--f-mono)">
+      <text x="40" y="240">HEEL SLOT</text><text x="428" y="462">HITCH (PEG)</text><text x="600" y="330">STAGE</text><text x="566" y="106">BODY AXIS 45°</text><text x="226" y="350">A</text></g>
+  </svg>`;
+}
+Scenes.define('bad', {
+  build(el, sc) {
+    const back = layer(-.22), mid = layer(.08), stg = layer(.3);
+    el.append(back, mid, stg);
+    back.append(A('div.deco', 960, 540, { cls: 'rv slow', show: '0-1', html: decoSVG() }));
+    this.op = opener(mid, sc, { card: { num: 'IV', title: L('배드', '《Bad》'), en: "CLUB 30's", years: L('1987 — 1988') }, cardX: 640 });
+    /* photograph: the Bad tour, Vienna 1988 (beside the five number ones) */
+    mid.append(this.ph1 = photoPrint('bad_1988', { x: 330, y: 700, w: 280, h: 320, rot: -4, show: '1-1', d: 3.2 }));
+    /* 0 · the door of Club 30's, and the man in it */
+    back.append(A('div.door', 1450, 560, { show: '0-0', cls: 'slow', d: .6 }, h('i.d-glow'), h('i.d-frame')),
+      A('div.door-spill', 1450, 930, { show: '0-0', cls: 'slow', d: .9 }));
+    this.dm = stageFig(stg, { costume: 'smooth', pose: 'stand', x: 1450, y: 880, h: 600, show: '0-0', d: 1.1, rim: '#cfe0ff', glow: 'rgba(160, 190, 255, .55)', glowPx: 14, shadow: 'none', p: { hatTilt: 18, neck: 10, turn: .1, nSh: 4, fSh: -4 } });
+    /* 1 · five number ones, cascading */
+    const sl = [
+      { title: "I Just Can't<br>Stop Loving You", year: '1987' }, { title: 'Bad', year: '1987', tStyle: { fontSize: '74px' } },
+      { title: 'The Way You<br>Make Me Feel', year: '1988' }, { title: 'Man in<br>the Mirror', year: '1988' }, { title: 'Dirty<br>Diana', year: '1988' },
+    ].map((o, k) => { const s = sleeve(Object.assign(o, { bg: k % 2 ? '#f2ebd8' : '#0e1838', fg: k % 2 ? '#0e1838' : '#f2ebd8', label: '#3d6cff' })); s.classList.add('deco-s'); tiltify(s, 12); s.append(mvSwitch(['ijcslu', 'bad', 'twymmf', 'mitm', 'dirtydiana'][k], { sm: true, year: false, color: lighter(o.bg, o.fg) })); return s; });
+    this.sleeves = sl;
+    sl.forEach((s, k) => mid.append(A('div.casc', 640 + k * 238, 320 + k * 112, { show: '1-1', cls: 'drop flip3d', d: .2 + k * .15, style: `rotate:${-6 + k * 3}deg` }, s)));
+    back.append(A('div.b-5', 250, 560, { show: '1-1', cls: 'zoom slow' }, '5'));
+    mid.append(A('div.b-m.nowrap', 1840, 262, { anchor: 'ar', show: '1-1', d: 1 }, T(L('한 앨범에서 빌보드 1위 싱글 다섯 곡', '一张专辑，五支公告牌冠军单曲'))),
+      A('div.tag', 1840, 340, { anchor: 'ar', show: '1-1', d: 3.4 }, T(L('역사상 처음', '史上首次'))));
+    /* 2–4 · the film frame (the video plays here) */
+    const FR = { x: 400, y: 172, w: 1120, h: 630 };
+    Scenes.setRect('scFrame', FR);
+    mid.append(mvAt('smooth', FR.x + FR.w / 2, FR.y + FR.h + 40, { anchor: 'ac', show: '2-4', d: 1.4, label: 'FULL MV', color: '#e8eefc' }));
+    this.frame = A('div.frame', FR.x + FR.w / 2, FR.y + FR.h / 2, { show: '2-4', cls: 'zoom' },
+      h('div.fr-b'), h('div.fr-c.tl'), h('div.fr-c.tr'), h('div.fr-c.bl'), h('div.fr-c.br'),
+      h('div.fr-in', {}, h('div.fr-k', {}, T(L('1988 · 영화 〈문워커〉', '1988 · 电影《月球漫步》'))), h('div.fr-t', { text: 'Smooth Criminal' }), h('div.b-m', { style: { color: 'var(--dim)' } }, T(L('1930년대 갱스터 클럽', '1930 年代的黑帮俱乐部')))));
+    this.cues = h('div.cuetrack', {}, h('div.ct-line'),
+      h('div.ct-cue', { style: { left: '33%' } }, h('i'), h('span', {}, T(L('① 클럽 입장', '① 俱乐部登场')))),
+      h('div.ct-cue', { style: { left: '72%' } }, h('i'), h('span', {}, T(L('② 45° 기울기', '② 45° 前倾')))));
+    mid.append(this.frame, A('div', 960, 878, { show: '2-4', d: .5 }, this.cues),
+      this.k88 = A('div.lab.center.nowrap', 960, 92, { show: '2-4', d: .8, style: 'color:var(--acc2)' }, T(L('1988 — 영화 〈마이클〉이 멈추는 해', '1988 — 电影《迈克尔》停下的那一年'))));
+    this.sm = stageFig(stg, { costume: 'smooth', pose: 'hat', style: 'costume', x: 1730, y: 990, h: 640, show: '2-2', d: .6, glowPx: 8, rim: '#dfe8ff' });
+    /* 5 · the lean, on a protractor — drag it */
+    const LX = 470, LY = 920, LH = 800;
+    this.lean = stageFig(stg, { costume: 'smooth', pose: 'lean', style: 'costume', x: LX, y: LY, h: LH, show: '5-5', glowPx: 9, rim: '#dfe8ff', glow: 'rgba(170, 195, 255, .45)', p: { tilt: 0 } });
+    const piv = this.lean.anchor('feet'), pivY = LY - 28.5 * this.lean.scale;
+    this.piv = [piv[0], pivY];
+    this.gauge = A('div', 0, 0, { anchor: '', show: '5-5', cls: 'slow', html: leanGauge(Math.round(piv[0]), Math.round(pivY), 640), style: 'color:#f2ebd8' });
+    back.append(this.gauge);
+    this.angleEl = h('div.b-ang', { text: '45°' });
+    mid.append(A('div', 1500, 600, { show: '5-5', d: 1.4 }, this.angleEl),
+      A('div.b-m.nowrap', 1500, 790, { anchor: 'ax', show: '5-5', d: 1.8 }, T(L('몸 전체가, 앞으로', '整个身体，向前'))),
+      A('div.b-s.nowrap', 1500, 858, { anchor: 'ax', show: '5-5', d: 2.4, style: 'color:#8fb0ff' }, T(L('숙련된 댄서도 30도 안팎이 한계', '专业舞者的极限也只有 30 度左右'))));
+    this.pipRect = { x: 1210, y: 120, w: 520, h: 293 };
+    const hit = this.lean.hitbox(330, -790);
+    draggable(hit, {
+      move: (x, y) => { const a = Math.atan2(x - this.piv[0], this.piv[1] - y) * 180 / Math.PI; this.angle = clamp(a, 0, 60); this.setAngle(this.angle); },
+      up: () => { this.angle = Math.round(this.angle); },
+    });
+    mid.append(itip(820, 250, L('몸을 끌어서 기울여 보세요', '拖动身体，改变角度'), '5-5'));
+    /* 6–7 · the patent, drawn */
+    this.paper = A('div.paper', 960, 505, { show: '6', cls: 'up' },
+      h('div.pp-h', {}, h('span', { text: 'U.S. PATENT' }), h('span', { text: 'OCT. 26, 1993' }), h('span', { text: '5,255,452' })),
+      h('div.pp-t', { text: 'METHOD AND MEANS FOR CREATING ANTI-GRAVITY ILLUSION' }),
+      h('div.pp-fig', { html: patentFig2() }),
+      h('div.pp-side', {},
+        h('div.pp-row.x', {}, h('b', { text: 'MUSIC VIDEO' }), T(L('와이어', '钢丝'))),
+        h('div.pp-row', {}, h('b', { text: 'LIVE' }), T(L('뒤꿈치 홈 + 바닥 고정 장치', '鞋跟凹槽 + 地面固定钉'))),
+        h('div.pp-row', {}, h('b', { text: '1993' }), T(L('미국 특허', '美国专利')))),
+      h('div.pp-note', {}, T(L('도해 · 특허 설명을 바탕으로 다시 그림', '示意图 · 根据专利描述重绘'))),
+      h('div.pp-inv', { text: 'INVENTORS: MICHAEL J. JACKSON · MICHAEL L. BUSH · DENNIS TOMPKINS' }));
+    this.pfig = new Figure.Fig({ costume: 'smooth', pose: 'lean', style: 'line', line: '#1d1a16', lineBg: '#efe7d3', rim: null, glow: null, shadow: 'none', p: { tilt: 0, hatTilt: 10 } });
+    this.pfig.place(300, 552, 300);
+    this.paper.append(this.pfig.el);
+    mid.append(this.paper, A('div.h-s.center.nowrap', 960, 912, { show: '7', d: .4 }, T(L('노래하는 사람이자, 무대를 설계하는 사람', '他是歌手，也是舞台的设计者'))));
+    clickable(this.dm.hitbox(260), () => this.dm.seq([['hat', 380, 200], [{ hatTilt: 18, neck: 10, turn: .1, nSh: 4, fSh: -4 }, 500]]));
+    this.angle = 45;
+  },
+  setAngle(a, animate = false, ms = 1200) {
+    const svg = $('svg', this.gauge); if (!svg) return;
+    const [px, py] = this.piv, R = 600;
+    const sec = $('.psec', svg), axis = $('.paxis', svg);
+    const apply = (v) => {
+      this.lean.set({ tilt: v });
+      const rad = v * Math.PI / 180;
+      sec.setAttribute('d', v <= .1 ? '' : `M${px} ${py} L${px} ${py - R} A ${R} ${R} 0 0 1 ${(px + Math.sin(rad) * R).toFixed(1)} ${(py - Math.cos(rad) * R).toFixed(1)} Z`);
+      axis.setAttribute('x2', (px + Math.sin(rad) * R).toFixed(1)); axis.setAttribute('y2', (py - Math.cos(rad) * R).toFixed(1));
+      this.angleEl.textContent = Math.round(v) + '°';
+      this.angleEl.classList.toggle('over', v > 30.5);
+      this._cur = v;
+    };
+    if (this._ta) { this._ta(); this._ta = null; }
+    if (!animate || Director.reduced) { apply(a); return; }
+    const from = this._cur ?? 0;
+    this._ta = tween(ms, e => apply(lerp(from, a, e)), ease.inOut);
+  },
+  beat(i, ctx) {
+    this.i = i;
+    [this.dm, this.sm, this.lean, this.pfig].forEach(f => f.stop());
+    if (i === 0) {
+      this.op.run(ctx, { dock: false });
+      this.dm.pose('stand', { hatTilt: 18, neck: 10, turn: .1, nSh: 4, fSh: -4 });
+      ctx.light({ lights: [
+        { id: 'L', type: 'beam', x: 260, y: 1220, ang: -64, spread: 6, len: 1500, i: .9 }, { id: 'R', type: 'beam', x: 1660, y: 1220, ang: -116, spread: 6, len: 1500, i: .7 },
+        { id: 'a', x: 640, y: 500, rx: 600, ry: 380, soft: .25 }, { id: 'd', type: 'rect', x: 1450, y: 600, w: 420, h: 760, r: 4, soft: 60, i: .95 }] });
+    } else this.op.hide();
+    if (i === 1) {
+      this.sleeves.forEach((s, k) => { vis(s, 'on'); if (ctx.fwd) { s.stamp(false); ctx.after(1200 + k * 420, () => s.stamp(true)); } else s.stamp(true, true); });
+      ctx.light({ lights: [{ id: 'a', x: 1100, y: 560, rx: 820, ry: 430, soft: .35 }, { id: 'h', x: 1560, y: 210, rx: 440, ry: 110, soft: .9, i: .85, cone: false, halo: false }, { id: 'L', type: 'beam', x: 260, y: 1220, ang: -64, spread: 5, len: 1500, i: .55 }, { id: 'R', type: 'beam', x: 1660, y: 1220, ang: -116, spread: 5, len: 1500, i: .55 }, ...photoLight('ph', this.ph1, { delay: ctx.fwd ? 3.2 : 0 })] });
+    } else this.sleeves.forEach(s => { vis(s, 'off'); s.stamp(false); });
+    $$('.ct-cue', this.cues).forEach((c, k) => c.classList.toggle('lit', (i === 3 && k === 0) || (i === 4 && k === 1)));
+    if (i >= 2 && i <= 4) ctx.light({ warm: .45, lights: [{ id: 'f', type: 'rect', x: 960, y: 487, w: 1200, h: 710, r: 6, soft: 60, i: .95 }, { id: 'c', x: 960, y: 900, rx: 640, ry: 100, soft: .5, i: .8, cone: false }, textLight('k', this.k88, { i: .72 }), ...(i === 2 ? [{ id: 's', x: 1730, y: 640, rx: 220, ry: 420, soft: .3 }] : [])] });
+    if (i === 2) this.sm.pose('hat');
+    if (i === 5) {
+      const pip = Video.slot('pip');
+      const cue2 = (Settings.get().videos.sc.cues || [])[1] || {};
+      const canPip = Video.configured('sc') && cue2.start != null;
+      ctx.light({ warm: .4, lights: [{ id: 'p', x: 640, y: 560, rx: 620, ry: 520, soft: .35 }, ...(canPip ? [{ id: 'v', type: 'rect', x: 1470, y: 266, w: 560, h: 330, r: 6, soft: 40, i: .9 }] : []), { id: 'n', x: 1500, y: 700, rx: 420, ry: 260, soft: .5, i: .85 }] });
+      if (canPip) {
+        if (ctx.fwd) { pip.place(Scenes.rect('scFrame')); pip.el.style.transition = 'none'; void pip.el.offsetWidth; pip.el.style.transition = ''; }
+        Video.playRange('pip', 'sc', { start: cue2.start, end: cue2.end ?? cue2.start + 8, muted: true, loop: true, rect: Scenes.rect('scFrame') });
+        ctx.after(60, () => pip.place(this.pipRect));
+      }
+      if (ctx.fwd) { this.setAngle(0); ctx.after(900, () => this.setAngle(45, true, 1500)); } else this.setAngle(45);
+      this.angle = 45;
+    } else Video.stop('pip');
+    if (i === 6 || i === 7) {
+      this.paper.classList.toggle('on', true);
+      const lean = (v, ms) => { if (!ms || Director.reduced) { this.pfig.set({ tilt: v }); return; } const from = this.pfig.p.tilt; tween(ms, e => this.pfig.set({ tilt: lerp(from, v, e) }), ease.inOut); };
+      if (ctx.fwd && i === 6) { this.paper.classList.remove('on'); lean(0); void this.paper.offsetWidth; ctx.after(200, () => this.paper.classList.add('on')); ctx.after(1500, () => lean(45, 1400)); }
+      else lean(45);
+      $('.pp-inv', this.paper).classList.toggle('hl', i === 7);
+      ctx.light(i === 6 ? { warm: .4, lights: [{ id: 'pp', type: 'rect', x: 960, y: 505, w: 1400, h: 760, r: 6, soft: 60, i: .95 }] }
+        : { warm: .4, ambient: .82, lights: [{ id: 'pp', type: 'rect', x: 960, y: 505, w: 1400, h: 760, r: 6, soft: 60, i: .55 }, { id: 'inv', x: 960, y: 820, rx: 760, ry: 110, soft: .3 }, { id: 'cap', x: 960, y: 948, rx: 700, ry: 80, soft: .5, cone: false }] });
+    } else this.paper.classList.remove('on');
+  },
+  key(k) {
+    if (Director.beat !== SCENES.find(s => s.key === 'bad').first + 5) return false;
+    if (k === 'ArrowUp') { this.angle = clamp(Math.round(this.angle) + 5, 0, 60); this.setAngle(this.angle, true, 350); return true; }
+    if (k === 'ArrowDown') { this.angle = clamp(Math.round(this.angle) - 5, 0, 60); this.setAngle(this.angle, true, 350); return true; }
+    return false;
+  },
+  leave() { [this.dm, this.sm, this.lean, this.pfig].forEach(f => f.stop()); },
+});
+</script>

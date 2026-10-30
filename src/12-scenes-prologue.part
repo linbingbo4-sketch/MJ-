@@ -1,0 +1,414 @@
+<style>
+/* ── prologue: cold open · trailer · title ── */
+[data-scene="cold"] { --rim: #ffd9a0; }
+.twinkle circle { animation: tw 1.6s ease-in-out infinite; }
+.twinkle circle:nth-child(2n) { animation-delay: .5s; } .twinkle circle:nth-child(3n) { animation-delay: 1.1s; }
+@keyframes tw { 0%, 100% { opacity: 0; transform: scale(.4); } 50% { opacity: 1; transform: scale(1.4); } }
+.twinkle circle { transform-box: fill-box; transform-origin: center; }
+.sweep-line { height: 2px; background: linear-gradient(90deg, var(--acc), transparent); transform: scaleX(0); transform-origin: 0 50%; }
+.sweep-line.on { transform: scaleX(1); transition: transform 2.6s linear .5s, opacity .6s ease; }
+.q-dark { color: #c9d3e2; text-shadow: 0 0 40px rgba(150, 175, 220, .25); }
+
+/* cold open */
+.cold-sl .slate { rotate: -5deg; }
+.cold-cap { display: flex; align-items: center; gap: 22px; font: 400 30px/1.4 var(--f-ko); color: var(--dim); white-space: nowrap; }
+.cold-cap .zh { font-family: var(--f-zh); }
+.cold-cap i { display: block; width: 96px; height: 1px; background: var(--faint); }
+.cold-v { writing-mode: vertical-rl; display: flex; gap: 30px; align-items: center; white-space: nowrap; }
+.cold-v b { font: 400 268px/1 var(--f-en); color: transparent; -webkit-text-stroke: 1.6px rgba(255, 214, 160, .62); letter-spacing: .03em; font-weight: 400; }
+.cold-v span { font: 500 19px/1 var(--f-num); letter-spacing: .52em; color: var(--dim); }
+.cold-k { font: 500 24px/1 var(--f-num); letter-spacing: .44em; color: var(--acc); white-space: nowrap; }
+.cold-k::after { content: ''; display: inline-block; width: 120px; height: 1px; margin-left: 22px; vertical-align: middle; background: rgba(255, 208, 138, .5); }
+.callout { display: flex; align-items: baseline; gap: 18px; font: 500 36px/1.25 var(--f-ko-h); white-space: nowrap; }
+.callout .zh { font-family: var(--f-zh-h); }
+.callout.r { flex-direction: row-reverse; text-align: right; }
+.callout b { font: 400 44px/1 var(--f-en); color: var(--acc); font-weight: 400; }
+.leaders { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: visible; }
+.leaders path { fill: none; stroke: rgba(255, 222, 176, .72); stroke-width: 1.6; stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset .9s var(--e-stage); }
+.leaders path.on { stroke-dashoffset: 0; }
+.leaders circle { fill: #ffe6c2; opacity: 0; transition: opacity .4s ease .55s; }
+.leaders circle.on { opacity: 1; }
+.mw-l { font: 600 92px/1.1 var(--f-ko-h); }
+.mw-l .zh { font-family: var(--f-zh-h); }
+.cold-big { font: 600 128px/1 var(--f-ko-h); letter-spacing: -.02em; white-space: nowrap; }
+.cold-big .zh { font-family: var(--f-zh-h); }
+
+/* trailer: a cinema, seen from the back rows */
+.cine { width: 1080px; height: 540px; border-radius: 4px; transform: perspective(1700px) rotateY(-17deg); transform-origin: 100% 50%; transition: transform 1.4s var(--e-stage);
+  background: radial-gradient(ellipse at 40% 40%, #1a2130, #080a10 72%); box-shadow: 0 0 0 1px rgba(220, 230, 245, .1), 0 0 140px rgba(150, 185, 255, .12); overflow: hidden; }
+.cine::after { content: ''; position: absolute; inset: 0; background: linear-gradient(100deg, rgba(255, 255, 255, .06), transparent 40%); }
+.cine .sc-in { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.mv-k { font: 400 30px/1 var(--f-en); letter-spacing: .62em; color: #dfe9f5; margin-right: -.62em; }
+.mv-t { margin-top: 26px; font: 600 150px/1 var(--f-ko-h); letter-spacing: -.01em; color: #f3f6fa; }
+.mv-t .zh { font-family: var(--f-zh-h); }
+.mv-y { margin-top: 30px; font: 500 28px/1 var(--f-num); letter-spacing: .5em; color: rgba(223, 233, 245, .7); margin-right: -.5em; }
+.seats { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: visible; }
+.tr-when { font: 600 190px/.82 var(--f-num); letter-spacing: -.02em; color: #eef3fb; white-space: nowrap; }
+.tr-when small { display: block; margin-top: 26px; font: 500 30px/1 var(--f-num); letter-spacing: .5em; color: rgba(223, 233, 245, .55); }
+.tr-ask { font-family: 'Nanum Pen Script', var(--f-ko); font-size: 64px; line-height: 1; color: var(--acc2); rotate: -6deg; white-space: nowrap; }
+.tr-ask .zh { font-family: 'Long Cang', var(--f-zh); font-size: .78em; }
+.facts { display: grid; grid-template-columns: auto 1fr; gap: 20px 30px; align-items: baseline; }
+.facts b { font: 500 20px/1 var(--f-num); letter-spacing: .36em; color: var(--dim); font-weight: 500; }
+.facts .t { font: 400 36px/1.3 var(--f-ko); }
+.facts .t .zh { font-family: var(--f-zh); }
+.tr-h { font: 600 72px/1.08 var(--f-ko-h); white-space: nowrap; }
+.tr-h .zh { font-family: var(--f-zh-h); }
+.tr-h small { display: block; margin-top: 16px; font: 500 22px/1 var(--f-num); letter-spacing: .42em; color: var(--dim); }
+/* film strip timeline: what the film covers is exposed; beyond 1988 the frames are unexposed */
+.fstrip { width: 1920px; height: 236px; background: #0b0a09; box-shadow: 0 0 0 1px rgba(255, 255, 255, .04); rotate: -2.2deg; }
+.fstrip::before, .fstrip::after { content: ''; position: absolute; left: 0; right: 0; height: 20px; background: repeating-linear-gradient(90deg, transparent 0 14px, #2a2622 14px 34px, transparent 34px 48px); background-clip: content-box; }
+.fstrip::before { top: 8px; } .fstrip::after { bottom: 8px; }
+.fstrip .fr { position: absolute; top: 40px; height: 156px; border-radius: 3px; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; padding: 14px 14px 12px;
+  background: linear-gradient(160deg, #3a2c1d, #1c140d); box-shadow: inset 0 0 0 1px rgba(255, 230, 190, .12); color: #f6e7cf; transition: background .8s ease, color .8s ease, box-shadow .8s ease; }
+.fstrip .fr b { font: 600 40px/1 var(--f-num); letter-spacing: .02em; }
+.fstrip .fr span { font: 400 19px/1.25 var(--f-ko); opacity: .82; }
+.fstrip .fr span .zh { font-family: var(--f-zh); }
+.fstrip .fr.dark { background: #0f0e0d; color: rgba(246, 231, 207, .42); box-shadow: inset 0 0 0 1px rgba(255, 230, 190, .06); }
+.fstrip .fr.dark span { opacity: .55; }
+.fstrip .fr.lit { background: linear-gradient(160deg, #2d3646, #141a24); color: #eef4ff; box-shadow: inset 0 0 0 1px rgba(190, 215, 255, .3), 0 0 30px rgba(160, 200, 255, .2); }
+.fstrip .cut { position: absolute; top: -26px; bottom: -26px; width: 3px; background: #fff; box-shadow: 0 0 16px #fff; }
+.fstrip .cut::before { content: '✂'; position: absolute; top: -40px; left: 50%; translate: -50% 0; font-size: 34px; color: #fff; }
+.tr-88 { font: 600 250px/.8 var(--f-num); color: #fff; text-shadow: 0 0 50px rgba(160, 200, 255, .45); letter-spacing: -.02em; }
+.tr-note { font: 400 30px/1.4 var(--f-ko); white-space: nowrap; }
+.tr-note .zh { font-family: var(--f-zh); }
+
+/* title */
+.tt-word { font: 500 300px/.8 var(--f-en); letter-spacing: -.012em; color: #fff4e2; white-space: nowrap; }
+.tt-beyond { font: 500 46px/1 var(--f-en); letter-spacing: .62em; color: var(--ink); white-space: nowrap; }
+.tt-sub { font: 500 50px/1.3 var(--f-ko-h); color: var(--acc); white-space: nowrap; }
+.tt-sub .zh { font-family: var(--f-zh-h); }
+.ttl-d { font: 400 26px/1.5 var(--f-ko); color: var(--dim); letter-spacing: .04em; white-space: nowrap; }
+.ttl-d .zh { font-family: var(--f-zh); }
+.ttl-d .sep { display: inline-block; width: 36px; height: 1px; background: var(--faint); vertical-align: middle; margin: 0 16px; }
+.tt-group { transition: transform 1.4s var(--e-stage), opacity 1s ease; transform-origin: 0 0; }
+/* the hero photo: centre of the title page; it steps back (smaller, dimmer) when the three acts come in */
+.tt-hero.dim > .hero { transform: scale(.82); opacity: .42; }
+.tt-hero > .hero { transition: transform 1.6s var(--e-stage), opacity 1.2s ease; transform-origin: 50% 40%; }
+.tt-word { position: relative; text-shadow: 0 8px 40px rgba(0, 0, 0, .55); }
+.tt-group.up { transform: translate(40px, -60px) scale(.6); }
+.tt-act { text-align: center; }
+.tt-act .t { font: 500 30px/1.25 var(--f-ko-h); white-space: nowrap; }
+.tt-act .t .zh { font-family: var(--f-zh-h); }
+.tt-act small { display: block; margin-top: 10px; font: 500 19px/1 var(--f-num); letter-spacing: .34em; color: var(--dim); }
+.tt-act .n { display: block; font: 400 46px/1 var(--f-en); color: var(--acc); margin-bottom: 12px; }
+.arc { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: visible; }
+.arc path { fill: none; stroke: rgba(255, 208, 138, .5); stroke-width: 2; stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset 3s var(--e-spot) .3s; }
+.on > .arc path, .arc.on path { stroke-dashoffset: 0; }
+</style>
+
+<script>
+/* ═══ 0 · COLD OPEN — a man on a stage, told by his silhouette ═══ */
+Scenes.define('cold', {
+  build(el) {
+    const X0 = this.X0 = 1250, FY = this.FY = 992, FH = 860;
+    const back = layer(-.28), mid = layer(.1), stg = layer(.38);
+    el.append(back, mid, stg);
+    /* 0 · the slate, tilted; the year as a tall outline on the far right */
+    this.slate = slate({ prod: '<span class="redact"></span>', scene: '1', take: '1', roll: '83', loc: 'PASADENA, CA', date: '<span class="write">1983. 3. 25</span>' });
+    $$('.sl-v', this.slate).slice(-1)[0].style.fontSize = '25px';
+    mid.append(A('div.cold-sl', 700, 486, { show: '0-0', cls: 'zoom slow' }, this.slate),
+      A('div.cold-cap', 384, 848, { anchor: 'ay', show: '0-0', d: 1.4 }, h('i'), T(L('미국 캘리포니아, 한 공연장', '美国加州，一座剧场'))));
+    back.append(A('div.cold-v', 1606, 540, { show: '0-0', d: .5, cls: 'blur slow' }, h('b', { text: '1983' }), h('span', { text: 'PASADENA CIVIC AUDITORIUM' })));
+    /* the man, his floor, his light */
+    this.pool = A('div.pool', X0, FY - 6, { show: '1-4', cls: 'slow', w: 760, hgt: 150 });
+    stg.append(this.pool);
+    const fig = this.fig = new Figure.Fig({ costume: 'billie', pose: 'stand', p: { neck: 14, head: 4, hatTilt: 18 }, glowPx: 10 });
+    fig.place(X0, FY, FH);
+    this.box = A('div.figbox', 0, 0, { anchor: '', show: '1-5', cls: 'slow' }); this.box.append(fig.el);
+    stg.append(this.box);
+    /* 1 */
+    mid.append(stack(150, 508, { anchor: 'ay', align: 'left', gap: 30 },
+      R('cold-k', '1-1', 0, h('span', { text: 'PASADENA · 1983. 3. 25' }), 'left'),
+      R('h-xl', '1-1', .25, T(L('무대 위,<br>한 남자', '舞台上，<br>一个男人')), 'blur slow')));
+    /* 2 · three clues, pinned to the body with leader lines */
+    this.CO = [
+      { k: 'hat', n: 'I', lab: L('검은 페도라', '黑色软呢帽'), x: 1030, y: 166, side: 'r' },
+      { k: 'hand', n: 'II', lab: L('반짝이는 장갑, 한 짝', '一只闪亮的手套'), x: 1476, y: 520, side: 'l' },
+      { k: 'sock', n: 'III', lab: L('발목 위의 흰 양말', '露出脚踝的白袜子'), x: 1050, y: 902, side: 'r' },
+    ];
+    this.coEls = this.CO.map(c => { const e = A('div.callout', c.x, c.y, { anchor: c.side === 'r' ? 'ar' : 'ay', cls: c.side + ' rv fast' }, h('b', { text: c.n }), T(c.lab)); stg.append(e); return e; });
+    this.ld = svgEl(`<svg class="leaders" viewBox="0 0 1920 1080">${this.CO.map(() => '<path pathLength="1"/><circle r="5.5"/>').join('')}</svg>`);
+    stg.append(this.ld);
+    /* 3 · the backslide */
+    this.mw = [moonwalk(L('앞으로 걷는데,', '看似向前走，'), 'mw-l'), moonwalk(L('몸은 뒤로', '身体却向后滑'), 'mw-l')];
+    this.mw.forEach(m => m.style.setProperty('--mw-from', '260px'));
+    mid.append(stack(128, 520, { anchor: 'ay', align: 'left', gap: 14 }, ...this.mw.map((m, k) => R('', '3-3', k * .1, m, 'fast'))));
+    /* 4 */
+    mid.append(stack(128, 470, { anchor: 'ay', align: 'left', gap: 30 },
+      R('cold-big', '4-4', 0, T(L('그 몇 초가,', '那几秒钟，')), 'blur slow'),
+      R('b-l nowrap', '4-4', .8, T(L('대중음악의 역사를 바꿉니다', '改变了流行音乐的历史'))),
+      h('div.sweep-line', { 'data-show': '4-4', style: { width: '560px' } }),
+      R('', '4-4', 1.8, mvSwitch('motown25', { label: 'LIVE', color: 'rgba(240, 236, 228, .9)' }))));
+    /* 5 · the question waits in the dark he walks into */
+    mid.append(A('div.h-l.q-dark.nowrap', 1800, 520, { anchor: 'ar', show: '5', cls: 'blur slow', d: 1.1, style: 'line-height:1.3;text-align:right' }, T(L('스포트라이트 밖의 그는,<br>누구였을까?', '聚光灯之外的他，<br>究竟是谁？'))));
+    /* interaction: click = the Motown 25 flourish; drag on beat 3 = scrub the moonwalk */
+    this.hit = fig.hitbox(260);
+    stg.append(itip(X0 + 150, 300, L('클릭해 보세요', '点他一下'), '1-2'), itip(X0 - 120, 250, L('좌우로 끌어 보세요 · 문워크', '左右拖动 · 太空步'), '3-4'));
+    let moved = false, t0 = 0, dragging = false;
+    draggable(this.hit, {
+      down: () => { moved = false; dragging = false; if (this.i === 3 || this.i === 4) { t0 = this.mwT(); } },
+      move: (x, y, dx) => {
+        if (Math.abs(dx) > 6) moved = true;
+        if (!moved || !(this.i === 3 || this.i === 4)) return;
+        dragging = true;
+        const pxPerMs = 66 * fig.scale / 640;
+        this.scrub(clamp(t0 - dx / pxPerMs, 0, this.MW.total));
+      },
+      up: () => { if (!moved && this.i >= 1 && this.i <= 4) this.flourish(); },
+    });
+    this.MW = { steps: 4, stride: 66, stepMs: 640, total: 4 * 640 };
+    this.scrubT = null;
+  },
+  /* the moonwalk's end, as a standing pose (feet together where the slide ended) */
+  mwEnd() {
+    if (this._end != null) return this._end;
+    const f = this.fig, M = this.MW;
+    f.pose('stand', { x: 0 });
+    f.moonwalk({ steps: M.steps, stride: M.stride, stepMs: M.stepMs, frame: M.total - 1, x0: 0 });
+    this._end = (f.J.nL.A[0] + f.J.fL.A[0]) / 2;
+    f.stop();
+    return this._end;
+  },
+  mwT() { return this.scrubT ?? this.MW.total; },
+  scrub(t) {
+    const f = this.fig, M = this.MW;
+    const prev = this.scrubT ?? M.total;
+    f.moonwalk({ steps: M.steps, stride: M.stride, stepMs: M.stepMs, frame: t, x0: 0 });
+    if (Math.floor(prev / M.stepMs) !== Math.floor(t / M.stepMs)) f.trail(.16, 1400, '#ffe2b8');
+    this.scrubT = t;
+    const [sx] = f.anchor('hip');
+    Light.set({ lights: [{ id: 's', x: sx, y: 560, rx: 300, ry: 470, soft: .03 }, { id: 'tx', x: 440, y: 520, rx: 440, ry: 230, soft: 1, i: .9, cone: false, halo: false }] }, { dur: .25 });
+  },
+  flourish() {
+    const f = this.fig;
+    f.seq([['hat', 380, 120], ['kick', 260, 60], [{ nHip: 4, nKnee: 6, nFoot: 90, lean: 0, nSh: 20, nEl: 60, fSh: -10, fEl: 40 }, 200], [(g) => g.spinTurn(560), 0, 560], ['toe', 230, 1000], [this.i === 4 ? 'toe' : 'stand', 700]]);
+  },
+  leaders(on) {
+    if (on && !this.ldOff) this.ldOff = Loop.add(() => {
+      const paths = this.ld.querySelectorAll('path'), dots = this.ld.querySelectorAll('circle');
+      this.CO.forEach((c, i) => {
+        const [ex, ey] = this.fig.anchor(c.k), sx = c.side === 'r' ? c.x + 20 : c.x - 20, kx = c.side === 'r' ? sx + 54 : sx - 54;
+        const d = `M${sx} ${c.y}H${kx}L${ex.toFixed(1)} ${ey.toFixed(1)}`;
+        if (paths[i].getAttribute('d') === d) return;     /* unchanged: touching the SVG would repaint it every frame */
+        paths[i].setAttribute('d', d);
+        dots[i].setAttribute('cx', ex.toFixed(1)); dots[i].setAttribute('cy', ey.toFixed(1));
+      });
+    });
+    if (!on && this.ldOff) { this.ldOff(); this.ldOff = null; }
+  },
+  pin(k, on) { const n = this.CO.findIndex(c => c.k === k); vis(this.coEls[n], on ? 'on' : 'off'); this.ld.querySelectorAll('path')[n].classList.toggle('on', on); this.ld.querySelectorAll('circle')[n].classList.toggle('on', on); },
+  beat(i, ctx) {
+    const f = this.fig, X0 = this.X0, hard = .022, s = f.scale;
+    this.i = i; this.scrubT = null;
+    f.stop(); f.clearGhosts();
+    if (f.face !== 1) f.setFace(1);
+    const atX = (u) => X0 + u * s;
+    const special = (x, y, rx, ry, k = .9, id = 'tx') => ({ id, x, y, rx, ry, soft: 1, i: k, cone: false, halo: false });
+    /* every beat keeps a soft special on its words; the hard spot follows the man */
+    let extra = [];
+    if (i === 0) extra = [special(1606, 540, 190, 560, .7), special(640, 850, 360, 70, .7, 'cap')];
+    if (i === 1) extra = [special(440, 500, 470, 300)];
+    if (i === 3) extra = [special(440, 520, 440, 230)];
+    if (i === 4) extra = [special(470, 500, 470, 240)];
+    const spot = (x, y, rx, ry, o = {}) => ctx.light({ lights: [{ id: 's', x, y, rx, ry, soft: o.soft ?? hard, dur: o.dur }, ...extra] }, { dur: o.dur, ease: o.ease });
+    this.leaders(i === 2);
+    if (i !== 2) this.CO.forEach(c => this.pin(c.k, false));
+    if (i === 0) {
+      spot(700, 486, 440, 400, { dur: ctx.first ? 1.2 : .9 });
+      if (ctx.fwd) { this.slate.classList.remove('written'); this.slate.open(); this.slate.clap(); } else this.slate.classList.add('clap', 'written');
+      f.pose('stand', { neck: 14, head: 4, hatTilt: 18 });
+    }
+    if (i === 1) {
+      f.pose('stand', { neck: 14, head: 4, hatTilt: 18 });
+      if (ctx.fwd) ctx.after(900, () => f.to('stand', 1400, ease.inOutSine)); else f.pose('stand');
+      spot(X0 + 12, 560, 310, 480);
+    }
+    if (i === 2) {
+      const tGlove = ctx.say('한쪽 손에만'), tShoe = ctx.say('그리고 발목'), tAll = ctx.say('흰 양말', 1.3);
+      const GLOVE = { turn: .26, nSh: 64, nEl: 98, nWr: -12, nHand: Figure.HI('open'), fSh: -8, fEl: 16 };
+      const lab = (c) => special(c.side === 'r' ? c.x - 190 : c.x + 230, c.y, 300, 70, .85, 'l-' + c.k);
+      const pinLit = (k) => { const c = this.CO.find(o => o.k === k); extra = extra.filter(e => e.id !== 'l-' + k).concat([lab(c)]); this.pin(k, true); };
+      f.pose('stand');
+      if (!ctx.fwd) { this.CO.forEach(c => pinLit(c.k)); spot(X0 + 12, 560, 330, 500, { soft: .05 }); return; }
+      pinLit('hat'); spot(X0 + 20, 220, 200, 170); f.to('hat', 800);
+      ctx.after(tGlove, () => { f.to(GLOVE, 700); ctx.after(380, () => { const [hx, hy] = f.anchor('hand'); pinLit('hand'); spot(hx, hy, 190, 190); }); });
+      ctx.after(tShoe, () => { f.to('toe', 650); pinLit('sock'); spot(X0, 930, 260, 120); });
+      ctx.after(Math.max(tAll, tShoe + 1800), () => { f.to('stand', 900); spot(X0 + 12, 560, 330, 500, { soft: .05, dur: 1.4 }); });
+    }
+    if (i === 3) {
+      const M = this.MW, endU = this.mwEnd();
+      if (ctx.fwd) {
+        this.mw.forEach(m => m.reset());
+        f.pose('stand', { x: 0 });
+        spot(atX(0) + 10, 560, 300, 470, { dur: .5 });
+        ctx.after(260, () => {
+          this.mw.forEach((m, k) => setTimeout(() => m.go(), k * 180));
+          f.moonwalk({ steps: M.steps, stride: M.stride, stepMs: M.stepMs, x0: 0, onStep: (k) => { if (k > 0) f.trail(.16, 1700, '#ffe2b8'); }, done: () => f.to(f.poseOf('stand', { x: endU }), 380) });
+          spot(atX(endU) + 10, 560, 300, 470, { dur: M.total / 1000, ease: ease.linear });
+        });
+      } else { this.mw.forEach(m => m.go(true)); f.pose('stand', { x: endU }); spot(atX(endU) + 10, 560, 300, 470); }
+    }
+    if (i === 4) {
+      const endU = this.mwEnd();
+      if (ctx.fwd) { f.pose('stand', { x: endU }); f.spinTurn(620, 1, () => f.to('toe', 260)); }
+      else f.pose('toe', { x: endU });
+      spot(atX(endU) + 10, 560, 320, 480);
+    }
+    if (i === 5) {
+      const endU = this.mwEnd(), outU = -endU + 4 * 58;
+      ctx.light({ ambient: .9, lights: [
+        { id: 's', x: atX(endU) + 10, y: 905, rx: 250, ry: 90, soft: hard, dur: 1.6 },
+        { id: 'q', x: 1290, y: 520, rx: 720, ry: 300, soft: 1, i: .42, cone: false, halo: false, delay: .7 },
+        { id: 'bk', x: atX(endU) - 330, y: 620, rx: 420, ry: 520, soft: 1, i: .14, cone: false, halo: false, delay: 1.2, dur: 2.4 },
+      ] }, { dur: 1.6 });
+      f.pose('stand', { x: endU }); f.setFace(-1);
+      if (ctx.fwd) ctx.after(500, () => f.walk({ steps: 4, stride: 58, stepMs: 760, done: () => { const mid = (f.J.nL.A[0] + f.J.fL.A[0]) / 2; f.to(f.poseOf('stand', { x: mid, neck: 12 }), 700); } }));
+      else f.pose('stand', { x: outU, neck: 12 });
+    }
+  },
+  leave() { this.fig.stop(); this.fig.clearGhosts(); this.leaders(false); },
+});
+
+/* ═══ 1 · TRAILER — we are in the back row of a cinema ═══ */
+Scenes.define('trailer', {
+  build(el) {
+    const back = layer(-.2), mid = layer(.12), front = layer(.55);
+    el.append(back, mid, front);
+    /* 0 · the screen, angled; the audience in silhouette */
+    this.cine = h('div.cine', {}, h('div.sc-in', {}, h('div.mv-k', { text: 'MICHAEL' }), h('div.mv-t', {}, T(L('〈마이클〉', '《迈克尔》'))), h('div.mv-y', { text: '2026' })));
+    back.append(A('div', 1330, 420, { show: '0-1', cls: 'zoom slow' }, this.cine));
+    /* the film itself, on demand (beat ② plays it on the screen) */
+    mid.append(mvAt('michael', 1330, 742, { anchor: 'ac', show: '0-0', d: 2.8, label: 'TRAILER', color: '#dfe9f5' }));
+    const r = rng(19); let seats = '';
+    for (let row = 0; row < 2; row++) for (let k = 0; k < 13; k++) {
+      const x = -40 + k * 160 + (row ? 80 : 0) + (r() - .5) * 40, y = row ? 1070 : 980, s = (row ? 1.25 : 1) * (.9 + r() * .22);
+      seats += `<g transform="translate(${x.toFixed(0)} ${y}) scale(${s.toFixed(2)})"><path d="M-62 120 C-62 40 -40 18 0 18 C40 18 62 40 62 120 Z"/><ellipse cx="${((r() - .5) * 8).toFixed(1)}" cy="-14" rx="27" ry="33"/></g>`;
+    }
+    front.append(A('div', 0, 0, { anchor: '', show: '0-1', cls: 'slow' }, svgEl(`<svg class="seats" viewBox="0 0 1920 1080"><g fill="#030305" stroke="rgba(176, 200, 255, .38)" stroke-width="2.2">${seats}</g></svg>`)));
+    mid.append(stack(118, 330, { anchor: '', align: 'left', gap: 22 },
+      R('tr-when', '0-0', .4, h('span', { text: '2026.5' }), 'up'),
+      R('b-m', '0-0', .9, T(L('올해 5월, 한국 개봉', '今年 5 月，韩国上映'))),
+      this.ask = R('tr-ask', '0-0', 2.2, T(L('혹시, 보셨나요?', '有人看过吗？')), 'drop')));
+    /* 2 · the facts, then the film strip with its cut at 1988 */
+    mid.append(stack(118, 120, { anchor: '', align: 'left', gap: 30 },
+      R('tr-h', '2', 0, T(L('영화 〈마이클〉', '电影《迈克尔》')), 'left'),
+      (() => { const f = R('facts', '2', .35, null, 'left'); f.append(h('b', { text: 'STAR' }), T(L('자파 잭슨 — 그의 친조카', '贾法尔·杰克逊——他的亲侄子')), h('b', { text: 'RECORD' }), T(L('전기 영화 최초, 전 세계 흥행 10억 달러', '传记片首部，全球票房突破 10 亿美元'))); return f; })()));
+    const FR = [
+      ['1958', L('게리에서 태어나다', '生于加里')], ['1969', L('모타운 데뷔', '摩城出道')], ['1979', L('Off the Wall', 'Off the Wall')], ['1982', L('Thriller', 'Thriller')],
+      ['1983', L('문워크', '太空步')], ['1987', L('Bad', 'Bad')], ['1988', L('Smooth Criminal', 'Smooth Criminal')],
+      ['1991', L('Black or White', 'Black or White')], ['1993', L('슈퍼볼 · 그리고 그림자', '超级碗 · 以及阴影')], ['1996', L('서울 잠실', '首尔蚕室')], ['1999', L('6월 25일, 서울', '6 月 25 日，首尔')], ['2009', L('This Is It', 'This Is It')],
+    ];
+    const strip = this.strip = A('div.fstrip', 960, 690, { show: '2', cls: 'up slow', d: .6 });
+    const fw = 148, gap = 12, x0 = 28;
+    this.frames = FR.map(([y, lab], k) => { const fr = h('div.fr', { cls: +y > 1988 ? 'dark' : '', style: { left: (x0 + k * (fw + gap)) + 'px', width: fw + 'px' } }, h('b', { text: y }), h('span', {}, T(lab))); strip.append(fr); return fr; });
+    this.cutX = x0 + 7 * (fw + gap) - gap / 2;
+    strip.append(h('div.cut', { style: { left: this.cutX - 1.5 + 'px' } }));
+    mid.append(strip);
+    const cx = this.cutX;
+    mid.append(A('div.tr-88', cx, 500, { anchor: 'ab', show: '2', d: 1.2, cls: 'up' }, '1988'),
+      A('div.tr-note.dim', cx, 846, { anchor: 'ax', show: '2-2', d: 1.6 }, T(L('이야기는 여기서 멈춘다', '故事停在这里'))),
+      A('div.tr-note', cx + 360, 846, { anchor: 'ax', show: '3', d: 1.0, style: 'color:var(--acc2)' }, T(L('1988 — 2009 · 그 너머로', '1988 — 2009 · 走向更远'))));
+    this.frames.forEach(fr => tiltify(fr, 14));
+  },
+  beat(i, ctx) {
+    this.cine.style.transform = i >= 1 ? 'perspective(1700px) rotateY(0deg)' : '';
+    /* where the trailer is projected: the screen once it faces us (layout box, before its turn) */
+    Scenes.setRect('cineScreen', stageBox(this.cine));
+    if (i <= 1) {
+      ctx.light({ lights: [
+        { id: 'scr', type: 'rect', x: 1300, y: 420, w: 1220, h: 620, r: 10, soft: 90, i: i === 0 ? .92 : .5 },
+        { id: 'seat', type: 'rect', x: 960, y: 1010, w: 1960, h: 200, r: 10, soft: 90, i: .6 },
+        { id: 'proj', type: 'beam', x: -120, y: 220, ang: 10, spread: 15, len: 1500, i: .3 },
+        { id: 'tx', x: 400, y: 490, rx: 440, ry: 310, soft: .9, i: .72, cone: false, halo: false },
+        ...(i === 0 ? [textLight('q', this.ask, { i: .6, delay: ctx.fwd ? 2.2 : 0 })] : []),
+      ] });
+    }
+    const lit = (n) => this.frames.forEach((fr, k) => { fr.classList.toggle('lit', k >= 7 && k < 7 + n); });
+    if (i === 2) {
+      lit(0);
+      ctx.light({ ambient: .9, lights: [
+        { id: 'a', x: 560, y: 260, rx: 620, ry: 230, soft: .5, i: .95, cone: false },
+        { id: 'b', x: 560, y: 690, rx: 700, ry: 170, soft: .35, cone: false },
+        { id: 'c', x: 1142, y: 430, rx: 300, ry: 250, soft: .3 },
+        { id: 'n', x: 1142, y: 862, rx: 300, ry: 60, soft: 1, i: .75, cone: false, halo: false },
+      ] });
+    }
+    if (i === 3) {
+      ctx.light({ ambient: .92, lights: [
+        { id: 'a', x: 560, y: 260, rx: 620, ry: 230, soft: .5, i: .5, cone: false },
+        { id: 'b', x: 560, y: 690, rx: 700, ry: 170, soft: .35, i: .45, cone: false },
+        { id: 'c', x: 1500, y: 690, rx: 470, ry: 170, soft: .3, dur: 2.6 },
+        { id: 'n', x: 1500, y: 862, rx: 330, ry: 60, soft: 1, i: .75, cone: false, halo: false },
+      ] }, { dur: 1.2 });
+      if (ctx.fwd) { lit(0); for (let n = 1; n <= 5; n++) ctx.after(500 + n * 380, () => lit(n)); } else lit(5);
+    }
+  },
+});
+
+/* ═══ 2 · TITLE ═══ */
+Scenes.define('title', {
+  build(el) {
+    const back = layer(-.15), mid = layer(.15), fg = layer(.4);
+    el.append(back, mid, fg);
+    /* the centre of the page: Michael on the Bad tour, everything else arranged around him */
+    this.hero = heroPhoto('bad_1988', { w: 820, h: 1080, pos: '50% 18%' });
+    this.heroW = A('div.tt-hero', 1060, 540, { show: '0-1', cls: 'zoom slow' }, this.hero);
+    back.append(this.heroW);
+    tiltify(this.hero, 4);
+    this.credit = h('div.ttl-d');
+    this.g = A('div.tt-group', 0, 0, { anchor: '' });
+    this.g.append(A('div.tt-beyond', 136, 316, { anchor: 'ay' }, 'BEYOND THE'),
+      A('div.tt-word', 110, 560, { anchor: 'ay' }, 'SPOTLIGHT'),
+      A('div.tt-sub', 1806, 778, { anchor: 'ar' }, T(L('스포트라이트 너머의 마이클 잭슨', '聚光灯之外的迈克尔·杰克逊'))));
+    mid.append(this.g, A('div', 136, 950, { anchor: 'ay', show: '0-0', d: 1.8 }, this.credit));
+    this.actLabs = [];
+    /* 1 · three acts on an arc, each with the man of its years */
+    const acts = [[1, 330, 'billie', 'hat'], [2, 960, 'military', 'statue'], [3, 1590, 'person', 'person']];
+    const arcSvg = svgEl(`<svg class="arc" viewBox="0 0 1920 1080"><path pathLength="1" d="M110 812 Q 960 768 1810 812"/></svg>`);
+    this.arc = A('div', 0, 0, { anchor: '', show: '1', cls: 'slow' }, arcSvg);
+    mid.append(this.arc);
+    this.actFigs = acts.map(([n, x, cos, pose], k) => {
+      const a = ACTS[n];
+      const f = new Figure.Fig({ costume: cos, pose, glowPx: 6, rimPx: 1.6, shadow: 'pool' });
+      f.place(x, 800, 290);
+      const box = A('div.figbox', 0, 0, { anchor: '', show: '1', cls: 'up slow', d: .5 + k * .45 }); box.append(f.el);
+      const lab = A('div.tt-act', x, 822, { anchor: 'ax', show: '1', d: .8 + k * .45, cls: 'up' }, h('span.n', { text: ['I', 'II', 'III'][k] }), T(L(`${a.label.ko} · ${a.name.ko}`, `${a.label.zh} · ${a.name.zh}`)), h('small', {}, T(a.years)));
+      fg.append(box, lab); this.actLabs.push(lab);
+      return f;
+    });
+    this.fill();
+    if (this._offFill) this._offFill();          /* a rebuilt scene must not leave the old listener behind */
+    this._offFill = Settings.on(() => this.fill());
+  },
+  fill() {
+    const s = Settings.get();
+    this.credit.innerHTML = '';
+    this.credit.append(T(s.name), h('span.sep'), T(s.course), h('span.sep'), T(s.org));
+  },
+  beat(i, ctx) {
+    this.g.classList.toggle('up', i >= 1);
+    this.heroW.classList.toggle('dim', i >= 1);
+    const HERO = this.hero.classList.contains('nophoto') ? [] : [{ id: 'hero', type: 'rect', x: 1060, y: 470, w: 700, h: 900, r: 200, soft: 160, i: i >= 1 ? .28 : .85, delay: i === 0 && ctx.fwd ? 2.6 : 0 }];
+    /* the presenter's name sits at the edge of the pool: give it its own soft light */
+    const CREDIT = textLight('cr', this.credit, { i: .7 });
+    if (i === 0) {
+      if (ctx.fwd) {
+        ctx.light({ lights: [{ id: 's', x: -260, y: 540, rx: 300, ry: 560, soft: .08, i: 1 }] }, { dur: 0 });
+        ctx.after(120, () => ctx.light({ lights: [{ id: 's', x: 1900, y: 540, rx: 300, ry: 560, soft: .08 }] }, { dur: 2.4, ease: ease.inOutSine }));
+        ctx.after(2550, () => ctx.light({ lights: [{ id: 's', x: 960, y: 580, rx: 1150, ry: 620, soft: .5 }, CREDIT, ...HERO] }, { dur: 1.6 }));
+      } else ctx.light({ lights: [{ id: 's', x: 960, y: 580, rx: 1150, ry: 620, soft: .5 }, CREDIT, ...HERO] });
+    }
+    if (i === 1) {
+      ctx.light({ lights: [
+        { id: 's', x: 760, y: 300, rx: 900, ry: 300, soft: .6, i: .8, cone: false },
+        { id: 'bt', type: 'rect', x: 296, y: 130, w: 420, h: 60, r: 30, soft: 40, i: .55 },
+        { id: 'a1', x: 330, y: 722, rx: 230, ry: 250, soft: .3, delay: .4 },
+        { id: 'a2', x: 960, y: 722, rx: 230, ry: 250, soft: .3, delay: .85 },
+        { id: 'a3', x: 1590, y: 722, rx: 230, ry: 250, soft: .3, delay: 1.3 },
+        ...this.actLabs.map((e, k) => textLight('t' + k, e, { i: .62, padY: 8, delay: .8 + k * .45 })),
+        ...HERO,
+      ] });
+    }
+  },
+});
+</script>

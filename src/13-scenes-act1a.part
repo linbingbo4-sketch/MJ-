@@ -1,0 +1,311 @@
+<style>
+/* ── I · Gary (Kodachrome) ── */
+[data-era="gary"] { --ink: #f8e7c6; --acc: #eaa92c; --acc2: #ee7a35; --dim: rgba(248, 231, 198, .58); --faint: rgba(248, 231, 198, .24); --line: rgba(248, 231, 198, .18); }
+[data-scene="gary"] .cc-en { font-family: 'Fraunces', serif; font-weight: 800; font-variation-settings: 'SOFT' 100, 'WONK' 1; letter-spacing: .06em; font-size: 62px; }
+.mill { width: 1920px; height: 270px; }
+.mill svg { width: 100%; height: 100%; overflow: visible; }
+.smoke circle { animation: smoke 9s linear infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes smoke { 0% { transform: translate(0, 0) scale(.4); opacity: 0; } 15% { opacity: .55; } 100% { transform: translate(60px, -170px) scale(2.4); opacity: 0; } }
+.fam { display: flex; gap: 22px; align-items: center; }
+.fam i { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--faint); display: block; transition: all .6s var(--e-stage); transition-delay: calc(var(--k) * .07s); opacity: 0; transform: scale(.4); }
+.fam.on i { opacity: 1; transform: none; }
+.fam i.me { background: var(--acc); border-color: var(--acc); box-shadow: 0 0 22px var(--acc); width: 40px; height: 40px; }
+.mics { display: flex; align-items: flex-end; gap: 28px; color: var(--acc); }
+.mics span { display: block; width: 36px; }
+.mics svg { width: 100%; height: auto; display: block; }
+.strike { position: relative; display: inline-block; }
+.strike::after { content: ''; position: absolute; left: -4%; right: -4%; top: 54%; height: 6px; background: var(--acc2); border-radius: 3px; transform: scaleX(0); transform-origin: 0 50%; transition: transform .9s var(--e-stage) 1.6s; }
+.on .strike::after, .strike.on::after { transform: scaleX(1); }
+.fade-word { transition: opacity 1.4s ease 2.4s, filter 1.4s ease 2.4s; }
+.on > .fade-word { opacity: .3; filter: blur(2px); }
+.slv.s70 .slv-t { font-family: 'Fraunces', serif; font-weight: 800; font-variation-settings: 'SOFT' 100, 'WONK' 1; }
+.slv.s70 .slv-face::before { content: ''; position: absolute; inset: auto -40% -55% auto; width: 300px; height: 300px; border-radius: 50%; background: repeating-radial-gradient(circle, rgba(255,255,255,.16) 0 10px, transparent 10px 20px); }
+
+/* ── II · Off the Wall (champagne, mirror ball) ── */
+[data-era="otw"] { --ink: #f4ead4; --acc: #dcc08a; --acc2: #f5e2b6; --dim: rgba(244, 234, 212, .56); --faint: rgba(244, 234, 212, .22); --line: rgba(244, 234, 212, .16); }
+[data-scene="otw"] .cc-en { font-family: 'Monoton', var(--f-en); font-size: 92px; letter-spacing: .04em; color: var(--acc); text-shadow: 0 0 30px rgba(220, 192, 138, .35); }
+.meet { font: 500 44px/1.2 var(--f-ko-h); white-space: nowrap; transition: left 2.2s var(--e-spot), opacity .8s ease; }
+.meet .zh { font-family: var(--f-zh-h); }
+.meet small { display: block; text-align: center; margin-top: 10px; font: 500 18px/1 var(--f-num); letter-spacing: .3em; color: var(--dim); }
+.hits { display: flex; flex-direction: column; gap: 26px; }
+.hit { display: flex; align-items: baseline; gap: 22px; font: italic 500 50px/1.1 var(--f-en); white-space: nowrap; }
+.hit b { font: 600 24px/1 var(--f-num); font-style: normal; letter-spacing: .12em; color: #120d07; background: var(--acc); padding: 6px 10px 5px; border-radius: 4px; }
+.wave { width: 1500px; height: 320px; }
+.wave svg { width: 100%; height: 100%; overflow: visible; }
+.wave .wv-path { fill: none; stroke: var(--acc2); stroke-width: 3; stroke-linejoin: round; filter: drop-shadow(0 0 8px rgba(245, 226, 182, .6)); stroke-dasharray: var(--len); stroke-dashoffset: var(--len); }
+.wave.on .wv-path { transition: stroke-dashoffset 3s linear .3s; stroke-dashoffset: 0; }
+.wave .wv-head { position: absolute; top: -20px; bottom: -20px; width: 2px; left: 0; background: linear-gradient(transparent, #fff, transparent); opacity: 0; }
+.wave.on .wv-head { animation: head 3s linear .3s forwards; }
+@keyframes head { 0% { left: 0; opacity: 1; } 96% { opacity: 1; } 100% { left: 100%; opacity: 0; } }
+.wave .wv-l { position: absolute; top: -78px; translate: -50% 0; text-align: center; font: 500 46px/1 var(--f-ko-h); opacity: 0; transition: opacity .6s ease, transform .6s var(--e-stage); transform: translateY(10px); white-space: nowrap; }
+.wave .wv-l .zh { font-family: var(--f-zh-h); }
+.wave .wv-l small { display: block; margin-top: 10px; font: 500 17px/1 var(--f-num); letter-spacing: .3em; color: var(--dim); }
+.wave.on .wv-l { opacity: 1; transform: none; }
+.wave .wv-sep { position: absolute; top: 20px; bottom: 20px; width: 1px; background: var(--faint); }
+
+/* gary · redesign */
+.g-year { font: 800 560px/.8 'Fraunces', serif; font-variation-settings: 'SOFT' 100, 'WONK' 1; color: transparent; -webkit-text-stroke: 2px rgba(248, 210, 150, .28); letter-spacing: -.02em; white-space: nowrap; }
+.g-date { font: 600 150px/.9 var(--f-num); color: var(--acc); letter-spacing: -.01em; white-space: nowrap; }
+.g-kick { font: 500 24px/1 var(--f-num); letter-spacing: .44em; color: var(--acc2); white-space: nowrap; }
+.g-kick .ko, .g-kick .zh { letter-spacing: .2em; font-family: var(--f-ko); }
+.g-kick .zh { font-family: var(--f-zh); }
+.fan { position: absolute; }
+.fan .slv { box-shadow: 0 30px 60px rgba(0, 0, 0, .5); }
+.fan .slv.tilt:hover .slv-disc { transform: translateX(118px) rotate(320deg); transition-delay: 0s; }
+.g-11 { font: 800 760px/.78 'Fraunces', serif; font-variation-settings: 'SOFT' 100, 'WONK' 1; color: transparent; -webkit-text-stroke: 2.5px rgba(238, 122, 53, .55); letter-spacing: -.06em; white-space: nowrap; }
+.g-stamp-l { font: 600 26px/1 var(--f-num); letter-spacing: .36em; color: var(--dim); writing-mode: vertical-rl; white-space: nowrap; }
+/* off the wall · redesign */
+.o-4 { font: 600 900px/.76 var(--f-num); color: transparent; -webkit-text-stroke: 3px rgba(220, 192, 138, .42); letter-spacing: -.04em; }
+.o-1 { font: 600 760px/.76 var(--f-num); color: transparent; -webkit-text-stroke: 2.5px rgba(220, 192, 138, .35); }
+.o-lab { font: 500 20px/1 var(--f-num); letter-spacing: .4em; color: var(--dim); white-space: nowrap; }
+.pedestal { width: 180px; height: 300px; background: linear-gradient(180deg, #2b2418, #120e09); box-shadow: inset 0 1px 0 rgba(255, 240, 200, .2), 0 30px 60px rgba(0, 0, 0, .6); }
+</style>
+
+<script>
+/* generative steel-mill skyline for Gary */
+function millSVG() {
+  const r = rng(1958); let s = '';
+  let x = -20;
+  const fill = '#1d1007';
+  while (x < 1940) {
+    const kind = r();
+    if (kind < .22) {
+      const w = 16 + r() * 14, hh = 150 + r() * 110;
+      s += `<rect x="${x}" y="${270 - hh}" width="${w}" height="${hh}" fill="${fill}"/>`;
+      s += `<rect x="${x - 2}" y="${270 - hh + 18}" width="${w + 4}" height="5" fill="#2a170a"/>`;
+      s += `<g class="smoke" fill="#6b5240">${[0, 1, 2].map(k => `<circle cx="${x + w / 2}" cy="${270 - hh - 6}" r="${7 + r() * 6}" style="animation-delay:${-(r() * 9 + k * 3).toFixed(2)}s"/>`).join('')}</g>`;
+      x += w + 6 + r() * 30;
+    } else if (kind < .36) {
+      const w = 70 + r() * 30, hh = 140 + r() * 60;
+      s += `<path d="M${x} 270 L${x} ${270 - hh * .7} Q${x + w / 2} ${270 - hh - 10} ${x + w} ${270 - hh * .7} L${x + w} 270 Z" fill="${fill}"/>`;
+      s += `<rect x="${x + w * .42}" y="${270 - hh - 40}" width="${w * .16}" height="50" fill="${fill}"/>`;
+      x += w + 10;
+    } else if (kind < .5) {
+      const w = 140 + r() * 120;
+      s += `<path d="M${x} 270 L${x + w} ${150 + r() * 40} L${x + w + 8} ${156 + r() * 40} L${x + 10} 270 Z" fill="${fill}" opacity=".8"/>`;
+      x += 30;
+    } else {
+      const w = 60 + r() * 140, hh = 50 + r() * 90;
+      s += `<rect x="${x}" y="${270 - hh}" width="${w}" height="${hh}" fill="${fill}"/>`;
+      for (let wx = x + 8; wx < x + w - 10; wx += 16) for (let wy = 270 - hh + 12; wy < 255; wy += 22) if (r() < .35) s += `<rect x="${wx}" y="${wy}" width="7" height="9" fill="#ffb24a" opacity="${(.35 + r() * .5).toFixed(2)}"/>`;
+      x += w + r() * 10;
+    }
+  }
+  return `<svg viewBox="0 0 1920 270" preserveAspectRatio="none"><defs><linearGradient id="millSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff9a3c" stop-opacity="0"/><stop offset="1" stop-color="#ff8a30" stop-opacity=".35"/></linearGradient></defs><rect x="0" y="80" width="1920" height="190" fill="url(#millSky)"/>${s}<rect x="0" y="262" width="1920" height="8" fill="#130a04"/></svg>`;
+}
+
+/* ═══ 3 · I GARY — a boy on a family stage, and the shadow he casts ═══ */
+Scenes.define('gary', {
+  build(el, sc) {
+    const back = layer(-.25), mid = layer(.08), stg = layer(.32);
+    el.append(back, mid, stg);
+    this.op = opener(mid, sc, { act: 1, card: { num: 'I', title: L('게리, 인디애나', '加里，印第安纳'), en: 'GARY, INDIANA', years: L('1958 — 1975') } });
+    /* photographs: the five brothers on TV (beat 1), Michael at eleven (beat 3) */
+    mid.append(this.ph1 = photoPrint('j5_1969', { x: 1520, y: 330, w: 450, h: 300, rot: 3, show: '1-1', d: 1.1 }),
+      this.ph3 = photoPrint('mj_1969', { x: 1460, y: 530, w: 300, h: 380, rot: 4, show: '3', d: .9 }));
+    this.mill = A('div.mill', 960, 1080, { anchor: 'ab', cls: 'rv up slow' }, h('div', { html: millSVG(), style: { width: '100%', height: '100%' } }));
+    back.append(this.mill);
+    /* 0 · born here */
+    this.year = A('div.g-year', -40, 640, { anchor: 'ay', cls: 'rv slow' }, '1958');
+    back.append(this.year);
+    this.birth = [
+      h('div.g-kick.rv.left', {}, T(L('게리, 인디애나 · 제철소 노동자의 집', '印第安纳州加里 · 钢铁厂工人之家'))),
+      h('div.g-date.rv.blur', { style: { '--d': '.2s' } }, T(L('1958. 8. 29', '1958.8.29'))),
+      h('div.fam.rv', { style: { margin: '10px 0 0', '--d': '.5s' } }, ...Array.from({ length: 10 }, (_, k) => h('i', { cls: k === 7 ? 'me' : '', style: { '--k': k } }))),
+      h('div.b-m.nowrap.rv.up', { style: { '--d': '.8s' } }, T(L('열 남매 중 여덟째', '十个孩子中的第八个'))),
+    ];
+    mid.append(stack(1080, 560, { anchor: 'ay', align: 'left', gap: 26 }, ...this.birth));
+    /* 1 · five brothers on a little stage; the youngest casts a long shadow */
+    const BROS = [
+      { x: 426, y: 828, h: 510, c: { jacket: '#7b2f43', collar: '#f0cf7a' }, pose: 'snap', face: 1 },
+      { x: 544, y: 822, h: 500, c: { jacket: '#2f5b7b', collar: '#e9c66a' }, pose: 'bad', face: 1 },
+      { x: 820, y: 822, h: 500, c: { jacket: '#5d7b2f', collar: '#f0cf7a' }, pose: 'snap', face: -1 },
+      { x: 952, y: 828, h: 470, body: 'child', c: { jacket: '#b0582a', collar: '#f2d27a' }, pose: 'groove', face: -1 },
+    ];
+    this.bros = BROS.map((o, k) => stageFig(stg, { costume: 'teen', c: o.c, body: o.body, pose: o.pose, style: 'costume', face: o.face, x: o.x, y: o.y, h: o.h, show: '1-1', d: .25 + k * .12, glowPx: 4, rimPx: 1.3, shadow: 'pool' }));
+    this.mike = stageFig(stg, { costume: 'child', pose: 'j5', style: 'costume', x: 660, y: 890, h: 560, show: '1-3', glowPx: 6, rimPx: 1.6, shadow: 'cast', castK: -2.1, castS: .09 });
+    mid.append(
+      A('div.g-kick', 150, 150, { anchor: 'ay', show: '1-1', cls: 'left' }, T(L('혹독한 리허설', '严苛的排练'))),
+      A('div.lab', 150, 232, { anchor: '', show: '1-1', d: .4 }, T(L('무대 위', '台上'))),
+      A('div.h-xl.nowrap', 146, 270, { anchor: '', show: '1-1', d: .5, style: 'color:var(--acc)' }, T(L('신동', '神童'))),
+      A('div.lab', 1600, 600, { anchor: 'ax', show: '1-1', d: 1.4 }, T(L('무대 밖', '台下'))),
+      A('div.h-xl.nowrap', 1600, 650, { anchor: 'ax', show: '1-1', d: 1.5 }, h('span.strike.fade-word', {}, T(L('어린 시절', '童年')))),
+    );
+    /* 2 · four number ones, fanned like a winning hand */
+    const sl = [
+      { title: 'I Want<br>You Back', year: '1969', bg: '#e9ab31', fg: '#3b1d0b', label: '#e2672b' },
+      { title: 'ABC', year: '1970', bg: '#e2672b', fg: '#fff1d6', label: '#e9ab31', tStyle: { fontSize: '86px' } },
+      { title: 'The Love<br>You Save', year: '1970', bg: '#6a3519', fg: '#f6c86a', label: '#f1e2c0' },
+      { title: "I'll Be<br>There", year: '1970', bg: '#f1e2c0', fg: '#6a3519', label: '#6a3519' },
+    ];
+    const FAN = [[930, 520, -11], [1170, 478, -3.5], [1410, 478, 3.5], [1650, 520, 11]];
+    this.sleeves = sl.map((o, k) => {
+      const s = sleeve(o); s.classList.add('s70'); tiltify(s, 12);
+      s.append(mvSwitch(['iwyb', 'abc', 'loveyousave', 'illbethere'][k], { sm: true, year: false, color: lighter(o.bg, o.fg) }));
+      const wrap = A('div.fan', FAN[k][0], FAN[k][1], { show: '2', cls: 'drop flip3d', d: .15 + k * .14, style: `rotate:${FAN[k][2]}deg` }, s);
+      mid.append(wrap); s.wrap = wrap; return s;
+    });
+    mid.append(
+      A('div.g-stamp-l', 92, 540, { show: '2', d: .2 }, 'MOTOWN · 1969'),
+      A('div.h-s.nowrap', 150, 160, { anchor: 'ay', show: '2', cls: 'left' }, T(L('1969 · 모타운 데뷔', '1969 · 摩城出道'))),
+      A('div.b-m.nowrap', 1800, 838, { anchor: 'ar', show: '2', d: .7 }, T(L('모타운의 첫 싱글 네 곡, 모두 빌보드 1위', '摩城前四支单曲，全部登上公告牌榜首'))),
+      A('div.tag', 1800, 930, { anchor: 'ar', show: '2', d: 2.6 }, T(L('그들이 처음이었다', '他们是第一个'))),
+    );
+    /* 3 · he was eleven */
+    back.append(A('div.g-11', 660, 560, { show: '3', cls: 'zoom slow' }, '11'));
+    mid.append(A('div.note-hand', 900, 280, { anchor: 'ay', show: '3', cls: 'drop', style: 'rotate:-7deg' }, T(L('← 그때, 열한 살', '← 那年，十一岁'))));
+    /* interaction: the brothers rehearse on a click; the sleeves lean and slide out their records */
+    const rehearse = () => {
+      if (this.i !== 1) return;
+      [...this.bros, this.mike].forEach((f, k) => f.seq([['snap', 260, 40], ['groove', 260, 40], ['snap', 260, 40], [k === 4 ? 'j5' : (BROS[k] || {}).pose || 'snap', 360]]));
+    };
+    const hit = this.mike.hitbox(300, -560);
+    clickable(hit, () => { if (this.i === 1) rehearse(); else this.mike.seq([['sing', 360, 500], ['j5', 500]]); });
+    mid.append(itip(840, 330, L('클릭 · 리허설', '点一下 · 排练'), '1-1'), itip(1290, 760, L('카드를 가리켜 보세요', '把指针移到唱片上'), '2-2'));
+  },
+  beat(i, ctx) {
+    this.i = i;
+    [...this.bros, this.mike].forEach(f => f.stop());
+    this.bros.forEach((f, k) => f.pose(['snap', 'bad', 'snap', 'groove'][k]));
+    this.mike.pose('j5');
+    this.mike.setShadow(i === 1 ? 'cast' : 'pool');
+    vis(this.mill, 'on');
+    this.mill.style.opacity = i === 0 ? '' : '.5';
+    vis(this.year, i === 0 ? 'on' : 'gone');
+    if (i === 0) {
+      const t = this.op.run(ctx);
+      this.birth.forEach(b => vis(b, 'off'));
+      ctx.after(t, () => this.birth.forEach(b => vis(b, 'on')));
+      ctx.light({ lights: [{ id: 'w', x: 960, y: 470, rx: 1050, ry: 600, soft: .55 }] }, { dur: 1 });
+    } else { this.op.hide(); this.birth.forEach(b => vis(b, 'gone')); }
+    if (i === 1) {
+      ctx.light({ ambient: .78, lights: [
+        { id: 'w', x: 660, y: 600, rx: 470, ry: 440, soft: .3 },
+        { id: 'd', x: 1520, y: 760, rx: 520, ry: 260, soft: .9, i: .55, cone: false, halo: false, col: '#9fb4d8' },
+        { id: 'h', x: 300, y: 260, rx: 330, ry: 200, soft: .9, i: .85, cone: false, halo: false },
+        ...photoLight('ph', this.ph1, { delay: ctx.fwd ? 1.1 : 0 }),
+      ] });
+      if (ctx.fwd) ctx.after(1200, () => { this.bros.forEach((f, k) => ctx.after(k * 90, () => f.seq([[k === 1 ? 'snap' : 'groove', 420, 120], [['snap', 'bad', 'snap', 'groove'][k], 420]]))); });
+    }
+    if (i >= 2) {
+      this.sleeves.forEach(s => vis(s, 'on'));
+      if (ctx.fwd && i === 2) { this.sleeves.forEach(s => s.stamp(false)); this.sleeves.forEach((s, k) => ctx.after(1100 + k * 520, () => s.stamp(true))); }
+      else this.sleeves.forEach(s => s.stamp(true, true));
+    } else this.sleeves.forEach(s => { vis(s, 'off'); s.stamp(false); });
+    this.sleeves.forEach(s => s.wrap.style.opacity = i === 3 ? .34 : '');
+    if (i === 2) ctx.light({ ambient: .6, lights: [{ id: 'w', x: 1290, y: 500, rx: 700, ry: 330, soft: .42 }, { id: 'm', x: 660, y: 640, rx: 300, ry: 380, soft: .35 }, { id: 'h', x: 1300, y: 880, rx: 600, ry: 110, soft: .9, i: .8, cone: false, halo: false }] });
+    if (i === 3) {
+      ctx.light({ ambient: .72, lights: [{ id: 'm', x: 660, y: 560, rx: 440, ry: 470, soft: .3 }, { id: 'h', x: 980, y: 280, rx: 300, ry: 90, soft: .9, i: .8, cone: false, halo: false }, ...photoLight('ph', this.ph3, { delay: ctx.fwd ? .9 : 0 })] });
+      if (ctx.fwd) ctx.after(600, () => this.mike.seq([['sing', 420, 600], ['j5', 500]]));
+    }
+  },
+  leave() { [...this.bros, this.mike].forEach(f => f.stop()); },
+});
+
+/* ═══ 4 · II OFF THE WALL ═══ */
+function waveSVG() {
+  const r = rng(1979), pts = [];
+  for (let x = 0; x <= 1500; x += 2) {
+    let y = 160;
+    if (x < 470) { const env = Math.sin(Math.PI * x / 470); y += Math.sin(x * .11) * 95 * env * (.85 + .15 * Math.sin(x * .013)); }
+    else if (x > 510 && x < 990) { const env = Math.pow(Math.sin(Math.PI * (x - 510) / 480), .7); y += (r() - .5) * 60 * env + Math.sin(x * .9) * 6 * env; }
+    else if (x > 1020) { const k = (x - 1020) % 92; y += k < 14 ? Math.sin(k * .45) * (k < 4 ? 130 : 130 * Math.exp(-(k - 4) * .35)) * (k % 2 ? 1 : -1) : (r() - .5) * 4; }
+    pts.push(`${x},${y.toFixed(1)}`);
+  }
+  return `<svg viewBox="0 0 1500 320"><polyline class="wv-path" points="${pts.join(' ')}" pathLength="3000" style="--len:3000"/><line x1="0" y1="160" x2="1500" y2="160" stroke="currentColor" stroke-opacity=".15"/></svg>`;
+}
+Scenes.define('otw', {
+  build(el, sc) {
+    const back = layer(-.25), mid = layer(.08), stg = layer(.3);
+    el.append(back, mid, stg);
+    this.op = opener(mid, sc, { card: { num: 'II', title: L('오프 더 월', '《Off the Wall》'), en: 'OFF THE WALL', years: L('1979') }, hold: 2400 });
+    $('.cc', this.op.card).classList.add('endup');
+    /* 0 · two people walk into one light */
+    this.mjM = stageFig(stg, { costume: 'tux', pose: 'stand', style: 'costume', x: 330, y: 880, h: 560, glowPx: 5, rimPx: 1.5 });
+    this.qjM = stageFig(stg, { costume: 'qj', pose: 'stand', style: 'costume', face: -1, x: 1590, y: 880, h: 600, glowPx: 5, rimPx: 1.5 });
+    this.mj = A('div.meet', 330, 940, { cls: 'rv' }, T(L('마이클 잭슨', '迈克尔·杰克逊')), h('small', { text: 'ARTIST' }));
+    this.qj = A('div.meet', 1590, 940, { cls: 'rv' }, T(L('퀸시 존스', '昆西·琼斯')), h('small', { text: 'PRODUCER' }));
+    this.wiz = A('div.b-m.nowrap', 960, 236, { cls: 'rv up' }, T(L('1978 · 영화 〈위즈〉에서', '1978 · 电影《新绿野仙踪》片场')));
+    mid.append(this.mj, this.qj, this.wiz);
+    /* 1 · the disco point under the mirror ball; a giant 4 behind him */
+    back.append(A('div.o-4', 560, 610, { show: '1-1', cls: 'zoom slow' }, '4'));
+    this.mjD = stageFig(stg, { costume: 'tux', pose: 'groove', style: 'costume', x: 560, y: 990, h: 820, show: '1-1', d: .2, glowPx: 8 });
+    mid.append(
+      A('div.o-lab', 1060, 300, { anchor: 'ay', show: '1-1', d: .3 }, T(L('미국 톱10 · 싱글 네 곡', '美国前十 · 四支单曲'))),
+      A('div.hits', 1060, 520, { anchor: 'ay', show: '1-1', d: .3 },
+        ...[["Don't Stop 'Til You Get Enough", '#1'], ['Rock with You', '#1'], ['Off the Wall', '#10'], ["She's Out of My Life", '#10']].map(([t, p], k) => h('div.hit.rv.left', { 'data-show': '1-1', style: { '--d': (.5 + k * .25) + 's' } }, h('b', { text: p }), t, mvSwitch(['dstyge', 'rockwithyou', 'offthewall', 'shesout'][k], { year: false, color: 'var(--acc)' })))),
+      A('div.b-m.nowrap', 1060, 770, { anchor: 'ay', show: '1-1', d: 1.6 }, T(L('솔로 앨범 최초', '个人专辑首次'))),
+      A('div.tag', 1060, 860, { anchor: 'ay', show: '1-1', d: 2.4 }, T(L('소년 가수 → 아티스트', '少年歌手 → 艺术家'))),
+    );
+    /* 2 · the voice as a drum kit: the wave leaves his mouth */
+    this.mjS = stageFig(stg, { costume: 'tux', pose: 'sing', style: 'costume', x: 270, y: 1000, h: 700, show: '2-2', glowPx: 7, p: { mic: 0, nSh: 40, nEl: 118, nHand: Figure.HI('fist') } });
+    this.wave = h('div.wave', {}, h('div', { html: waveSVG(), style: { position: 'absolute', inset: 0 } }), h('div.wv-head'),
+      h('div.wv-sep', { style: { left: '490px' } }), h('div.wv-sep', { style: { left: '1005px' } }),
+      h('div.wv-l', { style: { left: '235px', transitionDelay: '.6s' } }, T(L('가성', '假声')), h('small', { text: 'FALSETTO' })),
+      h('div.wv-l', { style: { left: '750px', transitionDelay: '1.6s' } }, T(L('숨소리', '呼吸声')), h('small', { text: 'BREATH' })),
+      h('div.wv-l', { style: { left: '1260px', transitionDelay: '2.6s' } }, T(L('딸꾹질', '打嗝般的短音')), h('small', { text: 'HICCUP' })));
+    mid.append(A('div', 1170, 470, { show: '2-2' }, this.wave),
+      this.voice = A('div.h-s.nowrap', 1840, 830, { anchor: 'ar', show: '2-2', d: 3 }, T(L('목소리가 리듬 악기가 되다', '嗓音，成了节奏乐器'))));
+    /* 3 · one trophy; he turns away */
+    back.append(A('div.o-1', 1080, 600, { show: '3', cls: 'zoom slow' }, '1'));
+    mid.append(A('div.pedestal', 1080, 930, { show: '3', cls: 'up' }),
+      A('div', 1080, 712, { show: '3', cls: 'zoom', d: .3 }, h('div.gram.on', { style: { width: '150px', height: '176px', color: 'var(--acc)' }, html: ICON.gram })),
+      A('div.h-s.nowrap', 1420, 420, { anchor: 'ay', show: '3', d: .6 }, T(L('그래미, 단 하나', '格莱美，只有一座'))),
+      A('div.b-s.dim.nowrap', 1420, 500, { anchor: 'ay', show: '3', d: 1.4 }, T(L('그는 다음 앨범에서 되갚는다 →', '他会在下一张专辑加倍奉还 →'))));
+    this.mjX = stageFig(stg, { costume: 'tux', pose: 'person', style: 'costume', face: -1, x: 520, y: 980, h: 680, show: '3', d: .2, glowPx: 5, p: { neck: 20, head: 8, turn: .45 } });
+    /* interaction: he dances when clicked; the voice hiccups */
+    clickable(this.mjD.hitbox(300), () => this.mjD.seq([['point', 240, 80], ['groove', 240, 60], [(f) => f.spinTurn(520), 0, 540], ['kick', 260, 120], ['groove', 380]]));
+    clickable(this.mjS.hitbox(300), () => SFX.hiccup() || this.mjS.seq([[{ neck: -30, head: -10 }, 90], [{ neck: -18, head: -6 }, 90], [{ neck: -30, head: -10 }, 90], [{ neck: -18, head: -6 }, 160]]));
+    mid.append(itip(820, 260, L('클릭해 보세요', '点他一下'), '1-1'), itip(470, 300, L('클릭 · 딸꾹질', '点一下 · 打嗝音'), '2-2'));
+    /* each label plays its own sound again */
+    $$('.wv-l', this.wave).forEach((l, k) => clickable(l, () => { if (this.i === 2) [SFX.falsetto, SFX.breath, SFX.hiccup][k](); }));
+  },
+  beat(i, ctx) {
+    this.i = i;
+    [this.mjM, this.qjM, this.mjD, this.mjS, this.mjX].forEach(f => f.stop());
+    this.wave.classList.toggle('on', i === 2);
+    if (i === 0) {
+      const t = this.op.run(ctx);
+      const M0 = 330, Q0 = 1590;
+      [this.mj, this.qj, this.wiz, this.mjM.box, this.qjM.box].forEach(e => vis(e, 'off'));
+      this.mj.style.left = M0 + 'px'; this.qj.style.left = Q0 + 'px';
+      this.mjM.pose('stand', { x: 0 }); this.qjM.pose('stand', { x: 0 });
+      const end = () => {
+        const shake = { turn: .2, nSh: 62, nEl: 14, nWr: -4, nHand: Figure.HI('flat') };
+        this.mjM.pose('stand', Object.assign({ x: (760 - M0) / this.mjM.scale }, shake));
+        this.qjM.pose('stand', Object.assign({ x: (Q0 - 1170) / this.qjM.scale }, shake));
+        this.mj.style.left = '760px'; this.qj.style.left = '1170px';
+      };
+      const lights = (m, q, d) => ctx.light({ lights: [{ id: 'm', x: m, y: 640, rx: 280, ry: 380, soft: .3, dur: d }, { id: 'q', x: q, y: 640, rx: 280, ry: 400, soft: .3, dur: d }, { id: 'c', x: 960, y: 330, rx: 520, ry: 120, soft: .8, i: .8, cone: false, halo: false }] });
+      const meet = (instant) => {
+        [this.mj, this.qj, this.mjM.box, this.qjM.box].forEach(e => vis(e, 'on'));
+        if (instant) { end(); vis(this.wiz, 'on'); lights(760, 1170, 0); return; }
+        lights(M0, Q0, .6);
+        ctx.after(500, () => {
+          this.mjM.walk({ steps: 4, stride: (760 - M0) / this.mjM.scale / 4, stepMs: 600 });
+          this.qjM.walk({ steps: 4, stride: (Q0 - 1170) / this.qjM.scale / 4, stepMs: 600 });
+          this.mj.style.left = '760px'; this.qj.style.left = '1170px';
+          lights(760, 1170, 2.4);
+        });
+        ctx.after(500 + 2500, () => { const shake = { turn: .2, nSh: 62, nEl: 14, nWr: -4, nHand: Figure.HI('flat') }; this.mjM.to(Object.assign({}, this.mjM.poseOf('stand', { x: this.mjM.p.x }), shake), 600); this.qjM.to(Object.assign({}, this.qjM.poseOf('stand', { x: this.qjM.p.x }), shake), 600); vis(this.wiz, 'on'); });
+      };
+      if (ctx.fwd) { ctx.light({ lights: [{ id: 'c', x: 960, y: 500, rx: 820, ry: 420, soft: .4 }] }, { dur: 1.2 }); ctx.after(t, () => meet(false)); }
+      else meet(true);
+    } else { this.op.hide(); [this.mj, this.qj, this.wiz, this.mjM.box, this.qjM.box].forEach(e => vis(e, 'gone')); }
+    if (i === 1) {
+      this.mjD.pose('groove');
+      ctx.light({ lights: [{ id: 'm', x: 560, y: 560, rx: 400, ry: 470, soft: .25 }, { id: 'q', x: 1300, y: 560, rx: 560, ry: 370, soft: .5, i: .9, cone: false }] });
+      if (ctx.fwd) ctx.after(900, () => this.mjD.seq([['point', 320, 200], ['groove', 380]]));
+    }
+    if (i === 2 && ctx.fwd) { ctx.after(600, () => SFX.falsetto()); ctx.after(1600, () => SFX.breath()); ctx.after(2600, () => { SFX.hiccup(); this.mjS.seq([[{ neck: -30, head: -10 }, 90], [{ neck: -18, head: -6 }, 120], [{ neck: -30, head: -10 }, 90], [{ neck: -18, head: -6 }, 160]]); }); }
+    if (i === 2) { this.mjS.pose('sing', { mic: 0, nSh: 40, nEl: 118, nHand: Figure.HI('fist') }); ctx.light({ lights: [{ id: 'm', x: 1080, y: 520, rx: 1000, ry: 330, soft: .45 }, { id: 'f', x: 300, y: 600, rx: 280, ry: 450, soft: .3 },
+      ...$$('.wv-l', this.wave).map((e, k) => textLight('wl' + k, e, { i: .6, pad: 22, padY: 12, delay: ctx.fwd ? .6 + k : 0 })),
+      textLight('v', this.voice, { i: .78, delay: ctx.fwd ? 3 : 0 })] }); }
+    if (i === 3) {
+      this.mjX.pose('person', { neck: 20, head: 8, turn: .45 });
+      ctx.light({ ambient: .9, lights: [{ id: 'm', x: 1080, y: 700, rx: 300, ry: 340, soft: .25 }, { id: 'f', x: 520, y: 640, rx: 260, ry: 420, soft: .5, i: .45, cone: false }, { id: 'h', x: 1580, y: 460, rx: 380, ry: 110, soft: .9, i: .85, cone: false, halo: false }] });
+    }
+  },
+  leave() { [this.mjM, this.qjM, this.mjD, this.mjS, this.mjX].forEach(f => f.stop()); },
+});
+</script>

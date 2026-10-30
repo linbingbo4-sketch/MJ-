@@ -1,0 +1,360 @@
+<style>
+/* Theatre: one 1920×1080 black stage, letterboxed and scaled to the projector.
+   Everything audience-facing lives inside #stage; operator UI lives outside it in real pixels. */
+:root {
+  --e-stage: cubic-bezier(.16, 1, .3, 1);      /* fader push: fast, then settles */
+  --e-spot: cubic-bezier(.65, 0, .35, 1);      /* a hand pushing the follow spot */
+  --e-sine: cubic-bezier(.37, 0, .63, 1);
+  --e-drop: cubic-bezier(.34, 1.56, .64, 1);
+  --ink: #f5ecdc;
+  --acc: #ffd08a;
+  --acc2: #ffe9c4;
+  --dim: rgba(245, 236, 220, .56);
+  --faint: rgba(245, 236, 220, .22);
+  --line: rgba(245, 236, 220, .16);
+  --paper: #efe6d2;
+  --f-en: 'Bodoni Moda', 'Bodoni 72', Didot, Georgia, serif;
+  --f-num: 'Barlow Condensed', 'Arial Narrow', 'Roboto Condensed', sans-serif;
+  --f-ko-h: 'Hahmlet', 'Noto Serif KR', 'Nanum Myeongjo', 'AppleMyungjo', serif;
+  --f-ko: 'IBM Plex Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif;
+  --f-zh-h: 'Noto Serif SC', 'Songti SC', 'STSong', 'SimSun', serif;
+  --f-zh: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', sans-serif;
+  --f-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+html, body { margin: 0; height: 100%; background: #000; color: var(--ink); }
+body { overflow: hidden; font-family: var(--f-ko); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; }
+button, input, select, textarea { font: inherit; color: inherit; }
+[hidden] { display: none !important; }
+
+#vp { position: fixed; inset: 0; background: #000; overflow: hidden; }
+#vp.idle, #vp.idle * { cursor: none !important; }
+#stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; overflow: hidden; background: #000; isolation: isolate; }
+#stage > * { position: absolute; inset: 0; }
+#bg { z-index: 0; }
+#grade { z-index: 1; pointer-events: none; }
+#scenes { z-index: 2; }
+#mask { z-index: 3; width: 1920px; height: 1080px; pointer-events: none; }
+#glow { z-index: 4; width: 1920px; height: 1080px; pointer-events: none; mix-blend-mode: screen; }
+#fx { z-index: 4; width: 1920px; height: 1080px; pointer-events: none; mix-blend-mode: screen; }
+#overlays { z-index: 5; pointer-events: none; }
+/* the grain moves by transform (compositor only, no repaint); oversized so its edges never show */
+#stage > #grain { inset: -128px; z-index: 6; pointer-events: none; mix-blend-mode: overlay; opacity: .08; visibility: hidden; background-size: 256px 256px; animation: grain .6s steps(6) infinite; transition: opacity 1.8s linear; }
+#vignette { display: none; }   /* drawn into the darkness canvas instead */
+#video { z-index: 8; pointer-events: none; }
+#subs { z-index: 9; pointer-events: none; }
+#hud { z-index: 10; pointer-events: none; }
+#overview { z-index: 11; }
+#flash { z-index: 12; pointer-events: none; background: #f4f7ff; opacity: 0; }
+/* full-screen layers that are only sometimes on are hidden while transparent, so they need no backing store */
+#black { z-index: 13; pointer-events: none; background: #000; opacity: 0; visibility: hidden; }
+#flash { visibility: hidden; }
+#bkey { z-index: 14; pointer-events: none; background: #000; opacity: 0; visibility: hidden; transition: opacity .45s ease, visibility 0s linear .45s; }
+#bkey.on { opacity: 1; visibility: visible; transition: opacity .45s ease, visibility 0s; }
+@keyframes grain {
+  0% { transform: translate(0, 0); } 17% { transform: translate(-61px, 37px); } 33% { transform: translate(83px, -21px); }
+  50% { transform: translate(-17px, -94px); } 67% { transform: translate(49px, 71px); } 83% { transform: translate(-88px, 12px); } 100% { transform: translate(0, 0); }
+}
+
+/* era background plates crossfade (A/B) */
+.bgl { position: absolute; inset: 0; opacity: 0; transition: opacity 1.8s linear; }
+.bgl.on { opacity: 1; }
+#ytbg { position: absolute; inset: 0; opacity: 0; transition: opacity 2s linear; filter: saturate(.7) brightness(.42) contrast(1.05); }
+#ytbg.on { opacity: .55; }
+#ytbg > div, #ytbg iframe { position: absolute; inset: -6%; width: 112%; height: 112%; border: 0; opacity: 0; transition: opacity 1.6s linear; }
+#ytbg > .on { opacity: 1; }
+
+/* ── scenes & beats ─────────────────────────────────────────── */
+.scene { position: absolute; inset: 0; visibility: hidden; opacity: 0; }
+.scene.active { visibility: visible; opacity: 1; }
+.scene.leaving { visibility: visible; }
+/* scenes that are neither on stage nor fading out are out of the render tree: no style, no layers, no animations */
+.scene:not(.active):not(.leaving) { display: none; }
+.a { position: absolute; }
+.ac { translate: -50% -50%; }
+.ax { translate: -50% 0; }
+.ay { translate: 0 -50%; }
+.ar { translate: -100% -50%; }
+.ab { translate: -50% -100%; }
+
+/* reveal system: elements carry data-show="2" (from beat 2) or "1-3"; the director toggles .on / .gone */
+.rv { opacity: 0; transition: opacity .9s var(--e-stage), transform .9s var(--e-stage), filter .9s var(--e-stage), color .9s var(--e-stage); transition-delay: var(--d, 0s); }
+.rv.up { transform: translateY(30px); }
+.rv.down { transform: translateY(-30px); }
+.rv.left { transform: translateX(-48px); }
+.rv.right { transform: translateX(48px); }
+.rv.zoom { transform: scale(.93); }
+.rv.big { transform: scale(1.08); }
+.rv.blur { filter: blur(14px); }
+.rv.drop { transform: translateY(-80px) scale(1.15); transition-timing-function: var(--e-drop); }
+.rv.slow { transition-duration: 1.6s; }
+.rv.fast { transition-duration: .5s; }
+.rv.on { opacity: 1; transform: none; filter: none; }
+/* ── 3D: a chapter card swings down like a hanging sign; record sleeves turn to face us as they land ── */
+.rv.card3d { transform: perspective(1500px) rotateX(-74deg) translateY(-30px); transform-origin: 50% 0; transition-duration: 1.25s; transition-timing-function: cubic-bezier(.2, .9, .25, 1.12); }
+.rv.card3d.on { transform: none; }
+.rv.card3d .cc-num { transition: transform 1.6s cubic-bezier(.2, .8, .2, 1) .35s; transform: perspective(800px) rotateY(-180deg); }
+.rv.card3d.on .cc-num { transform: none; }
+.rv.flip3d { transform: perspective(1100px) rotateY(82deg) translateZ(-80px) translateY(-30px); transition-duration: 1.1s; transition-timing-function: cubic-bezier(.2, .85, .3, 1.08); }
+.rv.flip3d.on { transform: none; }
+#stage.reduced .rv.card3d, #stage.reduced .rv.flip3d { transform: none; }
+#stage.reduced .rv.card3d .cc-num { transform: none; }
+.rv.gone { opacity: 0; transform: none; filter: blur(8px); transition-delay: 0s; transition-duration: .6s; }
+.rv.dimmed.on { opacity: .28; filter: blur(1.5px); }
+#stage.rev .rv { transition-duration: .32s !important; transition-delay: 0s !important; }
+#stage.instant *, #stage.instant *::before, #stage.instant *::after { transition: none !important; animation-delay: 0s !important; }
+
+/* ── bilingual text: one node holds ko + zh, the stage shows one or both ── */
+.t > .ko, .t > .zh { display: inline; }
+[data-lang="ko"] .t > .zh, [data-lang="zh"] .t > .ko { display: none; }
+[data-lang="bi"] .t { display: inline-block; }
+[data-lang="bi"] .t > .ko { display: block; }
+[data-lang="bi"] .t > .zh { display: block; font-size: .55em; opacity: .6; margin-top: .42em; line-height: 1.35; letter-spacing: 0; font-weight: 400; }
+.t .ko { font-family: inherit; }
+.serif .ko, .ko.serif { font-family: var(--f-ko-h); }
+.serif .zh, .zh.serif { font-family: var(--f-zh-h); }
+.sans .ko { font-family: var(--f-ko); }
+.sans .zh { font-family: var(--f-zh); }
+.t .zh { font-family: var(--f-zh); }
+.serif .t .zh, .t.serif .zh { font-family: var(--f-zh-h); }
+.t.serif .ko { font-family: var(--f-ko-h); }
+.t.sans .ko { font-family: var(--f-ko); }
+.t.sans .zh { font-family: var(--f-zh); }
+:lang(zh) { word-break: normal; }
+.t .ko, :lang(ko) { word-break: keep-all; overflow-wrap: break-word; }
+.en { font-family: var(--f-en); }
+.num { font-family: var(--f-num); font-variant-numeric: tabular-nums lining-nums; }
+.mono { font-family: var(--f-mono); }
+.kicker { font-family: var(--f-num); text-transform: uppercase; letter-spacing: .32em; font-weight: 500; font-size: 22px; color: var(--dim); }
+.k-ko { font-family: var(--f-ko); letter-spacing: .08em; }
+.acc { color: var(--acc); }
+.dim { color: var(--dim); }
+h1, h2, h3, p { margin: 0; font-weight: inherit; }
+.bal { text-wrap: balance; }
+em { font-style: normal; color: var(--acc); }
+
+/* operator UI layer (real pixels) */
+#ui { position: fixed; inset: 0; pointer-events: none; z-index: 50; font-family: var(--f-zh), var(--f-ko); }
+#fullbar { position: fixed; left: 50%; top: max(14px, env(safe-area-inset-top, 0px)); translate: -50% 0; max-width: calc(100vw - 32px); display: flex; align-items: center; gap: 14px; padding: 10px 12px 10px 18px;
+  border-radius: 999px; background: rgba(20, 17, 14, .92); border: 1px solid rgba(255, 208, 138, .35); color: rgba(245, 236, 220, .85); font: 13px/1.4 var(--f-zh); pointer-events: auto; box-shadow: 0 10px 30px rgba(0,0,0,.5); }
+#fullbar a { flex: none; color: #ffd08a; text-decoration: none; font-weight: 600; border-bottom: 1px solid rgba(255, 208, 138, .5); }
+#fullbar button { flex: none; width: 26px; height: 26px; border-radius: 50%; border: 0; background: rgba(255,255,255,.08); color: inherit; font-size: 16px; line-height: 1; cursor: pointer; }
+@media (max-width: 600px) { #fullbar { font-size: 12px; border-radius: 14px; } }
+#ui > * { pointer-events: auto; }
+.toast-wrap { position: fixed; left: 50%; bottom: max(24px, env(safe-area-inset-bottom, 0px)); translate: -50% 0; display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none !important; }
+.toast { background: rgba(18, 16, 14, .92); border: 1px solid rgba(255, 233, 196, .22); color: #f3e9d8; padding: 10px 16px; border-radius: 10px; font-size: 14px; line-height: 1.45; box-shadow: 0 10px 30px rgba(0,0,0,.45); max-width: min(560px, calc(100vw - 32px)); opacity: 0; translate: 0 8px; transition: opacity .25s ease, translate .25s ease; pointer-events: auto; }
+.toast.show { opacity: 1; translate: 0 0; }
+.toast a { color: #ffd08a; }
+#hint { position: fixed; left: 16px; right: 16px; bottom: max(28px, env(safe-area-inset-bottom, 0px)); z-index: 40; color: rgba(245,236,220,.5); font: 13px/1.6 var(--f-zh); letter-spacing: .04em; text-align: center; transition: opacity .6s ease; pointer-events: none; padding-inline: 16px; }
+#hint kbd { font-family: var(--f-mono); font-size: 12px; border: 1px solid rgba(245,236,220,.28); border-radius: 4px; padding: 1px 6px; margin: 0 2px; color: rgba(245,236,220,.75); }
+#hint .hk { display: inline-block; white-space: nowrap; margin: 2px 10px; }
+#hint .hint-demo { pointer-events: auto; margin-top: 12px; appearance: none; border: 1px solid rgba(255, 208, 138, .45); background: rgba(20, 16, 12, .6); color: #ffd08a; font: 500 13px/1 var(--f-zh); padding: 9px 16px; border-radius: 999px; cursor: pointer; letter-spacing: .06em; }
+#hint .hint-demo:hover, #hint .hint-demo:focus-visible { background: rgba(255, 208, 138, .12); outline: none; border-color: #ffd08a; }
+body.fs #hint, body.started #hint { opacity: 0; }
+body.fs #hint .hint-demo, body.started #hint .hint-demo { pointer-events: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  #grain { animation: none; }
+}
+#stage.reduced .rv { transition-duration: .2s !important; transition-delay: 0s !important; transform: none !important; filter: none !important; }
+#stage.reduced #grain { animation: none; }
+</style>
+
+<body>
+<div id="vp">
+  <div id="stage" data-era="cold" data-lang="ko" aria-live="off">
+    <div id="bg"><div class="bgl on" id="bgA"></div><div class="bgl" id="bgB"></div><div id="ytbg"></div></div>
+    <div id="grade"></div>
+    <div id="scenes"></div>
+    <canvas id="mask" width="1920" height="1080"></canvas>
+    <canvas id="glow" width="1920" height="1080"></canvas>
+    <canvas id="fx" width="960" height="540"></canvas>
+    <div id="overlays"></div>
+    <div id="grain"></div>
+    <div id="vignette"></div>
+    <div id="video"></div>
+    <div id="subs"></div>
+    <div id="hud"></div>
+    <div id="overview" hidden></div>
+    <div id="flash"></div>
+    <div id="black"></div>
+    <div id="bkey"></div>
+  </div>
+</div>
+<div id="hint"></div>
+<div id="ui"><div class="toast-wrap" id="toasts"></div></div>
+</body>
+
+<script>
+/* ═══ core utilities ═══════════════════════════════════════════ */
+const W = 1920, H = 1080, TAU = Math.PI * 2;
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const now = () => performance.now();
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const ease = {
+  linear: t => t,
+  inOut: t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2,
+  out: t => 1 - Math.pow(1 - t, 3),
+  outExpo: t => t >= 1 ? 1 : 1 - Math.pow(2, -10 * t),
+  inOutSine: t => -(Math.cos(Math.PI * t) - 1) / 2,
+  in: t => t * t * t,
+  outBack: t => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); },
+};
+const VIEW = (() => { const v = (location.hash || '').replace('#', ''); return v === 'presenter' || v === 'preview' ? v : 'stage'; })();   // stage | presenter | preview
+/* phones and tablets get a lighter stage: no per-figure SVG filters, no pointer toys, no media prefetch.
+   ?lite=1 / ?lite=0 forces it either way. */
+const TOUCH = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches && !matchMedia('(any-pointer: fine)').matches);
+const LITE = /[?&]lite=1/.test(location.search) || (!/[?&]lite=0/.test(location.search) && (TOUCH || Math.min(screen.width || 1e4, screen.height || 1e4) < 600));
+
+/* element factory: h('div.a.b', {style, html, on:{click}}, ...children) */
+/* assign styles, custom properties (--name) included: Object.assign on el.style silently drops those */
+function setStyle(el, o) { for (const [k, v] of Object.entries(o)) { if (v == null) continue; if (k.startsWith('--')) el.style.setProperty(k, v); else el.style[k] = v; } }
+function h(tag, attrs, ...kids) {
+  const m = tag.match(/^([a-z0-9]+)?((?:[.#][\w-]+)*)$/i);
+  const el = (m && m[1] && /^(svg|path|g|circle|line|rect|text|defs|linearGradient|radialGradient|stop|pattern|ellipse|polygon|polyline|filter|feGaussianBlur|feColorMatrix|clipPath|mask|use|tspan)$/.test(m[1]))
+    ? document.createElementNS('http://www.w3.org/2000/svg', m[1])
+    : document.createElement((m && m[1]) || 'div');
+  if (m && m[2]) m[2].replace(/([.#])([\w-]+)/g, (_, k, v) => { if (k === '.') el.classList.add(v); else el.id = v; });
+  if (attrs) for (const [k, v] of Object.entries(attrs)) {
+    if (v == null || v === false) continue;
+    if (k === 'style' && typeof v === 'object') setStyle(el, v);
+    else if (k === 'html') el.innerHTML = v;
+    else if (k === 'text') el.textContent = v;
+    else if (k === 'on') for (const [e, f] of Object.entries(v)) el.addEventListener(e, f);
+    else if (k === 'cls') String(v).split(/\s+/).filter(Boolean).forEach(c => el.classList.add(c));
+    else el.setAttribute(k, v === true ? '' : v);
+  }
+  for (const k of kids.flat(Infinity)) if (k != null && k !== false) el.append(k instanceof Node ? k : document.createTextNode(String(k)));
+  return el;
+}
+const svgEl = (markup) => { const d = document.createElement('div'); d.innerHTML = markup.trim(); return d.firstElementChild; };
+
+/* bilingual text node */
+function T(o, cls = '') {
+  const s = h('span.t', { cls });
+  if (o == null) return s;
+  if (typeof o === 'string' || typeof o === 'number') { s.classList.add('n'); s.innerHTML = String(o); return s; }
+  s.append(h('span.ko', { lang: 'ko', html: o.ko }), h('span.zh', { lang: 'zh-Hans', html: o.zh }));
+  return s;
+}
+const L = (ko, zh) => ({ ko, zh: zh == null ? ko : zh });
+
+/* positioned element helper: A('div.cls', x, y, {anchor:'ac', show:'2', ...attrs}, ...kids) */
+function A(tag, x, y, opt = {}, ...kids) {
+  const { anchor = 'ac', show, d, w, hgt, cls, style, ...rest } = opt;
+  const el = h(tag, { ...rest, cls: ['a', anchor, cls].filter(Boolean).join(' ') }, ...kids);
+  el.style.left = x + 'px'; el.style.top = y + 'px';
+  if (w != null) el.style.width = w + 'px';
+  if (hgt != null) el.style.height = hgt + 'px';
+  if (style) setStyle(el, typeof style === 'string' ? Object.fromEntries(style.split(';').filter(Boolean).map(p => { const i = p.indexOf(':'); const k = p.slice(0, i).trim(); return [k.startsWith('--') ? k : k.replace(/-([a-z])/g, (_, c) => c.toUpperCase()), p.slice(i + 1).trim()]; })) : style);
+  if (show != null) { el.dataset.show = show; el.classList.add('rv'); }
+  if (d != null) el.style.setProperty('--d', d + 's');
+  return el;
+}
+
+/* storage that never throws (private windows, sandboxed previews) */
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('bts.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('bts.' + k, JSON.stringify(v)); return true; } catch (e) { return false; } },
+  del(k) { try { localStorage.removeItem('bts.' + k); } catch (e) { /* ignore */ } },
+  ok() { try { localStorage.setItem('bts.__probe', '1'); localStorage.removeItem('bts.__probe'); return true; } catch (e) { return false; } },
+};
+
+/* time formatting */
+const fmt = (s, tenths = false) => {
+  if (s == null || !isFinite(s)) return '—';
+  const neg = s < 0; s = Math.abs(s);
+  const m = Math.floor(s / 60), r = s - m * 60;
+  const sec = tenths ? r.toFixed(1).padStart(4, '0') : String(Math.floor(r)).padStart(2, '0');
+  return (neg ? '−' : '') + m + ':' + sec;
+};
+const fmtSigned = s => (s >= 0 ? '+' : '−') + fmt(Math.abs(s));
+
+/* animation loop shared by every engine; pauses when the tab is hidden */
+const Loop = {
+  fns: new Set(), raf: 0, last: 0,
+  add(fn) { this.fns.add(fn); this.kick(); return () => this.fns.delete(fn); },
+  kick() { if (!this.raf && !document.hidden) { this.last = now(); this.raf = requestAnimationFrame(this.tick); } },
+  tick: (t) => {
+    const dt = Math.min(.1, (t - Loop.last) / 1000); Loop.last = t; Loop.raf = 0;
+    for (const fn of Array.from(Loop.fns)) { try { fn(t, dt); } catch (e) { console.error(e); Loop.fns.delete(fn); } }
+    if (Loop.fns.size) Loop.kick();
+  },
+};
+document.addEventListener('visibilitychange', () => { if (!document.hidden) Loop.kick(); });
+
+/* tiny tween on plain numbers */
+function tween(dur, fn, ez = ease.inOut, done) {
+  const t0 = now(); let stop = false;
+  const off = Loop.add(() => {
+    if (stop) { off(); return; }
+    const p = dur <= 0 ? 1 : clamp((now() - t0) / dur, 0, 1);
+    fn(ez(p), p);
+    if (p >= 1) { off(); done && done(); }
+  });
+  return () => { stop = true; off(); };
+}
+
+/* seeded random for repeatable generative art */
+function rng(seed = 1) { let s = seed >>> 0; return () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+/* ── Korean syllable estimate for timing: Hangul + numbers read in Sino-Korean + English titles ── */
+const EN_SYL = { 'off the wall': 4, thriller: 3, 'billie jean': 3, mtv: 3, 'smooth criminal': 7, bad: 2, 'black or white': 7, 'earth song': 3, 'stranger in moscow': 10, 'this is it': 5, 'k-pop': 3 };
+function sinoSyl(n) {
+  if (n === 0) return 1;
+  let c = 0, gi = 0;
+  while (n > 0) {
+    const g = n % 10000; n = Math.floor(n / 10000);
+    if (g) {
+      const d = [Math.floor(g / 1000) % 10, Math.floor(g / 100) % 10, Math.floor(g / 10) % 10, g % 10];
+      d.forEach((v, k) => { if (!v) return; c += k < 3 ? (v === 1 ? 1 : 2) : 1; });
+      if (gi > 0) c += 1;
+    }
+    gi++;
+  }
+  return c;
+}
+function syllables(text) {
+  if (!text) return 0;
+  let s = String(text).replace(/<[^>]+>/g, ' ');
+  let c = 0;
+  s = s.replace(/[A-Za-z][A-Za-z\- ']*[A-Za-z]|[A-Za-z]/g, (w) => {
+    const k = w.trim().toLowerCase();
+    if (EN_SYL[k] != null) { c += EN_SYL[k]; return ' '; }
+    const v = (k.match(/[aeiouy]+/g) || []).length; c += Math.max(1, Math.round(v * 1.6)); return ' ';
+  });
+  s = s.replace(/\d[\d,]*/g, (d) => { c += sinoSyl(parseInt(d.replace(/,/g, ''), 10) || 0); return ' '; });
+  c += (s.match(/[가-힣]/g) || []).length;
+  return c;
+}
+
+/* broadcast between stage, presenter and preview windows */
+const Bus = (() => {
+  let ch = null; const subs = new Set();
+  try { ch = new BroadcastChannel('bts-stage-v1'); ch.onmessage = (e) => subs.forEach(f => f(e.data)); } catch (e) { ch = null; }
+  return { ok: !!ch, send(msg) { try { ch && ch.postMessage(msg); } catch (e) { /* closed */ } }, on(f) { subs.add(f); return () => subs.delete(f); } };
+})();
+
+/* fade an element's opacity; once fully transparent it is also hidden, so it costs no layer at all */
+function fadeVis(el, op, dur = 0) {
+  if (!el) return;
+  clearTimeout(el._fv);
+  if (op > .001) { el.style.visibility = 'visible'; el.style.opacity = op; }
+  else { el.style.opacity = 0; el._fv = setTimeout(() => { if (+el.style.opacity <= .001) el.style.visibility = 'hidden'; }, dur * 1000 + 80); }
+}
+
+/* toasts (operator-facing). On the stage they go to the presenter window when it is open,
+   so the projector never shows operator messages. */
+function toast(html, ms = 3200, opt = {}) {
+  if (VIEW === 'stage' && !opt.local && Date.now() - (window.__pvSeen || 0) < 3500) { Bus.send({ type: 'toast', html, ms }); return; }
+  const wrap = $('#toasts'); if (!wrap) return;
+  const el = h('div.toast', { html }); wrap.append(el);
+  requestAnimationFrame(() => el.classList.add('show'));
+  setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 400); }, ms);
+}
+</script>

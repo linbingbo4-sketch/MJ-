@@ -1,0 +1,188 @@
+<style>
+/* three persistent audience elements: act·chapter, year flip-board, now playing */
+#hud > * { position: absolute; transition: opacity .9s var(--e-stage), transform .9s var(--e-stage); }
+#hud.off > * { opacity: 0 !important; }
+.am { left: 96px; top: 58px; padding-left: 18px; border-left: 2px solid var(--acc); opacity: 0; }
+.am.on { opacity: 1; }
+.am-k { font: 500 19px/1 var(--f-num); letter-spacing: .3em; color: var(--dim); text-transform: uppercase; }
+.am-k .ko { font-family: var(--f-ko); letter-spacing: .14em; font-size: 17px; font-weight: 500; }
+.am-k .zh { font-family: var(--f-zh); letter-spacing: .14em; font-size: 17px; }
+.am-t { margin-top: 9px; font: 500 26px/1.15 var(--f-ko-h); color: var(--ink); }
+.am-t .zh { font-family: var(--f-zh-h); }
+[data-lang="bi"] .am-t .zh, [data-lang="bi"] .am-k .zh { margin-top: 4px; }
+.am-swap { animation: amSwap .9s var(--e-stage); }
+@keyframes amSwap { from { opacity: 0; transform: translateY(-8px); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
+
+.yr { right: 96px; bottom: 54px; display: flex; gap: 5px; opacity: 0; perspective: 400px; }
+.yr.on { opacity: 1; }
+.fd { position: relative; width: 46px; height: 66px; border-radius: 5px; background: #16130f; box-shadow: 0 6px 18px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.06); font: 600 52px/66px var(--f-num); color: var(--ink); text-align: center; }
+.fd > div { position: absolute; left: 0; right: 0; height: 50%; overflow: hidden; background: inherit; border-radius: inherit; }
+.fd > div > span { position: absolute; left: 0; right: 0; height: 66px; line-height: 66px; }
+.fd .t1, .fd .f1 { top: 0; border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.fd .t1 > span, .fd .f1 > span { top: 0; }
+.fd .b1, .fd .f2 { bottom: 0; border-top-left-radius: 0; border-top-right-radius: 0; }
+.fd .b1 > span, .fd .f2 > span { bottom: 0; }
+.fd .f1 { transform-origin: 50% 100%; z-index: 2; backface-visibility: hidden; display: none; }
+.fd .f2 { transform-origin: 50% 0; z-index: 2; backface-visibility: hidden; transform: rotateX(90deg); display: none; }
+.fd::after { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 2px; margin-top: -1px; background: rgba(0,0,0,.65); z-index: 3; }
+.fd .t1::after, .fd .f1::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(255,255,255,.05), rgba(0,0,0,.12)); }
+
+.np { right: 96px; top: 40px; display: flex; align-items: center; gap: 20px; padding: 14px 24px 14px 14px; border-radius: 10px;
+  background: linear-gradient(100deg, rgba(14, 12, 10, .78), rgba(14, 12, 10, .55)); box-shadow: 0 14px 40px rgba(0, 0, 0, .45), inset 0 0 0 1px rgba(255, 255, 255, .07);
+  border-left: 3px solid var(--np-c, var(--acc)); opacity: 0; transform: translateY(-14px); }
+.np.on { opacity: 1; transform: none; }
+.np-art { position: relative; width: 86px; height: 86px; flex: none; }
+.np-vinyl { position: absolute; left: 20px; top: 4px; width: 84px; height: 84px; border-radius: 50%;
+  background: radial-gradient(circle, var(--np-c, #c33) 0 15%, #111 16% 18%, transparent 18.5%), repeating-radial-gradient(circle, #0c0c0c 0 1.5px, #1d1d1d 2px 3px); box-shadow: 0 2px 10px rgba(0,0,0,.6);
+  animation: spin 2.4s linear infinite; animation-play-state: paused; transition: left .9s var(--e-stage); }
+.np.live .np-vinyl { left: 44px; animation-play-state: running; }
+.np-vinyl::after { content: ''; position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(from 30deg, transparent 0 10%, rgba(255,255,255,.12) 14%, transparent 20% 60%, rgba(255,255,255,.08) 66%, transparent 72%); }
+.np-cover { position: absolute; inset: 0; border-radius: 3px; overflow: hidden; box-shadow: 0 6px 18px rgba(0,0,0,.6); z-index: 2; display: grid; place-items: center; }
+.np-cover b { font: italic 600 34px/1 var(--f-en); letter-spacing: -.02em; }
+.np-cover i { position: absolute; right: 6px; bottom: 5px; font: 600 11px/1 var(--f-num); letter-spacing: .12em; font-style: normal; opacity: .8; }
+.np-meta { padding-left: 24px; max-width: 420px; }
+.np-k { display: flex; align-items: center; gap: 10px; font: 600 14px/1 var(--f-num); letter-spacing: .32em; color: var(--np-c, var(--acc)); }
+.np-k .ko, .np-k .zh { letter-spacing: .1em; }
+.np-eq { display: inline-flex; align-items: flex-end; gap: 2px; height: 13px; }
+.np-eq i { width: 3px; height: 30%; background: currentColor; border-radius: 1px; }
+.np.live .np-eq i { animation: eq .9s ease-in-out infinite; }
+.np.live .np-eq i:nth-child(2) { animation-delay: -.3s; } .np.live .np-eq i:nth-child(3) { animation-delay: -.6s; } .np.live .np-eq i:nth-child(4) { animation-delay: -.45s; }
+@keyframes eq { 0%, 100% { height: 25%; } 50% { height: 100%; } }
+.np-t { margin-top: 9px; font: italic 500 28px/1.08 var(--f-en); color: var(--ink); white-space: nowrap; }
+.np-g { margin-top: 8px; display: inline-flex; align-items: center; gap: 8px; padding: 5px 10px 5px 9px; border-radius: 4px; background: var(--np-c, var(--acc)); color: #140e08; font: 700 14px/1 var(--f-num); letter-spacing: .16em; white-space: nowrap; }
+.np-g .zh { font: 600 14px/1 var(--f-zh); letter-spacing: .06em; }
+.np-g .ko { font: 600 14px/1 var(--f-ko); letter-spacing: .04em; }
+.np-a { margin-top: 8px; font: 500 15px/1.3 var(--f-num); letter-spacing: .16em; color: rgba(239, 232, 218, .72); white-space: nowrap; }
+.np-a b { font: 600 17px/1 var(--f-num); color: var(--ink); letter-spacing: .12em; margin-right: 4px; }
+.np-a .ko { font-family: var(--f-ko); letter-spacing: .04em; }
+.np-a .zh { font-family: var(--f-zh); letter-spacing: .04em; opacity: .85; }
+/* the ∞ auto switch */
+#stage > #autobtn { position: absolute; inset: auto; right: 22px; top: 52px; z-index: 10; width: 64px; height: 30px; padding: 0; border: 0; background: none; cursor: pointer; pointer-events: auto; opacity: .55; transition: opacity .4s ease; }
+#autobtn:hover, #autobtn:focus-visible, #autobtn.on { opacity: 1; outline: none; }
+#autobtn svg { width: 100%; height: 100%; overflow: visible; }
+#autobtn .inf-base { fill: none; stroke: rgba(239, 232, 218, .55); stroke-width: 3; }
+#autobtn.on .inf-base { stroke: rgba(255, 214, 150, .35); }
+#autobtn .inf-flow { fill: none; stroke: #ffe2a8; stroke-width: 3.6; stroke-linecap: round; stroke-dasharray: 0 100; opacity: 0; }
+#autobtn.on .inf-flow { opacity: 1; stroke-dasharray: 22 78; animation: infflow 2.6s linear infinite; filter: drop-shadow(0 0 4px rgba(255, 210, 140, .9)); }
+#autobtn.on .inf-flow.f2 { stroke-dasharray: 9 91; animation-delay: -1.3s; opacity: .7; }
+
+@keyframes infflow { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -100; } }
+#stage.film #autobtn, #stage.mv-open #autobtn { opacity: 0; pointer-events: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse { 50% { opacity: .3; } }
+</style>
+
+<script>
+/* ═══ HUD ═══ */
+const COVERS = {
+  wbss:       { bg: 'linear-gradient(160deg, #f4f0e7 0 58%, #e9c46a 58% 66%, #1b1712 66%)', fg: '#1b1712', mark: 'WBSS', c: '#e9c46a' },
+  iwyb:       { bg: 'repeating-linear-gradient(180deg, #e7a92f 0 13px, #e2672b 13px 26px, #8c3b1a 26px 39px)', fg: '#fff3dc', mark: 'J5', c: '#e2672b' },
+  dstyge:     { bg: 'radial-gradient(circle at 30% 30%, #f3deae, #b8955a 45%, #2b2114)', fg: '#1a140b', mark: 'OtW', c: '#d9be86' },
+  billiejean: { bg: 'linear-gradient(135deg, #0b0b0b 0 55%, #c8102e 55% 63%, #0b0b0b 63%)', fg: '#f4efe6', mark: 'BJ', c: '#c8102e' },
+  bad:        { bg: 'repeating-linear-gradient(45deg, #0b1430 0 10px, #13204a 10px 20px)', fg: '#f1ead6', mark: 'Bad', c: '#3d6cff' },
+  bow:        { bg: 'linear-gradient(90deg, #0a0806 50%, #efe7d6 50%)', fg: '#c9a24a', mark: 'B|W', c: '#d9ae52' },
+  moscow:     { bg: 'repeating-linear-gradient(100deg, #2b3139 0 6px, #39414b 6px 8px)', fg: '#dfe5ec', mark: 'SiM', c: '#aeb7c1' },
+  earth:      { bg: 'radial-gradient(circle at 50% 60%, #2f7a6a, #12324a 60%, #050b1a)', fg: '#efe6d0', mark: 'E', c: '#7fb0ff' },
+  human:      { bg: 'linear-gradient(160deg, #1b1f4a, #6a3a7a 60%, #e6a26a)', fg: '#fff1e0', mark: 'HN', c: '#c78aff' },
+  rtt:        { bg: 'linear-gradient(135deg, #1d3a8a, #0f1f4a 50%, #c9a24a 50% 58%, #1d3a8a 58%)', fg: '#ffd79a', mark: 'RtT', c: '#ffb54a' },
+  mitm:       { bg: 'linear-gradient(135deg, #f7f3ea, #c9cdd3 50%, #f7f3ea)', fg: '#2a2622', mark: 'M', c: '#ffd9a0' },
+};
+
+const HUD = (() => {
+  const hud = $('#hud');
+  const am = h('div.am', {}, h('div.am-k'), h('div.am-t'));
+  const yr = h('div.yr');
+  const np = h('div.np', {}, h('div.np-art', {}, h('div.np-vinyl'), h('div.np-cover')),
+    h('div.np-meta', {}, h('div.np-k', {}, h('span.np-eq', {}, h('i'), h('i'), h('i'), h('i')), h('span.np-kt')), h('div.np-t'), h('div.np-g'), h('div.np-a')));
+  hud.append(am, yr, np);
+
+  /* act · chapter */
+  let amKey = '';
+  function setAct(sc, { instant = false } = {}) {
+    if (!sc || !sc.hud) { am.classList.remove('on'); amKey = ''; return; }
+    const act = ACTS[sc.act];
+    const k = sc.key;
+    if (k === amKey) { am.classList.add('on'); return; }
+    amKey = k;
+    const top = sc.act >= 1 && sc.act <= 3 ? L(`${act.label.ko} · ${sc.chapter}`, `${act.label.zh} · ${sc.chapter === '간주' ? '间奏' : sc.chapter}`) : act.label;
+    const kEl = am.querySelector('.am-k'), tEl = am.querySelector('.am-t');
+    kEl.innerHTML = ''; tEl.innerHTML = '';
+    kEl.append(T(top)); tEl.append(T(sc.title));
+    am.classList.add('on');
+    if (!instant) { am.classList.remove('am-swap'); void am.offsetWidth; am.classList.add('am-swap'); }
+  }
+
+  /* split-flap year */
+  const digits = [];
+  for (let i = 0; i < 4; i++) {
+    const d = h('div.fd', {}, h('div.t1', {}, h('span', { text: '0' })), h('div.b1', {}, h('span', { text: '0' })), h('div.f1', {}, h('span')), h('div.f2', {}, h('span')));
+    d.val = 0; d.queue = Promise.resolve(); yr.append(d); digits.push(d);
+  }
+  const setFace = (d, v) => { d.querySelector('.t1 span').textContent = v; d.querySelector('.b1 span').textContent = v; d.val = v; };
+  function flipOnce(d, to, ms) {
+    return new Promise(res => {
+      const from = d.val;
+      const t1 = d.querySelector('.t1 span'), b1 = d.querySelector('.b1 span'), f1 = d.querySelector('.f1'), f2 = d.querySelector('.f2');
+      t1.textContent = to; b1.textContent = from; f1.firstChild.textContent = from; f2.firstChild.textContent = to;
+      f1.style.display = f2.style.display = 'block';
+      const a = f1.animate([{ transform: 'rotateX(0deg)' }, { transform: 'rotateX(-90deg)' }], { duration: ms / 2, easing: 'ease-in', fill: 'forwards' });
+      a.onfinish = () => {
+        const b = f2.animate([{ transform: 'rotateX(90deg)' }, { transform: 'rotateX(0deg)' }], { duration: ms / 2, easing: 'ease-out', fill: 'forwards' });
+        b.onfinish = () => { b1.textContent = to; d.val = to; f1.style.display = f2.style.display = 'none'; a.cancel(); b.cancel(); res(); };
+      };
+    });
+  }
+  let yearNow = null, yearToken = 0;
+  function setYear(y, { instant = false, show = true } = {}) {
+    yr.classList.toggle('on', !!show && y != null);
+    if (y == null) return;
+    const s = String(y).padStart(4, '0');
+    if (s === yearNow) return;
+    yearNow = s; const token = ++yearToken;
+    digits.forEach((d, i) => {
+      const target = +s[i];
+      if (instant || Director.reduced) { setFace(d, target); return; }
+      d.queue = d.queue.then(async () => {
+        if (token !== yearToken) return;
+        const dist = (target - d.val + 10) % 10;
+        if (dist > 3) await flipOnce(d, (target + 8) % 10, 170);      /* long way round: one big flip, then roll the last two */
+        let steps = 0;
+        while (d.val !== target && token === yearToken && steps < 4) { steps++; await flipOnce(d, (d.val + 1) % 10, 150); }
+        if (token !== yearToken || d.val !== target) setFace(d, +String(yearNow)[i]);
+      });
+    });
+  }
+
+  /* now playing */
+  /* the era's song stays in the corner for the whole scene: title, group, year, style; the disc spins while it sounds */
+  let npKey = null;
+  function showNP(key) {
+    if (!key || !TRACKS[key]) { hideNP(); return; }
+    if (key === npKey) { np.classList.add('on'); return; }
+    npKey = key; const tr = TRACKS[key], cv = COVERS[key] || {};
+    const cover = np.querySelector('.np-cover');
+    cover.style.background = cv.bg || '#222'; cover.innerHTML = ''; cover.append(h('b', { text: cv.mark || '♪', style: { color: cv.fg || '#fff' } }), h('i', { text: String(tr.year), style: { color: cv.fg || '#fff' } }));
+    np.style.setProperty('--np-c', cv.c || 'var(--acc)');
+    np.querySelector('.np-t').textContent = tr.title;
+    const g = np.querySelector('.np-g'); g.innerHTML = '';
+    if (tr.group) { g.append(h('span', { text: 'THE JACKSON 5' }), h('span.ko', { lang: 'ko', text: tr.group.ko }), h('span.zh', { lang: 'zh-Hans', text: tr.group.zh })); g.style.display = ''; }
+    else g.style.display = 'none';
+    const a = np.querySelector('.np-a'); a.innerHTML = '';
+    a.append(h('b', { text: String(tr.year) }), document.createTextNode(' · '));
+    if (tr.genre) a.append(h('span.ko', { lang: 'ko', text: tr.genre.ko }), document.createTextNode(' / '), h('span.zh', { lang: 'zh-Hans', text: tr.genre.zh }));
+    if (!tr.group) a.append(document.createTextNode(' · ' + tr.artist.toUpperCase()));
+    np.classList.remove('on'); void np.offsetWidth; np.classList.add('on');
+    setLive(np.classList.contains('live'));
+  }
+  function setLive(live) {
+    np.classList.toggle('live', !!live);
+    const k = np.querySelector('.np-kt'); k.innerHTML = '';
+    if (live) k.textContent = 'NOW PLAYING';
+    else k.append(h('span.ko', { lang: 'ko', text: '이 시대의 노래' }), document.createTextNode(' · '), h('span.zh', { lang: 'zh-Hans', text: '本章代表作' }));
+  }
+  function hideNP() { np.classList.remove('on'); npKey = null; }
+  function visible(v) { hud.classList.toggle('off', !v); }
+  return { setAct, setYear, showNP, hideNP, setLive, visible, resetNP() { npKey = null; }, get npKey() { return npKey; } };
+})();
+const NowPlaying = { show: () => {} };   /* the card follows the scene now (Director), not the moment a track starts */
+</script>
