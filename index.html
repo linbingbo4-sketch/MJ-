@@ -231,7 +231,8 @@ body.fs #hint .hint-demo, body.started #hint .hint-demo { pointer-events: none; 
 .vs-fb .fb-t { font: 500 64px/1.2 var(--f-ko-h); }
 .vs-fb .fb-t .zh { font-family: var(--f-zh-h); }
 .vs-fb .fb-y { font: 500 30px/1 var(--f-num); letter-spacing: .3em; color: rgba(239, 232, 218, .6); }
-.vs-fb a { font: 500 24px/1 var(--f-ko); color: #ffd08a; text-decoration: none; border-bottom: 1px solid rgba(255, 208, 138, .4); padding-bottom: 4px; }
+.vs-fb .fb-n { font: 500 24px/1.4 var(--f-ko); color: rgba(255, 208, 138, .85); }
+.vs-fb .fb-n .zh { font-family: var(--f-zh); }
 .vs-fb .fb-play { width: 120px; height: 120px; border-radius: 50%; border: 2px solid rgba(239, 232, 218, .5); position: relative; }
 .vs-fb .fb-play::after { content: ''; position: absolute; left: 50%; top: 50%; translate: -38% -50%; border-left: 34px solid rgba(239, 232, 218, .8); border-top: 22px solid transparent; border-bottom: 22px solid transparent; }
 #vs-tv .vs-fb, #vs-pip .vs-fb { gap: 10px; padding: 16px; }
@@ -3061,7 +3062,7 @@ function makeSlot(name, host, opt = {}) {
       h('div.fb-k', { text: 'VIDEO' + (v.year ? ' · ' + v.year : '') }),
       h('div.fb-play'),
       h('div.fb-t', {}, T(v.name || L('영상', '视频'))),
-      info.id ? h('a', { href: 'https://www.youtube.com/watch?v=' + info.id + (info.start ? '&t=' + Math.floor(info.start) + 's' : ''), target: '_blank', rel: 'noopener' }, T(L('YouTube에서 보기 ↗', '在 YouTube 打开 ↗'))) : null,
+      h('div.fb-n', {}, T(L('이 화면에서는 영상을 재생할 수 없습니다', '这里无法播放这段视频'))),
     ].filter(Boolean));
     el.classList.add('fallback');
   }
@@ -3073,10 +3074,11 @@ function makeSlot(name, host, opt = {}) {
       s.kind = 'file'; el.classList.add('file');
       return new Promise(res => {
         vid.muted = !!o.muted; vid.loop = !!o.loop && o.loopB == null; vid.volume = s.vol / 100;
-        const fail = () => { s.error = '视频文件无法加载'; showFallback(); res(false); Video.emit(); };
+        const fail = () => { s.error = '视频文件无法加载'; if (!o.quiet) showFallback(); res(false); Video.emit(); };
         vid.onerror = fail;
         vid.onended = () => { if (s.onEnd) { const f = s.onEnd; s.onEnd = null; f(); } };
-        MediaCache.url(o.file).then(u => {
+        /* big files can stream straight from the server (phones); otherwise they go through memory so they can be seeked */
+        (o.stream ? Promise.resolve(o.file) : MediaCache.url(o.file)).then(u => {
           if (s.want !== o) { res(false); return; }
           if (vid.getAttribute('src') !== u) vid.src = u;
           const go = () => { try { vid.currentTime = o.start || 0; } catch (e) { /* ignore */ } if (o.autoplay) vid.play().then(() => { s.playing = true; el.classList.add('playing'); res(true); Video.emit(); }).catch(() => { vid.muted = true; vid.play().then(() => { s.playing = true; res(true); }).catch(fail); }); else res(true); };
@@ -3157,12 +3159,21 @@ const Video = (() => {
   }
   function src(key) {
     const v = Settings.get().videos[key] || {};
+    if (LOCAL[key]) return { id: null, file: LOCAL[key], cfg: v, set: true };
     /* the trailer follows the screen language: the Chinese-subtitled cut when the stage is in Chinese */
     const zh = key === 'trailer' && $('#stage').dataset.lang === 'zh' && (v.srcZh || '').trim();
     const s = (zh || v.src || '').trim();
     return { id: ytId(s), file: isFileSrc(s) ? s : null, cfg: v, set: !!s };
   }
   const configured = (key) => src(key).set;
+  /* media/video/<key>.mp4 (or .webm) next to the page: looked for once at start, used instead of the online video */
+  const LOCAL = {};
+  if (/^https?:$/.test(location.protocol) && VIEW === 'stage') {
+    Object.keys(VIDEOS).forEach(key => {
+      const tryExt = (exts) => { if (!exts.length) return; const p = `media/video/${key}.${exts[0]}`; fetch(p, { method: 'HEAD' }).then(r => { if (r.ok) LOCAL[key] = p; else tryExt(exts.slice(1)); }).catch(() => {}); };
+      tryExt(['mp4', 'webm']);
+    });
+  }
 
   /* watch cue ends and A/B loops every frame */
   Loop.add(() => {
@@ -3363,7 +3374,7 @@ const Video = (() => {
     const b = BEATS[Director.beat];
     if (b && b.video && configured(b.video.key)) { startBeatVideo(b, ++beatToken); return; }
     const sw = MV.visible();
-    if (sw) { if (!MV.direct(sw.dataset.work)) MV.open(sw.dataset.work, sw); return; }
+    if (sw) { MV.open(sw.dataset.work, sw); return; }
     toast('这一页没有可播放的视频', 1400, { local: true });
   }
 
@@ -3428,7 +3439,7 @@ function mvSwitch(work, o = {}) {
   const b = h('button.mvs', { type: 'button', 'data-work': work, 'aria-label': `${w.t} — MV`, title: `${w.t} (${w.y}) · MV`, cls: o.sm ? 'sm' : '' },
     h('i.mv-disc'), h('span.mv-l', {}, h('span.mv-t', { text: o.label || 'MV' }), o.year === false ? null : h('span.mv-y', { text: String(w.y) })));
   if (o.color) b.style.setProperty('--mv', o.color);
-  b.addEventListener('click', (e) => { e.stopPropagation(); e.preventDefault(); if (!MV.direct(work)) MV.toggle(work, b); });
+  b.addEventListener('click', (e) => { e.stopPropagation(); e.preventDefault(); MV.toggle(work, b); });
   b.addEventListener('pointerdown', (e) => e.stopPropagation());
   return b;
 }
@@ -3469,13 +3480,16 @@ const MV = (() => {
     requestAnimationFrame(() => { if (my === token) s.fit(BOX); });
     Music.duck(true);
     SFX.projector(.9);
-    for (const id of w.ids) {
+    /* a local copy first (media/mv/<work>.mp4 or .webm: plays offline, never leaves the page), then the embedded player */
+    const sources = [...['mp4', 'webm'].map(x => ({ file: `media/mv/${work}.${x}` })), ...w.ids.map(id => ({ id }))];
+    for (const src of sources) {
       if (my !== token) return;
-      const ok = await s.load({ key: 'mv', work, id, start: 0, autoplay: true, onEnd: () => { if (my === token) close(); } });
+      if (src.id && YTAPI.state === 'failed') continue;
+      const ok = await s.load({ key: 'mv', work, ...src, quiet: true, stream: LITE, start: 0, autoplay: true, onEnd: () => { if (my === token) close(); } });
       if (my !== token) return;
       if (ok) { Video.emit(); return; }
     }
-    if (my === token) { s.want = { key: 'mv', work, id: w.ids[0] }; s.fallback(); Video.emit(); }
+    if (my === token) { s.want = { key: 'mv', work }; s.fallback(); Video.emit(); }
   }
   function close({ quick = false } = {}) {
     if (!cur) return;
@@ -3492,16 +3506,6 @@ const MV = (() => {
     Video.emit();
   }
   const toggle = (work, el) => (cur === work ? close() : open(work, el));
-  /* where YouTube cannot be embedded (a sandboxed preview), the official video opens on youtube.com itself —
-     called straight from the click or key press, so the browser lets the new tab open */
-  function direct(work) {
-    if (YTAPI.state !== 'failed') return false;
-    const w = WORKS[work]; if (!w) return false;
-    const tab = window.open('https://www.youtube.com/watch?v=' + w.ids[0], '_blank');   /* ('noopener' would make this return null) */
-    if (tab) { try { tab.opener = null; } catch (e) { /* ignore */ } }
-    else toast('浏览器拦截了新窗口：请允许弹出窗口，或用 Chrome / Safari 直接打开这个网页', 3000, { local: true });
-    return true;
-  }
   /* the first switch you can see on stage right now */
   function visible() {
     const sc = $('.scene.active'); if (!sc) return null;
@@ -3532,7 +3536,7 @@ const MV = (() => {
       h('div.mq-z', { lang: 'zh-Hans', text: one ? '这个 MV 需要播放吗？' : '该播放哪首呢？' }),
       h('div.mq-list', {}, ...list.map(b => {
         const w = WORKS[b.dataset.work];
-        return h('button.mq-b', { type: 'button', on: { click: (e) => { e.stopPropagation(); if (!direct(b.dataset.work)) open(b.dataset.work, b.isConnected ? b : null); } } }, h('b', { text: w.t }), h('span', { text: String(w.y) }));
+        return h('button.mq-b', { type: 'button', on: { click: (e) => { e.stopPropagation(); open(b.dataset.work, b.isConnected ? b : null); } } }, h('b', { text: w.t }), h('span', { text: String(w.y) }));
       })),
       h('div.mq-h', { text: one ? 'V 재생 · 按 V 播放' : 'V = 첫 곡 · 按 V 播放第一首' }));
   }
@@ -3555,7 +3559,7 @@ const MV = (() => {
       ask.classList.add('on');
     }, ms)));
   }
-  return { open, close, toggle, direct, visible, visibleAll, offer, hideAsk, get cur() { return cur; }, get isOpen() { return !!cur; } };
+  return { open, close, toggle, visible, visibleAll, offer, hideAsk, get cur() { return cur; }, get isOpen() { return !!cur; } };
 })();
 
 /* ═══ VBAR — scrubbing for the video on screen (MV window, the trailer, the Smooth Criminal frame) ═══ */
@@ -7544,7 +7548,7 @@ const App = (() => {
   }
   function fullBanner() {
     if ($('#fullbar')) return;
-    const bar = h('div#fullbar', {}, h('span', { text: '这个预览窗口按平台规定不能嵌入 YouTube：点 MV 开关或按 V 会直接在 YouTube 打开对应的官方视频' }),
+    const bar = h('div#fullbar', {}, h('span', { text: '这个预览窗口按平台规定不能播放在线视频；把视频文件放进 media/mv/ 和 media/video/，在本机或 GitHub Pages 打开即可在页面里播放' }),
       h('button', { type: 'button', text: '×', 'aria-label': '关闭', on: { click: () => bar.remove() } }));
     $('#ui').append(bar);
     setTimeout(() => bar.remove(), 12000);

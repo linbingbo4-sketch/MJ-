@@ -45,3 +45,52 @@
 预告片、Smooth Criminal、Motown 25 片段也可以用本地 mp4 / webm 文件代替 YouTube：把路径（例如 `media/video/trailer.mp4`）填进设置里对应的链接栏即可。网络不稳定的教室里，这样最保险。
 
 > 注意：公开仓库开启 GitHub Pages 后，这个文件夹里的文件会被公开访问。受版权保护的音频和视频建议只放在演讲用的那台电脑上（用 `python3 -m http.server` 本地打开），不要提交到公开仓库。
+
+
+## 本地视频：在页面里离线播放（推荐）
+
+点 MV 开关或按 V 时，页面先找下面这些本地文件，找到就在页面里的播放窗口直接播放，不经过任何网站；找不到才用嵌入的播放器。也可以用 `.webm`。
+
+**这些文件需要你自己准备**（自己购买 / 有授权的版本）。它们受版权保护，`.gitignore` 已经把 `media/mv/` 和 `media/video/` 排除在外：只放在演讲用的电脑上，用 `python3 -m http.server` 在本机打开，不要上传到公开仓库。
+
+### 每部作品的 MV `media/mv/`
+
+| 文件名 | 作品 | 年份 |
+| --- | --- | --- |
+| `media/mv/iwyb.mp4` | I Want You Back | 1969 |
+| `media/mv/abc.mp4` | ABC | 1970 |
+| `media/mv/loveyousave.mp4` | The Love You Save | 1970 |
+| `media/mv/illbethere.mp4` | I'll Be There | 1970 |
+| `media/mv/dstyge.mp4` | Don't Stop 'Til You Get Enough | 1979 |
+| `media/mv/rockwithyou.mp4` | Rock with You | 1979 |
+| `media/mv/offthewall.mp4` | Off the Wall | 1979 |
+| `media/mv/shesout.mp4` | She's Out of My Life | 1979 |
+| `media/mv/wbss.mp4` | Wanna Be Startin' Somethin' | 1982 |
+| `media/mv/thriller.mp4` | Thriller | 1983 |
+| `media/mv/billiejean.mp4` | Billie Jean | 1983 |
+| `media/mv/beatit.mp4` | Beat It | 1983 |
+| `media/mv/motown25.mp4` | Billie Jean · Motown 25 | 1983 |
+| `media/mv/ijcslu.mp4` | I Just Can't Stop Loving You | 1987 |
+| `media/mv/bad.mp4` | Bad | 1987 |
+| `media/mv/twymmf.mp4` | The Way You Make Me Feel | 1987 |
+| `media/mv/mitm.mp4` | Man in the Mirror | 1988 |
+| `media/mv/dirtydiana.mp4` | Dirty Diana | 1988 |
+| `media/mv/smooth.mp4` | Smooth Criminal | 1988 |
+| `media/mv/bow.mp4` | Black or White | 1991 |
+| `media/mv/rtt.mp4` | Remember the Time | 1992 |
+| `media/mv/superbowl.mp4` | Super Bowl XXVII Halftime | 1993 |
+| `media/mv/earth.mp4` | Earth Song | 1995 |
+| `media/mv/moscow.mp4` | Stranger in Moscow | 1996 |
+| `media/mv/tdcau.mp4` | They Don't Care About Us | 1996 |
+| `media/mv/human.mp4` | Human Nature | 1982 |
+| `media/mv/thisisit.mp4` | Michael Jackson's This Is It | 2009 |
+| `media/mv/michael.mp4` | Michael (2026) — Official Trailer | 2026 |
+
+### 排好的视频 `media/video/`
+
+| 文件名 | 用在 |
+| --- | --- |
+| `media/video/trailer.mp4` | 第 1 场 ② 预告片（银幕 → 整屏 → 银幕） |
+| `media/video/sc.mp4` | 第 6 场 ④⑤ Smooth Criminal 提示点 |
+| `media/video/bj.mp4` | 第 5 场 ③ 显像管电视（摩城 25 现场） |
+| `media/video/motown.mp4` | 第 5 场 ⑤ 摩城 25 片段 |

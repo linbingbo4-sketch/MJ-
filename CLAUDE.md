@@ -28,7 +28,9 @@ It must print `✓ desktop and phone show the same features on every beat`. When
 add it to the snapshot in `tests/parity.js` in the same commit.
 
 ## Other constraints
-- Photos: freely licensed only (Wikimedia Commons, credit printed on the print). Videos and music: official YouTube
-  uploads only, embedded or opened on youtube.com — never a third-party mirror or link.
+- Photos: freely licensed only (Wikimedia Commons, credit printed on the print).
+- Videos and music play **inside the page**: a local file first (`media/mv/<work>.mp4`, `media/video/<key>.mp4`,
+  `media/music/…` — supplied by the presenter, git-ignored, never committed), then the embedded official YouTube player.
+  Never send the viewer to another site or tab, and never download copyrighted media into the repo.
 - Keep the iPhone safe: WebKit sizes every composited layer by device pixel ratio. Avoid new full-stage layers that
   animate continuously on the low tier; prefer static paints there.

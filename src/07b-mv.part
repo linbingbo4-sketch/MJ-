@@ -105,7 +105,7 @@ function mvSwitch(work, o = {}) {
   const b = h('button.mvs', { type: 'button', 'data-work': work, 'aria-label': `${w.t} — MV`, title: `${w.t} (${w.y}) · MV`, cls: o.sm ? 'sm' : '' },
     h('i.mv-disc'), h('span.mv-l', {}, h('span.mv-t', { text: o.label || 'MV' }), o.year === false ? null : h('span.mv-y', { text: String(w.y) })));
   if (o.color) b.style.setProperty('--mv', o.color);
-  b.addEventListener('click', (e) => { e.stopPropagation(); e.preventDefault(); if (!MV.direct(work)) MV.toggle(work, b); });
+  b.addEventListener('click', (e) => { e.stopPropagation(); e.preventDefault(); MV.toggle(work, b); });
   b.addEventListener('pointerdown', (e) => e.stopPropagation());
   return b;
 }
@@ -146,13 +146,16 @@ const MV = (() => {
     requestAnimationFrame(() => { if (my === token) s.fit(BOX); });
     Music.duck(true);
     SFX.projector(.9);
-    for (const id of w.ids) {
+    /* a local copy first (media/mv/<work>.mp4 or .webm: plays offline, never leaves the page), then the embedded player */
+    const sources = [...['mp4', 'webm'].map(x => ({ file: `media/mv/${work}.${x}` })), ...w.ids.map(id => ({ id }))];
+    for (const src of sources) {
       if (my !== token) return;
-      const ok = await s.load({ key: 'mv', work, id, start: 0, autoplay: true, onEnd: () => { if (my === token) close(); } });
+      if (src.id && YTAPI.state === 'failed') continue;
+      const ok = await s.load({ key: 'mv', work, ...src, quiet: true, stream: LITE, start: 0, autoplay: true, onEnd: () => { if (my === token) close(); } });
       if (my !== token) return;
       if (ok) { Video.emit(); return; }
     }
-    if (my === token) { s.want = { key: 'mv', work, id: w.ids[0] }; s.fallback(); Video.emit(); }
+    if (my === token) { s.want = { key: 'mv', work }; s.fallback(); Video.emit(); }
   }
   function close({ quick = false } = {}) {
     if (!cur) return;
@@ -169,16 +172,6 @@ const MV = (() => {
     Video.emit();
   }
   const toggle = (work, el) => (cur === work ? close() : open(work, el));
-  /* where YouTube cannot be embedded (a sandboxed preview), the official video opens on youtube.com itself —
-     called straight from the click or key press, so the browser lets the new tab open */
-  function direct(work) {
-    if (YTAPI.state !== 'failed') return false;
-    const w = WORKS[work]; if (!w) return false;
-    const tab = window.open('https://www.youtube.com/watch?v=' + w.ids[0], '_blank');   /* ('noopener' would make this return null) */
-    if (tab) { try { tab.opener = null; } catch (e) { /* ignore */ } }
-    else toast('浏览器拦截了新窗口：请允许弹出窗口，或用 Chrome / Safari 直接打开这个网页', 3000, { local: true });
-    return true;
-  }
   /* the first switch you can see on stage right now */
   function visible() {
     const sc = $('.scene.active'); if (!sc) return null;
@@ -209,7 +202,7 @@ const MV = (() => {
       h('div.mq-z', { lang: 'zh-Hans', text: one ? '这个 MV 需要播放吗？' : '该播放哪首呢？' }),
       h('div.mq-list', {}, ...list.map(b => {
         const w = WORKS[b.dataset.work];
-        return h('button.mq-b', { type: 'button', on: { click: (e) => { e.stopPropagation(); if (!direct(b.dataset.work)) open(b.dataset.work, b.isConnected ? b : null); } } }, h('b', { text: w.t }), h('span', { text: String(w.y) }));
+        return h('button.mq-b', { type: 'button', on: { click: (e) => { e.stopPropagation(); open(b.dataset.work, b.isConnected ? b : null); } } }, h('b', { text: w.t }), h('span', { text: String(w.y) }));
       })),
       h('div.mq-h', { text: one ? 'V 재생 · 按 V 播放' : 'V = 첫 곡 · 按 V 播放第一首' }));
   }
@@ -232,7 +225,7 @@ const MV = (() => {
       ask.classList.add('on');
     }, ms)));
   }
-  return { open, close, toggle, direct, visible, visibleAll, offer, hideAsk, get cur() { return cur; }, get isOpen() { return !!cur; } };
+  return { open, close, toggle, visible, visibleAll, offer, hideAsk, get cur() { return cur; }, get isOpen() { return !!cur; } };
 })();
 
 /* ═══ VBAR — scrubbing for the video on screen (MV window, the trailer, the Smooth Criminal frame) ═══ */

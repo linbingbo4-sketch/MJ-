@@ -16,7 +16,8 @@
 .vs-fb .fb-t { font: 500 64px/1.2 var(--f-ko-h); }
 .vs-fb .fb-t .zh { font-family: var(--f-zh-h); }
 .vs-fb .fb-y { font: 500 30px/1 var(--f-num); letter-spacing: .3em; color: rgba(239, 232, 218, .6); }
-.vs-fb a { font: 500 24px/1 var(--f-ko); color: #ffd08a; text-decoration: none; border-bottom: 1px solid rgba(255, 208, 138, .4); padding-bottom: 4px; }
+.vs-fb .fb-n { font: 500 24px/1.4 var(--f-ko); color: rgba(255, 208, 138, .85); }
+.vs-fb .fb-n .zh { font-family: var(--f-zh); }
 .vs-fb .fb-play { width: 120px; height: 120px; border-radius: 50%; border: 2px solid rgba(239, 232, 218, .5); position: relative; }
 .vs-fb .fb-play::after { content: ''; position: absolute; left: 50%; top: 50%; translate: -38% -50%; border-left: 34px solid rgba(239, 232, 218, .8); border-top: 22px solid transparent; border-bottom: 22px solid transparent; }
 #vs-tv .vs-fb, #vs-pip .vs-fb { gap: 10px; padding: 16px; }
@@ -149,7 +150,7 @@ function makeSlot(name, host, opt = {}) {
       h('div.fb-k', { text: 'VIDEO' + (v.year ? ' · ' + v.year : '') }),
       h('div.fb-play'),
       h('div.fb-t', {}, T(v.name || L('영상', '视频'))),
-      info.id ? h('a', { href: 'https://www.youtube.com/watch?v=' + info.id + (info.start ? '&t=' + Math.floor(info.start) + 's' : ''), target: '_blank', rel: 'noopener' }, T(L('YouTube에서 보기 ↗', '在 YouTube 打开 ↗'))) : null,
+      h('div.fb-n', {}, T(L('이 화면에서는 영상을 재생할 수 없습니다', '这里无法播放这段视频'))),
     ].filter(Boolean));
     el.classList.add('fallback');
   }
@@ -161,10 +162,11 @@ function makeSlot(name, host, opt = {}) {
       s.kind = 'file'; el.classList.add('file');
       return new Promise(res => {
         vid.muted = !!o.muted; vid.loop = !!o.loop && o.loopB == null; vid.volume = s.vol / 100;
-        const fail = () => { s.error = '视频文件无法加载'; showFallback(); res(false); Video.emit(); };
+        const fail = () => { s.error = '视频文件无法加载'; if (!o.quiet) showFallback(); res(false); Video.emit(); };
         vid.onerror = fail;
         vid.onended = () => { if (s.onEnd) { const f = s.onEnd; s.onEnd = null; f(); } };
-        MediaCache.url(o.file).then(u => {
+        /* big files can stream straight from the server (phones); otherwise they go through memory so they can be seeked */
+        (o.stream ? Promise.resolve(o.file) : MediaCache.url(o.file)).then(u => {
           if (s.want !== o) { res(false); return; }
           if (vid.getAttribute('src') !== u) vid.src = u;
           const go = () => { try { vid.currentTime = o.start || 0; } catch (e) { /* ignore */ } if (o.autoplay) vid.play().then(() => { s.playing = true; el.classList.add('playing'); res(true); Video.emit(); }).catch(() => { vid.muted = true; vid.play().then(() => { s.playing = true; res(true); }).catch(fail); }); else res(true); };
@@ -245,12 +247,21 @@ const Video = (() => {
   }
   function src(key) {
     const v = Settings.get().videos[key] || {};
+    if (LOCAL[key]) return { id: null, file: LOCAL[key], cfg: v, set: true };
     /* the trailer follows the screen language: the Chinese-subtitled cut when the stage is in Chinese */
     const zh = key === 'trailer' && $('#stage').dataset.lang === 'zh' && (v.srcZh || '').trim();
     const s = (zh || v.src || '').trim();
     return { id: ytId(s), file: isFileSrc(s) ? s : null, cfg: v, set: !!s };
   }
   const configured = (key) => src(key).set;
+  /* media/video/<key>.mp4 (or .webm) next to the page: looked for once at start, used instead of the online video */
+  const LOCAL = {};
+  if (/^https?:$/.test(location.protocol) && VIEW === 'stage') {
+    Object.keys(VIDEOS).forEach(key => {
+      const tryExt = (exts) => { if (!exts.length) return; const p = `media/video/${key}.${exts[0]}`; fetch(p, { method: 'HEAD' }).then(r => { if (r.ok) LOCAL[key] = p; else tryExt(exts.slice(1)); }).catch(() => {}); };
+      tryExt(['mp4', 'webm']);
+    });
+  }
 
   /* watch cue ends and A/B loops every frame */
   Loop.add(() => {
@@ -451,7 +462,7 @@ const Video = (() => {
     const b = BEATS[Director.beat];
     if (b && b.video && configured(b.video.key)) { startBeatVideo(b, ++beatToken); return; }
     const sw = MV.visible();
-    if (sw) { if (!MV.direct(sw.dataset.work)) MV.open(sw.dataset.work, sw); return; }
+    if (sw) { MV.open(sw.dataset.work, sw); return; }
     toast('这一页没有可播放的视频', 1400, { local: true });
   }
 

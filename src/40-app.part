@@ -155,7 +155,7 @@ const App = (() => {
   }
   function fullBanner() {
     if ($('#fullbar')) return;
-    const bar = h('div#fullbar', {}, h('span', { text: '这个预览窗口按平台规定不能嵌入 YouTube：点 MV 开关或按 V 会直接在 YouTube 打开对应的官方视频' }),
+    const bar = h('div#fullbar', {}, h('span', { text: '这个预览窗口按平台规定不能播放在线视频；把视频文件放进 media/mv/ 和 media/video/，在本机或 GitHub Pages 打开即可在页面里播放' }),
       h('button', { type: 'button', text: '×', 'aria-label': '关闭', on: { click: () => bar.remove() } }));
     $('#ui').append(bar);
     setTimeout(() => bar.remove(), 12000);
