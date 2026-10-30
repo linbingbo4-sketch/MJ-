@@ -174,7 +174,7 @@ const Panel = (() => {
           h('td', {}, h('div.row', {}, ...extras)),
           h('td', {}, h('div.row', {}, h('button.btn.sm', { type: 'button', text: '预览', on: { click: () => startLab(k) } }), h('button.btn.sm', { type: 'button', text: '预览中文版', on: { click: () => startLab(k, null, 'zh') } }))));
       }
-      return h('tr', {}, h('td', {}, h('b', { text: VIDEOS[k].name.zh }), h('div.muted', { text: { trailer: '第 1 场 ② · 整屏播放', sc: '第 6 场 ④⑤ · 提示点', bj: '第 5 场 ③ · 显像管电视（静音）', motown: '第 5 场 ⑤ · 可选' }[k] })),
+      return h('tr', {}, h('td', {}, h('b', { text: VIDEOS[k].name.zh }), h('div.muted', { text: { trailer: '第 1 场 ② · 整屏播放', sc: '第 6 场 ④⑤ · 提示点', bj: '第 5 场 ③ · 显像管电视（静音）', motown: '第 5 场 ⑤ · 可选', bucharest: '布加勒斯特 ② · 起点 = 他弹出的那一刻（播放时按 C 记录）' }[k] })),
         h('td', { style: { minWidth: '280px' } }, inp), h('td', {}, h('div.row', {}, ...extras)), h('td', {}, h('button.btn.sm', { type: 'button', text: '预览', on: { click: () => startLab(k) } })));
     };
     const cues = clone(s.videos.sc.cues);

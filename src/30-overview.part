@@ -27,7 +27,7 @@
 
 <script>
 /* ═══ OVERVIEW (G) ═══ */
-const ERA_SWATCH = { cold: '#ffd08a', cinema: '#9fc0ff', title: '#ffd9a0', gary: '#eaa92c', otw: '#dcc08a', thriller: '#e0233a', bad: '#6f93ff', dangerous: '#e0b55a', shadow: '#9aa6b2', seoul: '#8ec5ff', tii: '#f2c230', legacy: '#ffb54a', finale: '#fff1dc' };
+const ERA_SWATCH = { cold: '#ffd08a', cinema: '#9fc0ff', title: '#ffd9a0', gary: '#eaa92c', otw: '#dcc08a', thriller: '#e0233a', bad: '#6f93ff', dangerous: '#e0b55a', shadow: '#9aa6b2', bucharest: '#f0c060', tii: '#f2c230', legacy: '#ffb54a', finale: '#fff1dc' };
 const Overview = (() => {
   const el = $('#overview');
   let open = false, road = null;

@@ -12,7 +12,7 @@
 | `04-bad.mp3` | Bad（1987） | IV Bad | 前奏；MV 播放时自动让位 |
 | `05-black-or-white.mp3` | Black or White（1991） | V Dangerous | 吉他前奏；静止计时器启动时切断 |
 | `06-stranger-in-moscow.mp3` | Stranger in Moscow（1996） | VI 阴影 | 压到几乎听不见 |
-| `07-earth-song.mp3` | Earth Song（1995） | 间奏 首尔 | 钢琴前奏 |
+| `07-earth-song.mp3` | Earth Song（1995） | （现在没有场景用到） | 钢琴前奏 |
 | `08-human-nature.mp3` | Human Nature（1982） | VII This Is It | 「2009. 6. 25」出现时切断 |
 | `09-remember-the-time.mp3` | Remember the Time（1992） | VIII 遗产 | 随场灯渐亮升起 |
 | `10-man-in-the-mirror.mp3` | Man in the Mirror（1988） | 终幕 | 光转向观众时推到最高 |
@@ -94,3 +94,4 @@
 | `media/video/sc.mp4` | 第 6 场 ④⑤ Smooth Criminal 提示点 |
 | `media/video/bj.mp4` | 第 5 场 ③ 显像管电视（摩城 25 现场） |
 | `media/video/motown.mp4` | 第 5 场 ⑤ 摩城 25 片段 |
+| `media/video/bucharest.mp4` | 间奏 布加勒斯特 ② · ⑤（1992 年布加勒斯特演唱会；起点仍按 C 记录） |

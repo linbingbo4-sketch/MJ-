@@ -64,35 +64,35 @@
 .songs.l small { -webkit-text-stroke: 0; color: var(--dim); }
 @keyframes glint { from { background-position: 100% 0; } to { background-position: -50% 0; } }
 #stage.reduced .songs.l > div { animation: none; }
-/* seoul · redesign */
-.se-and { font: 500 56px/1 var(--f-ko-h); color: var(--dim); white-space: nowrap; }
-.se-and .zh { font-family: var(--f-zh-h); }
-.se-v { writing-mode: vertical-rl; font: 600 330px/1 var(--f-ko-h); letter-spacing: -.04em; color: #f6efe0; text-shadow: 0 0 60px rgba(142, 197, 255, .25); white-space: nowrap; }
-.se-v .zh { font-family: var(--f-zh-h); }
-.se-430 { font: 600 220px/.86 var(--f-num); color: #fff; letter-spacing: -.01em; }
-.tankbox { width: 640px; height: 280px; }
-.tankbox svg { width: 100%; height: 100%; overflow: visible; }
 .ticket .tk-stub.drag { touch-action: none; }
 
-/* ── Seoul interlude (night blue, ticket stubs) ── */
-[data-era="seoul"] { --ink: #efe6d0; --acc: #f3e4c4; --acc2: #ffd27a; --dim: rgba(239, 230, 208, .56); --faint: rgba(239, 230, 208, .22); --line: rgba(239, 230, 208, .15); }
-.seoulmap { width: 1050px; height: 864px; transition: transform 1.2s var(--e-stage), opacity 1.2s var(--e-stage); }
-.seoulmap svg { width: 100%; height: 100%; overflow: visible; }
-.seoulmap .dist { fill: none; stroke: rgba(239, 230, 208, .16); stroke-width: 1.2; }
-.seoulmap .river { fill: none; stroke: #8ec5ff; stroke-width: 9; stroke-linecap: round; filter: drop-shadow(0 0 10px rgba(142, 197, 255, .7)); stroke-dasharray: 1; stroke-dashoffset: 1; }
-.seoulmap.on .river { transition: stroke-dashoffset 2.4s var(--e-sine) .4s; stroke-dashoffset: 0; }
-.seoulmap .river2 { fill: none; stroke: rgba(142, 197, 255, .18); stroke-width: 28; stroke-linecap: round; }
-.seoulmap.dimmed { transform: translateX(-120px) scale(.86); opacity: .45; }
-.pin { position: absolute; width: 0; height: 0; }
-.pin .pin-dot { position: absolute; left: -11px; top: -11px; width: 22px; height: 22px; border-radius: 50%; background: var(--acc2); box-shadow: 0 0 0 6px rgba(255, 210, 122, .25), 0 0 30px var(--acc2); }
-.pin .pin-dot::after { content: ''; position: absolute; inset: -16px; border-radius: 50%; border: 2px solid var(--acc2); animation: ping 2s ease-out infinite; }
-@keyframes ping { from { transform: scale(.4); opacity: 1; } to { transform: scale(2.2); opacity: 0; } }
-.pin .pin-l { position: absolute; left: 30px; top: -22px; white-space: nowrap; font: 500 34px/1.25 var(--f-ko); text-shadow: 0 2px 12px rgba(0,0,0,.8); }
-.pin .pin-l .zh { font-family: var(--f-zh); }
-.pin .pin-l small { display: block; font: 500 24px/1.2 var(--f-ko); letter-spacing: .02em; color: var(--dim); margin-top: 8px; }
-.pin .pin-l small .zh { font-family: var(--f-zh); }
-.pin.blue .pin-dot { background: #8ec5ff; box-shadow: 0 0 0 6px rgba(142,197,255,.25), 0 0 30px #8ec5ff; }
-.pin.blue .pin-dot::after { border-color: #8ec5ff; }
+/* ── Bucharest 1992 (stadium night, gold) ── */
+[data-era="bucharest"] { --ink: #f6ead0; --acc: #f0c060; --acc2: #ffd98a; --dim: rgba(246, 234, 208, .58); --faint: rgba(246, 234, 208, .22); --line: rgba(246, 234, 208, .15); }
+.bk-lip { width: 1920px; height: 150px; background: linear-gradient(180deg, #2a1f0e 0, #0b0805 26px, #050403 100%); border-top: 3px solid rgba(240, 192, 96, .7); box-shadow: 0 -10px 40px rgba(240, 192, 96, .18); }
+.bk-hatch { width: 300px; height: 14px; background: linear-gradient(90deg, transparent, rgba(255, 217, 138, .95), transparent); filter: blur(2px); opacity: 0; transition: opacity .2s ease; }
+.bk-hatch.flash { opacity: 1; }
+.figbox.bk-pop > * { translate: 0 420px; transition: translate .34s cubic-bezier(.2, 1.5, .45, 1); }
+.figbox.bk-pop.up > * { translate: 0 0; }
+.bk-90 { font: 600 190px/1 var(--f-num); letter-spacing: .01em; color: #fff3d6; text-shadow: 0 0 40px rgba(240, 192, 96, .45); white-space: nowrap; }
+.bk-frame-cap { display: flex; gap: 22px; align-items: baseline; white-space: nowrap; }
+.ledger { width: 1320px; font: 400 28px/1.3 var(--f-ko); color: var(--ink); }
+.ledger .zh { font-family: var(--f-zh); }
+.ledger .lg-h { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 14px; border-bottom: 2px solid rgba(240, 192, 96, .6); margin-bottom: 6px; }
+.ledger .lg-h b { font: 600 40px/1 var(--f-ko-h); } .ledger .lg-h b .zh { font-family: var(--f-zh-h); }
+.ledger .lg-r { display: grid; grid-template-columns: 250px 130px 400px 1fr; gap: 24px; align-items: center; padding: 16px 4px; border-bottom: 1px solid var(--line); position: relative; }
+.ledger .lg-c { font: 600 30px/1.1 var(--f-num); letter-spacing: .08em; } .ledger .lg-c small { display: block; margin-top: 6px; font: 500 20px/1 var(--f-num); letter-spacing: .14em; color: var(--dim); }
+.ledger .lg-n { font: 500 26px/1 var(--f-num); color: var(--dim); }
+.ledger .lg-v { font: 600 34px/1.2 var(--f-ko-h); color: var(--acc2); } .ledger .lg-v .zh { font-family: var(--f-zh-h); }
+.ledger .lg-v.none { color: var(--ink); font-weight: 500; }
+.ledger .lg-s { font: 400 20px/1.35 var(--f-ko); color: var(--dim); }
+.ledger .lg-r.rumor .lg-c, .ledger .lg-r.rumor .lg-v { text-decoration: line-through; text-decoration-color: rgba(230, 70, 60, .85); text-decoration-thickness: 3px; color: rgba(246, 234, 208, .62); }
+.ledger .lg-r.total { border-bottom: 0; border-top: 2px solid rgba(240, 192, 96, .6); margin-top: 4px; }
+.ledger .lg-r.total .lg-v { color: #fff3d6; }
+.bk-stamp { position: absolute; left: 236px; top: 50%; translate: 0 -50%; rotate: -9deg; padding: 8px 18px; border: 4px solid #e2463c; border-radius: 6px; color: #e2463c; font: 700 30px/1 var(--f-ko-h); letter-spacing: .04em; white-space: nowrap; background: rgba(20, 6, 4, .55); }
+.bk-stamp .zh { font-family: var(--f-zh-h); }
+.rv.on .bk-stamp { animation: bkStamp .5s var(--e-drop) both; animation-delay: var(--sd, 0s); }
+@keyframes bkStamp { from { scale: 2.2; opacity: 0; } to { scale: 1; opacity: 1; } }
+#vs-pip.wall::before { content: 'LIVE IN BUCHAREST · 1992 · LOOP'; }
 .ticket { width: 700px; height: 290px; display: flex; filter: drop-shadow(0 30px 50px rgba(0,0,0,.55)); transition: transform 1s var(--e-stage), opacity 1s var(--e-stage), filter 1s ease; }
 .ticket .tk-main { flex: 1; background: #f1e6cc; color: #2a2116; border-radius: 10px 0 0 10px; padding: 26px 30px; position: relative; overflow: hidden;
   -webkit-mask: radial-gradient(circle at 100% 0, transparent 14px, #000 15px) top right / 100% 51% no-repeat, radial-gradient(circle at 100% 100%, transparent 14px, #000 15px) bottom right / 100% 51% no-repeat;
@@ -367,92 +367,105 @@ Scenes.define('shadow', {
   leave() { [this.man, this.rain].forEach(f => f.stop()); this.flashes.innerHTML = ''; },
 });
 
-/* ═══ 9 · SEOUL INTERLUDE ═══ */
-const SEOUL_GEO = /*@@SEOUL_GEO@@*/null;
-/* a tank, in silhouette (HIStory tour, Earth Song) */
-function tankSVG() {
-  const wheels = Array.from({ length: 7 }, (_, k) => `<circle cx="${92 + k * 62}" cy="206" r="22"/>`).join('');
-  return `<svg viewBox="0 0 600 260" class="tank"><g fill="#070b16" stroke="rgba(170, 200, 255, .38)" stroke-width="2.4" stroke-linejoin="round">
-    <path d="M40 180 L560 180 C 590 180 596 232 560 236 L60 236 C 22 232 14 186 40 180 Z"/>
-    <g fill="#0b1224">${wheels}</g>
-    <path d="M70 120 L520 120 L560 178 L36 178 Z"/>
-    <path d="M200 64 L380 64 C 420 64 440 92 446 120 L170 120 C 172 92 182 64 200 64 Z"/>
-    <path d="M206 80 L-120 72 L-120 90 L206 98 Z"/>
-    <rect x="300" y="44" width="40" height="22" rx="4"/>
-  </g></svg>`;
-}
-Scenes.define('seoul', {
+/* ═══ 8 · BUCHAREST 1992 — the stillness came first on tour; who fainted, and what is only rumour ═══ */
+Scenes.define('bucharest', {
   build(el) {
-    const back = layer(-.2), mid = layer(.08), stg = layer(.3);
+    const back = layer(-.22), mid = layer(.08), stg = layer(.3);
     el.append(back, mid, stg);
-    const g = SEOUL_GEO;
-    const svg = g ? `<svg viewBox="0 0 ${g.w} ${g.h}"><path class="dist" d="${g.districts}"/><path class="river2" d="${g.river}"/><path class="river" pathLength="1" d="${g.river}"/></svg>` : '';
-    this.map = A('div.seoulmap', 1180, 560, { cls: 'rv', html: svg });
-    const sc = 1050 / (g ? g.w : 1000);
-    const P = (p) => [p[0] * sc, p[1] * sc];
-    const [sx, sy] = g ? P(g.stadium) : [767, 579];
-    const [ax, ay] = g ? P(g.assembly) : [369, 528];
-    this.stad = h('div.pin', { style: { left: sx + 'px', top: sy + 'px' } }, h('div.pin-dot'), h('div.pin-l', {}, T(L('잠실 올림픽 주경기장', '蚕室奥林匹克主体育场')), h('small', { text: 'JAMSIL' })));
-    this.asm = h('div.pin.blue', { style: { left: ax + 'px', top: ay + 'px' } }, h('div.pin-dot'), h('div.pin-l', { style: { left: '-28px', translate: '-100% 0', textAlign: 'right' } }, T(L('국회 · 1998. 2. 25', '国会 · 1998年2月25日')), h('small', {}, T(L('김대중 대통령 취임식', '金大中总统就职典礼')))));
-    this.stad.classList.add('rv'); this.asm.classList.add('rv', 'drop');
-    this.map.append(this.stad, this.asm);
-    back.append(this.map);
-    mid.append(A('div.se-and', 150, 214, { anchor: 'ay', show: '0-0', cls: 'left', d: .2 }, T(L('그리고,', '还有，'))),
-      A('div.se-v', 150, 600, { anchor: 'ay', show: '0-0', cls: 'blur slow', d: .4 }, T(L('서울', '首尔'))),
-      A('div.lab.se-y', 400, 960, { anchor: 'ay', show: '0-0', d: 1.4 }, '1996 — 1999'));
-    const ticket = (o) => h('div.ticket', {},
-      h('div.tk-main', {}, h('div.tk-k', { text: o.k }), h('div.tk-e', { text: o.e }), h('div.tk-v', {}, T(o.v)), h('div.tk-d', { text: o.d }), h('div.tk-seal', { html: o.seal })),
+    /* 0 · the stadium, and a man who springs up through the stage and stops */
+    back.append(A('div.field', 960, 760, { show: '0-0', cls: 'slow', html: fieldSVG() }));
+    this.st = stageFig(stg, { costume: 'military', pose: 'statue', style: 'costume', x: 560, y: 940, h: 620, show: '0-0', cls: 'fast', glowPx: 10, rim: '#ffe2a0', glow: 'rgba(255, 210, 120, .5)' });
+    this.st.box.classList.add('bk-pop');
+    this.hatch = A('div.bk-hatch', 560, 942);
+    stg.append(A('div.bk-lip', 960, 1015, { show: '0' }), this.hatch);
+    const tk = h('div.ticket', {},
+      h('div.tk-main', {}, h('div.tk-k', { text: 'MICHAEL JACKSON' }), h('div.tk-e', { text: 'DANGEROUS WORLD TOUR · BUCUREȘTI' }),
+        h('div.tk-v', {}, T(L('국립경기장 · 루마니아 첫 공연', '国家体育场 · 罗马尼亚首演'))), h('div.tk-d', { text: '1992. 10. 1' }), h('div.tk-seal', { html: "BUC<br>'92" })),
       h('div.tk-stub', {}, h('span', { text: 'ADMIT ONE' })));
-    this.tk1 = ticket({ k: 'MICHAEL JACKSON', e: 'HISTORY WORLD TOUR · SEOUL', v: L('잠실 올림픽 주경기장 · 첫 내한 공연', '蚕室奥林匹克主体育场 · 首次访韩演出'), d: '1996. 10. 11 · 13', seal: "SEOUL<br>'96" });
-    this.tk2 = ticket({ k: 'MJ & FRIENDS', e: 'BENEFIT CONCERT · SEOUL', v: L('잠실 올림픽 주경기장 · 자선 공연', '蚕室奥林匹克主体育场 · 慈善演出'), d: '1999. 6. 25', seal: "SEOUL<br>'99" });
-    this.t1 = A('div', 1360, 300, { cls: 'rv right slow', style: 'rotate:-3deg' }, this.tk1);
-    this.t2 = A('div', 1300, 470, { cls: 'rv right slow', style: 'rotate:2deg' }, this.tk2);
-    mid.append(this.t1, this.t2);
-    /* 1 · 430 tons, and a tank on the stage */
-    back.append(A('div.tankbox', 1260, 860, { show: '1-1', cls: 'right slow', d: .3, html: tankSVG() }));
-    this.eman = stageFig(stg, { costume: 'person', style: 'costume', x: 700, y: 990, h: 560, show: '1-1', d: .5, glowPx: 7, rim: '#d6e4ff', glow: 'rgba(170, 200, 255, .4)', c: { jacket: '#e7e2d8', pants: '#14161c' },
-      p: { turn: .3, neck: -6, nSh: 100, nEl: 10, nHand: Figure.HI('open'), fSh: 76, fEl: 12, fHand: Figure.HI('open'), nHip: 14, nKnee: 10, fHip: -10, fKnee: 4 } });
-    mid.append(A('div.se-430', 150, 300, { anchor: 'ay', show: '1-1', d: .8 }, '430'),
-      stack(160, 470, { anchor: 'ay', align: 'left', gap: 12 },
-        R('b-m', '1-1', 1.1, T(L('톤 — 무대 장비', '吨——舞台设备'))),
-        R('b-m', '1-1', 1.6, T(L('〈Earth Song〉엔 실물 크기 탱크', '《Earth Song》里，真实大小的坦克')), 'up', { color: 'var(--dim)' }),
-        R('', '1-1', 2.2, mvSwitch('earth'), 'up', { marginTop: '10px' })),
-      A('div.h-s.center.nowrap', 1300, 860, { show: '3', d: 1.4, style: 'color:var(--acc2)' }, T(L('이 날짜를, 기억해 주세요', '请记住这个日期'))));
-    /* interaction: tear the stub off the 1996 ticket */
-    tiltify(this.tk1, 8);
-    const stub = $('.tk-stub', this.tk1);
-    let torn = false;
-    draggable(stub, {
-      move: (x, y, dx, dy) => { if (torn) return; const d = clamp(dx, 0, 220); stub.style.transform = `translate(${d}px, ${Math.max(0, dy) * .3}px) rotate(${d * .08}deg)`; },
-      up: () => {
-        const m = /translate\(([\d.]+)px/.exec(stub.style.transform || ''); const d = m ? +m[1] : 0;
-        if (d > 90) { torn = true; stub.style.transition = 'transform .9s cubic-bezier(.5,0,.75,0), opacity .9s ease'; stub.style.transform = 'translate(260px, 520px) rotate(38deg)'; stub.style.opacity = 0; }
-        else { stub.style.transition = 'transform .5s var(--e-drop)'; stub.style.transform = ''; setTimeout(() => { stub.style.transition = ''; }, 520); }
-      },
-    });
-    this.resetStub = () => { torn = false; stub.style.transition = 'none'; stub.style.transform = ''; stub.style.opacity = ''; void stub.offsetWidth; stub.style.transition = ''; };
-    mid.append(itip(1600, 470, L('꼬리표를 오른쪽으로 끌어 보세요', '把票根往右拖，撕下来'), '1-1'));
+    tiltify(tk, 8);
+    mid.append(
+      A('div.lab.nowrap', 146, 150, { anchor: 'ay', show: '0-0', cls: 'left' }, T(L('1992. 10. 1 · 부쿠레슈티 국립경기장', '1992年10月1日 · 布加勒斯特国家体育场'))),
+      A('div', 1380, 330, { show: '0-0', cls: 'right slow', d: .3, style: 'rotate:-3deg' }, tk),
+      this.k90 = A('div.bk-90', 1380, 640, { show: '0-0', cls: 'zoom', d: .9 }, '90,000'),
+      A('div.b-m.center.nowrap', 1380, 760, { show: '0-0', d: 1.2 }, T(L('관객 · 매진', '观众 · 售罄'))),
+      A('div.h-s.center.nowrap', 1380, 880, { show: '0-0', d: 1.6, style: 'color:var(--acc2)' }, T(L('튀어 올라, 그대로 멈추다', '弹出，然后定住'))));
+    clickable(this.st.hitbox(260), () => { if (this.i === 0) this.st.seq([[{ neck: -7, head: 0 }, 1800], [{ head: 14 }, 900, 400], [{ head: 0 }, 900]]); });
+    mid.append(itip(860, 300, L('클릭… 그래도 그는 움직이지 않는다', '点他……他依然一动不动'), '0-0'));
+    /* 1 · the official concert film plays in this frame */
+    const FR = { x: 360, y: 130, w: 1200, h: 675 };
+    Scenes.setRect('bkFrame', FR);
+    mid.append(A('div.frame', FR.x + FR.w / 2, FR.y + FR.h / 2, { show: '1-1', cls: 'zoom', style: `width:${FR.w}px;height:${FR.h}px` },
+        h('div.fr-b'), h('div.fr-c.tl'), h('div.fr-c.tr'), h('div.fr-c.bl'), h('div.fr-c.br'),
+        h('div.fr-in', {}, h('div.fr-k', {}, T(L('1992 · 공식 공연 영상', '1992 · 官方演出影像'))), h('div.fr-t', { text: 'Live in Bucharest' }), h('div.b-m', { style: { color: 'var(--dim)' } }, T(L('〈Jam〉 직전, 오프닝', '《Jam》之前的开场'))))),
+      A('div.bk-frame-cap', 960, FR.y + FR.h + 70, { show: '1-1', d: .8 }, h('span.lab', { text: 'LIVE IN BUCHAREST · THE DANGEROUS TOUR' }), h('span.lab', {}, T(L('마이클 잭슨 공식 채널', '迈克尔·杰克逊官方频道')))));
+    /* 2–3 · the ledger: what was reported, and what is only rumour */
+    const row = (cls, show, d, city, when, crowd, val, src, stamp) => {
+      const r = h('div.lg-r', { cls: cls + ' rv up', 'data-show': show, style: { '--d': d + 's' } },
+        h('div.lg-c', {}, typeof city === 'string' ? city : T(city), h('small', {}, typeof when === 'string' ? when : T(when))), h('div.lg-n', { text: crowd }), h('div.lg-v', { cls: val.none ? 'none' : '' }, T(val)), h('div.lg-s', {}, T(src)));
+      if (stamp) r.append(h('div.bk-stamp', { style: { '--sd': (d + .5) + 's' } }, T(stamp)));
+      return r;
+    };
+    const none = (o) => Object.assign(o, { none: true });
+    this.ledger = h('div.ledger', {},
+      h('div.lg-h', {}, h('b', {}, T(L('실신 기록', '晕倒记录'))), h('span.lab', {}, T(L('보도된 것만', '只列见诸报道的')))),
+      row('', '2-3', .2, 'BUCUREȘTI', '1992. 10', '90,000', none(L('공식 집계 없음', '没有官方统计')), L('HBO 중계: “울다 실신하는 관객이 끝없이” — Variety', 'HBO 转播：「哭泣、晕倒的观众镜头接连不断」——Variety')),
+      row('', '2-3', .9, 'ROMA', '1988. 5', '35,000', L('수십 명', '数十人'), L('Deseret News · UPI, 1988', 'Deseret News · UPI，1988')),
+      row('', '2-3', 1.6, 'BANGKOK', '1993. 8', '—', L('수백 명', '数百人'), L('UPI, 1993 — 더위와 습도 속에서', 'UPI，1993——在高温和潮湿中')),
+      row('rumor', '3-3', .2, 'BUCUREȘTI', '“1992”', '—', L('23명 사망', '23 人死亡'), L('Snopes 팩트체크', 'Snopes 事实核查'), L('사실 아님', '不属实')),
+      row('rumor', '3-3', 1, 'BUCUREȘTI', '“1992”', '—', L('부상 1,500 · 입원 40', '受伤 1500 · 住院 40'), L('SNS 게시물, 출처 없음', '社交平台帖子，来源不明'), L('확인 불가', '无法核实')),
+      row('total', '3-3', 1.9, L('합계', '合计'), L('모든 공연', '所有演出'), '', none(L('아무도 세지 못했다', '没有人数得清')), L('투어 관객만 수백만 명', '光是巡演观众就有数百万')));
+    mid.append(this.ledW = A('div', 1180, 540, { show: '2-3', cls: 'zoom' }, this.ledger));
+    /* the photograph of that night, beside the ledger and the crowd */
+    mid.append(this.ph = photoPrint('dw_1992', { x: 300, y: 560, w: 300, h: 380, rot: -3, show: '2-4', d: .4 }));
+    /* 4 · the stands: the same film, without sound, on a loop */
+    const WR = { x: 720, y: 205, w: 960, h: 540 };
+    Scenes.setRect('bkWall', WR);
+    mid.append(A('div.frame', WR.x + WR.w / 2, WR.y + WR.h / 2, { show: '4', cls: 'zoom', style: `width:${WR.w}px;height:${WR.h}px` },
+        h('div.fr-b'), h('div.fr-c.tl'), h('div.fr-c.tr'), h('div.fr-c.bl'), h('div.fr-c.br'),
+        h('div.fr-in', {}, h('div.fr-k', {}, T(L('그날의 관객석', '那天的观众席'))), h('div.fr-t', { text: 'Bucharest · 1992' }))),
+      A('div.lab.nowrap', WR.x + WR.w / 2, WR.y + WR.h + 52, { show: '4', d: .6 }, T(L('공식 공연 영상 · 소리 없이 반복', '官方演出影像 · 静音循环'))),
+      this.last = A('div.h-s.center.nowrap', WR.x + WR.w / 2, 872, { show: '4', d: 1.6, style: 'color:var(--acc2)' }, T(L('그동안 그는, 아무것도 하지 않았다', '这段时间里，他什么都没做'))));
+  },
+  pop(on, ctx) {
+    clearTimeout(this._pop);
+    const box = this.st.box;
+    if (!on) { box.classList.remove('up'); return; }
+    if (!ctx.fwd) { box.classList.add('up'); return; }
+    box.classList.remove('up'); void box.offsetWidth;
+    this._pop = setTimeout(() => {
+      box.classList.add('up'); this.hatch.classList.add('flash'); SFX.boom(.4);
+      setTimeout(() => this.hatch.classList.remove('flash'), 260);
+    }, ctx.say('튀어', .2));
   },
   beat(i, ctx) {
     this.i = i;
-    this.eman.stop();
-    if (i !== 1) this.resetStub();
-    this.map.classList.toggle('dimmed', i === 1 || i === 3);
-    vis(this.map, 'on');
-    this.map.classList.toggle('on', true);
-    if (i === 0 && ctx.fwd) { this.map.classList.remove('on'); void this.map.offsetWidth; this.map.classList.add('on'); }
-    vis(this.stad, 'on');
-    vis(this.asm, i === 2 ? 'on' : 'off');
-    vis(this.t1, i === 1 || i === 3 ? 'on' : 'off');
-    this.t1.style.top = (i === 3 ? 390 : 300) + 'px';
-    this.tk1.classList.toggle('back', i === 3);
-    vis(this.t2, i === 3 ? 'on' : 'off');
-    this.tk2.classList.toggle('glow', i === 3);
-    if (i === 0) ctx.light({ lights: [{ id: 'm', x: 1180, y: 560, rx: 640, ry: 470, soft: .6, i: .85 }, { id: 's', x: 1180 - 525 + 767, y: 560 - 432 + 579, rx: 150, ry: 130, soft: .3 }, { id: 't', x: 330, y: 560, rx: 330, ry: 460, soft: .5 }] });
-    if (i === 1) ctx.light({ lights: [{ id: 'm', x: 900, y: 560, rx: 560, ry: 420, soft: .7, i: .35 }, { id: 'k', x: 1360, y: 300, rx: 470, ry: 230, soft: .3 }, { id: 'n', x: 420, y: 420, rx: 420, ry: 240, soft: .5 }, { id: 'e', x: 980, y: 800, rx: 640, ry: 300, soft: .35, col: '#b8ccff' }] });
-    if (i === 2) ctx.light({ lights: [{ id: 'm', x: 1180, y: 560, rx: 640, ry: 470, soft: .6, i: .85 }, { id: 'p', x: 1180 - 525 + 369, y: 560 - 432 + 528, rx: 260, ry: 140, soft: .35 }] });
-    if (i === 3) ctx.light({ lights: [{ id: 'm', x: 900, y: 560, rx: 560, ry: 420, soft: .7, i: .35 }, { id: 'k', x: 1300, y: 470, rx: 480, ry: 240, soft: .28 }, { id: 'n', x: 1300, y: 860, rx: 420, ry: 90, soft: .5, cone: false }] });
+    this.st.stop();
+    const beams = (k) => [
+      { id: 'b1', type: 'beam', x: 140, y: -80, ang: 62, spread: 8, len: 1350, i: .7 * k }, { id: 'b2', type: 'beam', x: 640, y: -100, ang: 82, spread: 7, len: 1300, i: .55 * k },
+      { id: 'b3', type: 'beam', x: 1280, y: -100, ang: 98, spread: 7, len: 1300, i: .55 * k }, { id: 'b4', type: 'beam', x: 1780, y: -80, ang: 118, spread: 8, len: 1350, i: .7 * k }];
+    this.pop(i === 0, ctx);
+    if (i === 0) {
+      this.st.pose('statue');
+      ctx.fx({ gold: .6, crowd: 1 });
+      ctx.light({ ambient: .84, lights: [...beams(.85), { id: 'a', x: 560, y: 600, rx: 340, ry: 440, soft: .2, delay: ctx.fwd ? ctx.say('튀어', .2) / 1000 : 0 },
+        { id: 't', x: 1380, y: 560, rx: 520, ry: 420, soft: .5, i: .85 }, textLight('k', this.k90, { i: .6, delay: ctx.fwd ? .9 : 0 })] });
+    }
+    if (i === 1) {
+      ctx.fx({ gold: .3, crowd: .6 });
+      ctx.light({ warm: .45, lights: [{ id: 'f', type: 'rect', x: 960, y: 467, w: 1280, h: 755, r: 6, soft: 60, i: .95 }, { id: 'c', x: 960, y: 900, rx: 640, ry: 90, soft: .5, i: .8, cone: false }] });
+    }
+    if (i === 2 || i === 3) {
+      ctx.fx({ gold: .3, crowd: .4 });
+      ctx.light({ ambient: .8, lights: [{ id: 'l', type: 'rect', x: 1180, y: 540, w: 1340, h: i === 2 ? 520 : 760, r: 10, soft: 70, i: .9 }, ...photoLight('ph', this.ph, { delay: ctx.fwd && i === 2 ? .4 : 0 })] });
+    }
+    if (i === 4) {
+      ctx.fx({ gold: .5, crowd: 1 });
+      const cfg = Settings.get().videos.bucharest || {}, a = cfg.start != null ? +cfg.start + 6 : 0;
+      const pip = Video.slot('pip'); pip.el.classList.add('wall');
+      Video.playRange('pip', 'bucharest', { start: a, end: a + 50, muted: true, loop: true, rect: Scenes.rect('bkWall') });
+      ctx.light({ ambient: .82, lights: [{ id: 'w', type: 'rect', x: 1200, y: 475, w: 1040, h: 620, r: 6, soft: 60, i: .95 }, ...photoLight('ph', this.ph), textLight('x', this.last, { i: .7, delay: ctx.fwd ? 1.6 : 0 })] });
+    } else { Video.stop('pip'); Video.slot('pip').el.classList.remove('wall'); }
   },
-  leave() { this.eman.stop(); },
+  leave() { clearTimeout(this._pop); this.st.stop(); Video.slot('pip').el.classList.remove('wall'); },
 });
 </script>

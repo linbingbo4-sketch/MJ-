@@ -112,26 +112,16 @@ Scenes.define('tii', {
     mid.append(this.date,
       A('div.lab.center.nowrap', 960, 690, { show: '1-1', d: 1.4 }, T(L('쉰 살', '五十岁'))),
       A('div.b-m.center.nowrap', 960, 790, { show: '1-1', d: 2.2, style: 'color:var(--dim)' }, T(L('50회의 공연, 단 한 번도 열리지 못했다', '50 场演出，一场也未能举行'))));
-    /* 2 · ten years to the day */
-    const mini = h('div.ticket', { style: { scale: '.62' } },
-      h('div.tk-main', {}, h('div.tk-k', { text: 'MJ & FRIENDS' }), h('div.tk-e', { text: 'BENEFIT CONCERT · SEOUL' }), h('div.tk-v', {}, T(L('잠실 올림픽 주경기장', '蚕室奥林匹克主体育场'))), h('div.tk-d', { text: '1999. 6. 25' }), h('div.tk-seal', { html: "SEOUL<br>'99" })),
-      h('div.tk-stub', {}, h('span', { text: 'ADMIT ONE' })));
-    mini.classList.add('glow');
-    this.mini = A('div', 470, 520, { cls: 'rv left slow' }, mini);
-    this.red = A('div.redline', 960, 540, { cls: 'rv', html: `<svg viewBox="0 0 1920 1080"><path pathLength="1" d="M700 520 C 830 330 1060 330 1190 505"/></svg>` });
-    mid.append(this.mini, this.red,
-      this.tenYears = A('div.h-m.num.center.nowrap', 945, 300, { show: '2-2', d: 2.4, style: 'color:#ff5a5f;font-family:var(--f-num);font-size:84px;font-weight:600' }, T(L('10년 · 3,653일', '10 年 · 3653 天'))),
-      this.tenLater = A('div.b-m.center.nowrap', 945, 700, { show: '2-2', d: 2.9 }, T(L('정확히, 10년 뒤', '整整十年之后'))));
-    /* 3 · the last stage was a rehearsal: a sketch under the ghost light */
-    this.sk2 = stageFig(stg, { costume: 'tii', pose: 'person', style: 'line', line: 'rgba(241, 239, 233, .85)', lineBg: '#202023', x: 1330, y: 980, h: 700, show: '3', d: 1.4, glow: 'rgba(255, 236, 190, .22)', rim: null, glowPx: 8, shadow: 'pool', p: { neck: 4, turn: .3, nSh: 30, nEl: 70, nHand: Figure.HI('open'), fSh: -14, fEl: 30 } });
+    /* 2 · the last stage was a rehearsal: a sketch under the ghost light */
+    this.sk2 = stageFig(stg, { costume: 'tii', pose: 'person', style: 'line', line: 'rgba(241, 239, 233, .85)', lineBg: '#202023', x: 1330, y: 980, h: 700, show: '2', d: 1.4, glow: 'rgba(255, 236, 190, .22)', rim: null, glowPx: 8, shadow: 'pool', p: { neck: 4, turn: .3, nSh: 30, nEl: 70, nHand: Figure.HI('open'), fSh: -14, fEl: 30 } });
     mid.append(stack(150, 480, { anchor: 'ay', align: 'left', gap: 24 },
-        R('lab', '3', .9, T(L('2009. 10 · 영화 〈This Is It〉', '2009年10月 · 电影《This Is It》'))),
-        R('h-m', '3', 1.2, T(L('우리가 볼 수 있는 마지막 무대는,', '我们能看到的最后的舞台，'))),
-        R('h-l', '3', 1.8, T(L('리허설이었다', '是一场排练')), 'up', { color: 'var(--acc)' }),
-        R('', '3', 2.6, mvSwitch('thisisit', { label: 'TRAILER' }))),
-      A('div', 640, 830, { show: '3', d: 2.4, cls: 'drop', style: 'font-size:66px' }, h('span.tape', { text: 'THIS IS IT' })));
-    clickable(this.sk2.hitbox(280), () => { if (this.i === 3) this.sk2.seq([['reach', 520, 500], ['snap', 380, 200], [{ neck: 4, turn: .3, nSh: 30, nEl: 70, nHand: Figure.HI('open'), fSh: -14, fEl: 30, nHip: 2, nKnee: 4, fHip: -2, fKnee: 3, lean: 0 }, 700]]); });
-    mid.append(itip(1460, 230, L('클릭 · 리허설 한 동작', '点一下 · 排练一个动作'), '3'));
+        R('lab', '2', .9, T(L('2009. 10 · 영화 〈This Is It〉', '2009年10月 · 电影《This Is It》'))),
+        R('h-m', '2', 1.2, T(L('우리가 볼 수 있는 마지막 무대는,', '我们能看到的最后的舞台，'))),
+        R('h-l', '2', 1.8, T(L('리허설이었다', '是一场排练')), 'up', { color: 'var(--acc)' }),
+        R('', '2', 2.6, mvSwitch('thisisit', { label: 'TRAILER' }))),
+      A('div', 640, 830, { show: '2', d: 2.4, cls: 'drop', style: 'font-size:66px' }, h('span.tape', { text: 'THIS IS IT' })));
+    clickable(this.sk2.hitbox(280), () => { if (this.i === 2) this.sk2.seq([['reach', 520, 500], ['snap', 380, 200], [{ neck: 4, turn: .3, nSh: 30, nEl: 70, nHand: Figure.HI('open'), fSh: -14, fEl: 30, nHip: 2, nKnee: 4, fHip: -2, fKnee: 3, lean: 0 }, 700]]); });
+    mid.append(itip(1460, 230, L('클릭 · 리허설 한 동작', '点一下 · 排练一个动作'), '2'));
   },
   beat(i, ctx) {
     this.i = i;
@@ -155,15 +145,8 @@ Scenes.define('tii', {
       bulb.style.opacity = 0; vis(this.ghost, 'on');
       ctx.light({ ambient: .975, lights: [{ id: 'd', x: 960, y: 640, rx: 640, ry: 330, soft: .55, i: .85, cone: false }] }, { dur: ctx.fwd ? .25 : .4 });
     }
+    if (i >= 2) vis(this.date, 'gone'); else if (i < 1) vis(this.date, 'off');
     if (i === 2) {
-      vis(this.date, 'on'); Object.assign(this.date.style, { left: '1440px', top: '520px', fontSize: '130px' });
-      vis(this.mini, 'on'); this.red.classList.toggle('on', true);
-      if (ctx.fwd) { this.red.classList.remove('on'); void this.red.offsetWidth; this.red.classList.add('on'); }
-      ctx.light({ ambient: .95, lights: [{ id: 'd', x: 1440, y: 520, rx: 380, ry: 170, soft: .35 }, { id: 't', x: 470, y: 520, rx: 360, ry: 220, soft: .35, delay: .2 }, { id: 'r', x: 945, y: 470, rx: 560, ry: 300, soft: .6, i: .75, cone: false },
-        textLight('y', this.tenYears, { i: .7, delay: ctx.fwd ? 2.4 : 0 }), textLight('x', this.tenLater, { i: .8, delay: ctx.fwd ? 2.9 : 0 })] });
-    } else { this.red.classList.remove('on'); vis(this.mini, i > 2 ? 'gone' : 'off'); }
-    if (i >= 3) vis(this.date, 'gone'); else if (i < 1) vis(this.date, 'off');
-    if (i === 3) {
       vis(this.ghost, 'on');
       this.sk2.pose('person', { neck: 4, turn: .3, nSh: 30, nEl: 70, nHand: Figure.HI('open'), fSh: -14, fEl: 30 });
       const room = [ghostLight(1), { id: 'w', x: 640, y: 560, rx: 760, ry: 420, soft: .6, i: .8, cone: false }, { id: 'm', x: 1330, y: 620, rx: 300, ry: 430, soft: .4, i: .7 }];

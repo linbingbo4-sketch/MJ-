@@ -47,7 +47,7 @@
 .road .rd-act small { display: block; margin-top: 8px; font: 500 18px/1 var(--f-num); letter-spacing: .3em; color: var(--dim); }
 .road .rd-node { position: absolute; top: 118px; translate: -50% -50%; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center;
   font: 500 20px/1 var(--f-en); color: var(--ink); background: #0b0a09; border: 1.5px solid var(--faint); transition: all .6s var(--e-stage); }
-.road .rd-node.seoul { width: 26px; height: 26px; border-radius: 3px; rotate: 45deg; font-size: 0; }
+.road .rd-node.inter { width: 26px; height: 26px; border-radius: 3px; rotate: 45deg; font-size: 0; }
 .road .rd-node.lit { border-color: var(--acc); color: #120d08; background: var(--acc); box-shadow: 0 0 24px var(--acc); }
 .road .rd-node.past { border-color: var(--acc); color: var(--acc); }
 .road .rd-y { position: absolute; top: 160px; translate: -50% 0; font: 500 19px/1 var(--f-num); letter-spacing: .14em; color: var(--dim); white-space: nowrap; }
@@ -186,9 +186,9 @@ const ROAD_NODES = [
   { sc: 'otw', n: 'II', x: 330, y: L('1979') },
   { sc: 'thriller', n: 'III', x: 455, y: L('1982') },
   { sc: 'bad', n: 'IV', x: 580, y: L('1987') },
-  { sc: 'dangerous', n: 'V', x: 830, y: L('1991') },
-  { sc: 'shadow', n: 'VI', x: 960, y: L('1993') },
-  { sc: 'seoul', n: '', x: 1085, y: L('서울', '首尔'), seoul: true },
+  { sc: 'dangerous', n: 'V', x: 800, y: L('1991') },
+  { sc: 'bucharest', n: '', x: 900, y: L('1992'), inter: true },
+  { sc: 'shadow', n: 'VI', x: 1010, y: L('1993') },
   { sc: 'tii', n: 'VII', x: 1360, y: L('2009') },
   { sc: 'legacy', n: 'VIII', x: 1560, y: L('오늘', '今天') },
 ];
@@ -207,7 +207,7 @@ function roadmap({ clickable = false } = {}) {
     el.append(h('div.rd-act', { style: { left: x + 'px' } }, T(L(`${a.label.ko} · ${a.name.ko}`, `${a.label.zh} · ${a.name.zh}`)), h('small', {}, T(a.years))));
   });
   ROAD_NODES.forEach(nd => {
-    const node = h('div.rd-node', { cls: nd.seoul ? 'seoul' : '', style: { left: nd.x + 'px' }, 'data-sc': nd.sc, text: nd.n });
+    const node = h('div.rd-node', { cls: nd.inter ? 'inter' : '', style: { left: nd.x + 'px' }, 'data-sc': nd.sc, text: nd.n });
     if (clickable) node.addEventListener('click', (e) => { e.stopPropagation(); Director.jumpScene(nd.sc); Overview.close(); });
     el.append(node, h('div.rd-y', { style: { left: nd.x + 'px' } }, T(nd.y)));
   });

@@ -512,7 +512,7 @@ body.fs #hint .hint-demo, body.started #hint .hint-demo { pointer-events: none; 
 .road .rd-act small { display: block; margin-top: 8px; font: 500 18px/1 var(--f-num); letter-spacing: .3em; color: var(--dim); }
 .road .rd-node { position: absolute; top: 118px; translate: -50% -50%; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center;
   font: 500 20px/1 var(--f-en); color: var(--ink); background: #0b0a09; border: 1.5px solid var(--faint); transition: all .6s var(--e-stage); }
-.road .rd-node.seoul { width: 26px; height: 26px; border-radius: 3px; rotate: 45deg; font-size: 0; }
+.road .rd-node.inter { width: 26px; height: 26px; border-radius: 3px; rotate: 45deg; font-size: 0; }
 .road .rd-node.lit { border-color: var(--acc); color: #120d08; background: var(--acc); box-shadow: 0 0 24px var(--acc); }
 .road .rd-node.past { border-color: var(--acc); color: var(--acc); }
 .road .rd-y { position: absolute; top: 160px; translate: -50% 0; font: 500 19px/1 var(--f-num); letter-spacing: .14em; color: var(--dim); white-space: nowrap; }
@@ -1023,35 +1023,35 @@ body.fs #hint .hint-demo, body.started #hint .hint-demo { pointer-events: none; 
 .songs.l small { -webkit-text-stroke: 0; color: var(--dim); }
 @keyframes glint { from { background-position: 100% 0; } to { background-position: -50% 0; } }
 #stage.reduced .songs.l > div { animation: none; }
-/* seoul · redesign */
-.se-and { font: 500 56px/1 var(--f-ko-h); color: var(--dim); white-space: nowrap; }
-.se-and .zh { font-family: var(--f-zh-h); }
-.se-v { writing-mode: vertical-rl; font: 600 330px/1 var(--f-ko-h); letter-spacing: -.04em; color: #f6efe0; text-shadow: 0 0 60px rgba(142, 197, 255, .25); white-space: nowrap; }
-.se-v .zh { font-family: var(--f-zh-h); }
-.se-430 { font: 600 220px/.86 var(--f-num); color: #fff; letter-spacing: -.01em; }
-.tankbox { width: 640px; height: 280px; }
-.tankbox svg { width: 100%; height: 100%; overflow: visible; }
 .ticket .tk-stub.drag { touch-action: none; }
 
-/* ── Seoul interlude (night blue, ticket stubs) ── */
-[data-era="seoul"] { --ink: #efe6d0; --acc: #f3e4c4; --acc2: #ffd27a; --dim: rgba(239, 230, 208, .56); --faint: rgba(239, 230, 208, .22); --line: rgba(239, 230, 208, .15); }
-.seoulmap { width: 1050px; height: 864px; transition: transform 1.2s var(--e-stage), opacity 1.2s var(--e-stage); }
-.seoulmap svg { width: 100%; height: 100%; overflow: visible; }
-.seoulmap .dist { fill: none; stroke: rgba(239, 230, 208, .16); stroke-width: 1.2; }
-.seoulmap .river { fill: none; stroke: #8ec5ff; stroke-width: 9; stroke-linecap: round; filter: drop-shadow(0 0 10px rgba(142, 197, 255, .7)); stroke-dasharray: 1; stroke-dashoffset: 1; }
-.seoulmap.on .river { transition: stroke-dashoffset 2.4s var(--e-sine) .4s; stroke-dashoffset: 0; }
-.seoulmap .river2 { fill: none; stroke: rgba(142, 197, 255, .18); stroke-width: 28; stroke-linecap: round; }
-.seoulmap.dimmed { transform: translateX(-120px) scale(.86); opacity: .45; }
-.pin { position: absolute; width: 0; height: 0; }
-.pin .pin-dot { position: absolute; left: -11px; top: -11px; width: 22px; height: 22px; border-radius: 50%; background: var(--acc2); box-shadow: 0 0 0 6px rgba(255, 210, 122, .25), 0 0 30px var(--acc2); }
-.pin .pin-dot::after { content: ''; position: absolute; inset: -16px; border-radius: 50%; border: 2px solid var(--acc2); animation: ping 2s ease-out infinite; }
-@keyframes ping { from { transform: scale(.4); opacity: 1; } to { transform: scale(2.2); opacity: 0; } }
-.pin .pin-l { position: absolute; left: 30px; top: -22px; white-space: nowrap; font: 500 34px/1.25 var(--f-ko); text-shadow: 0 2px 12px rgba(0,0,0,.8); }
-.pin .pin-l .zh { font-family: var(--f-zh); }
-.pin .pin-l small { display: block; font: 500 24px/1.2 var(--f-ko); letter-spacing: .02em; color: var(--dim); margin-top: 8px; }
-.pin .pin-l small .zh { font-family: var(--f-zh); }
-.pin.blue .pin-dot { background: #8ec5ff; box-shadow: 0 0 0 6px rgba(142,197,255,.25), 0 0 30px #8ec5ff; }
-.pin.blue .pin-dot::after { border-color: #8ec5ff; }
+/* ── Bucharest 1992 (stadium night, gold) ── */
+[data-era="bucharest"] { --ink: #f6ead0; --acc: #f0c060; --acc2: #ffd98a; --dim: rgba(246, 234, 208, .58); --faint: rgba(246, 234, 208, .22); --line: rgba(246, 234, 208, .15); }
+.bk-lip { width: 1920px; height: 150px; background: linear-gradient(180deg, #2a1f0e 0, #0b0805 26px, #050403 100%); border-top: 3px solid rgba(240, 192, 96, .7); box-shadow: 0 -10px 40px rgba(240, 192, 96, .18); }
+.bk-hatch { width: 300px; height: 14px; background: linear-gradient(90deg, transparent, rgba(255, 217, 138, .95), transparent); filter: blur(2px); opacity: 0; transition: opacity .2s ease; }
+.bk-hatch.flash { opacity: 1; }
+.figbox.bk-pop > * { translate: 0 420px; transition: translate .34s cubic-bezier(.2, 1.5, .45, 1); }
+.figbox.bk-pop.up > * { translate: 0 0; }
+.bk-90 { font: 600 190px/1 var(--f-num); letter-spacing: .01em; color: #fff3d6; text-shadow: 0 0 40px rgba(240, 192, 96, .45); white-space: nowrap; }
+.bk-frame-cap { display: flex; gap: 22px; align-items: baseline; white-space: nowrap; }
+.ledger { width: 1320px; font: 400 28px/1.3 var(--f-ko); color: var(--ink); }
+.ledger .zh { font-family: var(--f-zh); }
+.ledger .lg-h { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 14px; border-bottom: 2px solid rgba(240, 192, 96, .6); margin-bottom: 6px; }
+.ledger .lg-h b { font: 600 40px/1 var(--f-ko-h); } .ledger .lg-h b .zh { font-family: var(--f-zh-h); }
+.ledger .lg-r { display: grid; grid-template-columns: 250px 130px 400px 1fr; gap: 24px; align-items: center; padding: 16px 4px; border-bottom: 1px solid var(--line); position: relative; }
+.ledger .lg-c { font: 600 30px/1.1 var(--f-num); letter-spacing: .08em; } .ledger .lg-c small { display: block; margin-top: 6px; font: 500 20px/1 var(--f-num); letter-spacing: .14em; color: var(--dim); }
+.ledger .lg-n { font: 500 26px/1 var(--f-num); color: var(--dim); }
+.ledger .lg-v { font: 600 34px/1.2 var(--f-ko-h); color: var(--acc2); } .ledger .lg-v .zh { font-family: var(--f-zh-h); }
+.ledger .lg-v.none { color: var(--ink); font-weight: 500; }
+.ledger .lg-s { font: 400 20px/1.35 var(--f-ko); color: var(--dim); }
+.ledger .lg-r.rumor .lg-c, .ledger .lg-r.rumor .lg-v { text-decoration: line-through; text-decoration-color: rgba(230, 70, 60, .85); text-decoration-thickness: 3px; color: rgba(246, 234, 208, .62); }
+.ledger .lg-r.total { border-bottom: 0; border-top: 2px solid rgba(240, 192, 96, .6); margin-top: 4px; }
+.ledger .lg-r.total .lg-v { color: #fff3d6; }
+.bk-stamp { position: absolute; left: 236px; top: 50%; translate: 0 -50%; rotate: -9deg; padding: 8px 18px; border: 4px solid #e2463c; border-radius: 6px; color: #e2463c; font: 700 30px/1 var(--f-ko-h); letter-spacing: .04em; white-space: nowrap; background: rgba(20, 6, 4, .55); }
+.bk-stamp .zh { font-family: var(--f-zh-h); }
+.rv.on .bk-stamp { animation: bkStamp .5s var(--e-drop) both; animation-delay: var(--sd, 0s); }
+@keyframes bkStamp { from { scale: 2.2; opacity: 0; } to { scale: 1; opacity: 1; } }
+#vs-pip.wall::before { content: 'LIVE IN BUCHAREST · 1992 · LOOP'; }
 .ticket { width: 700px; height: 290px; display: flex; filter: drop-shadow(0 30px 50px rgba(0,0,0,.55)); transition: transform 1s var(--e-stage), opacity 1s var(--e-stage), filter 1s ease; }
 .ticket .tk-main { flex: 1; background: #f1e6cc; color: #2a2116; border-radius: 10px 0 0 10px; padding: 26px 30px; position: relative; overflow: hidden;
   -webkit-mask: radial-gradient(circle at 100% 0, transparent 14px, #000 15px) top right / 100% 51% no-repeat, radial-gradient(circle at 100% 100%, transparent 14px, #000 15px) bottom right / 100% 51% no-repeat;
@@ -1575,6 +1575,7 @@ const VIDEOS = {
   sc:      { name: L('〈Smooth Criminal〉 공식 영상', '《Smooth Criminal》官方视频'), title: 'Smooth Criminal', year: 1988 },
   bj:      { name: L('모타운 25 · 〈Billie Jean〉 — 첫 문워크', '摩城 25 ·《Billie Jean》——第一次太空步'), title: 'Billie Jean — Motown 25', year: 1983 },
   motown:  { name: L('모타운 25 · 〈Billie Jean〉', '摩城 25 ·《Billie Jean》'), title: 'Motown 25 — Billie Jean', year: 1983 },
+  bucharest: { name: L('부쿠레슈티 1992 · 오프닝', '布加勒斯特 1992 · 开场'), title: 'Live in Bucharest — the opening', year: 1992 },
 };
 
 const DEFAULTS = {
@@ -1603,6 +1604,9 @@ const DEFAULTS = {
     /* the CRT and the optional broadcast beat both show the night of the first moonwalk, not the music video */
     bj: { src: 'https://www.youtube.com/watch?v=iQrjmTrVx4Q', start: 0 },
     motown: { src: 'https://www.youtube.com/watch?v=iQrjmTrVx4Q', start: 0, end: 15 },
+    /* the full concert on Michael Jackson's official channel. start: the moment he springs up through the stage
+       (null until marked: press C while it plays); end: null = start + 24 s */
+    bucharest: { src: 'https://www.youtube.com/watch?v=Hxgo-Qu-ZZE', start: null, end: null },
   },
 };
 
@@ -1681,6 +1685,15 @@ const SCENES = [
       { cont: true, ko: '2분 가까이. 아무것도 하지 않고, 함성만으로 무대를 채웠습니다.', zh: '将近两分钟。什么都不做，只用欢呼声填满了整个体育场。', vis: '（停顿 3~4 秒后）秒表快进到将近两分钟', mus: 'off', year: 1993 },
       { ko: '미국에서만 1억 3,340만 명이 봤습니다. 전반전보다 하프타임 시청률이 오히려 높았던 건 슈퍼볼 역사상 처음이었고, 이 무대 이후 하프타임 쇼는 최고의 스타만 설 수 있는 무대가 됩니다.', zh: '仅美国就有1.334亿人观看。中场秀收视率反超上半场，这在超级碗史上是第一次；从此，中场秀成为只有顶级巨星才能登上的舞台。', vis: '大号「133,400,000」', mus: 'off', year: 1993 },
     ] },
+  { key: 'bucharest', era: 'bucharest', act: 2, budget: 76, year: 1992, hud: true, enter: 'dissolve', chapter: '간주',
+    title: L('부쿠레슈티 1992', '布加勒斯特 1992'), short: L('V 부쿠레슈티', 'V 布加勒斯特'), track: 'bow',
+    beats: [
+      { ko: '그런데 그 ‘정지’는 처음이 아니었습니다. 넉 달 전, 1992년 10월 1일 루마니아 부쿠레슈티. 9만 명 앞에서, 그는 무대 밑에서 튀어 올라 그대로 멈춰 섰습니다.', zh: '其实，那次「静止」并不是第一次。四个月前，1992年10月1日，罗马尼亚布加勒斯特。在九万人面前，他从舞台下弹射而出，然后就那样定住了。', vis: '票根「BUCUREȘTI · 1992. 10. 1」+ 「90,000」', mus: 'low', year: 1992 },
+      { silent: true, ko: '（영상 · 말하지 않음）', zh: '（播放视频，不说话）', vis: '官方演唱会影像 Live in Bucharest：从舞台下弹出 → 一动不动，观众哭喊、晕倒（约 24 秒，到点自动停）', media: 24, video: { key: 'bucharest', slot: 'main' }, mus: 'video', year: 1992, note: '第一次排练时：视频播放中拖到他弹出的那一刻，按 C 记下起点' },
+      { ko: '그날 몇 명이 쓰러졌는지, 공식 집계는 없습니다. 보도된 기록은 이렇습니다. 1988년 로마에서는 수십 명, 1993년 방콕에서는 수백 명이 쓰러졌습니다.', zh: '那天到底有多少人晕倒，没有官方统计。见诸报道的记录是这样的：1988年罗马，几十人；1993年曼谷，数百人晕倒。', vis: '晕倒记录表：布加勒斯特（无官方统计）· 罗马 1988（数十人）· 曼谷 1993（数百人），每行附出处', mus: 'low', year: 1993 },
+      { ko: '인터넷에 도는 ‘23명 사망’은 사실이 아닙니다. 그의 모든 공연을 합친 실신자 수는, 누구도 세지 못했습니다.', zh: '网上流传的「23人死亡」并不属实。把他所有演唱会加起来到底晕倒了多少人，没有人数得清。', vis: '「23명 사망」盖章「사실 아님」；合计一栏「집계 없음」', mus: 'low' },
+      { ko: '실려 나가는 사람들, 울부짖는 관객들. 그동안 무대 위의 그는, 아무것도 하지 않았습니다.', zh: '被抬出去的人，哭喊的观众。而这段时间里，台上的他，什么都没有做。', vis: '观众席影像墙（官方影像，静音循环）+ 布加勒斯特现场照片', mus: 'low', year: 1992 },
+    ] },
   { key: 'shadow', era: 'shadow', act: 2, budget: 85, year: 1993, hud: true, enter: 'dissolve', chapter: 'VI',
     title: L('그림자', '阴影'), short: L('VI 그림자', 'VI 阴影'), track: 'moscow',
     beats: [
@@ -1690,20 +1703,11 @@ const SCENES = [
       { cont: true, ko: '그가 세상을 떠난 뒤인 2019년, 한 다큐멘터리로 논쟁은 다시 불붙었고, 유족 측은 이를 강하게 반박하고 있습니다. 저는 오늘 판단 대신, 확인된 사실까지만 말씀드리겠습니다.', zh: '他去世后的2019年，一部纪录片让争议再度升温，家属方面对此强烈反驳。今天我不下判断，只讲到已确认的事实为止。', vis: '续：第四张记录卡 2019', mus: 'low', year: 2019 },
       { ko: '이 시기에 그는 〈Earth Song〉과 〈Stranger in Moscow〉 같은 노래를 남깁니다. 가장 강한 빛 속에 서 있던 사람이, 가장 외로운 노래를 부르고 있었던 거죠.', zh: '这一时期，他留下了《Earth Song》《Stranger in Moscow》这样的歌。站在最强光芒里的人，却唱着最孤独的歌。', vis: '「그 시기의 노래」', mus: 'low', year: 1996 },
     ] },
-  { key: 'seoul', era: 'seoul', act: 2, budget: 45, year: 1996, hud: true, enter: 'dissolve', chapter: '간주',
-    title: L('서울', '首尔'), short: L('간주 서울', '间奏 首尔'), track: 'earth',
-    beats: [
-      { ko: '그리고 그는, 이곳 한국에도 왔습니다.', zh: '而他，也来过这里——韩国。', vis: '汉江线条地图，蚕室亮起「그리고, 서울」', mus: 'card' },
-      { ko: '1996년 10월, 잠실 올림픽 주경기장. 그의 첫 내한 공연이었습니다. 무대 장비만 430톤, 〈Earth Song〉에서는 실물 크기의 탱크가 무대에 올라왔습니다.', zh: '1996年10月，蚕室奥林匹克主体育场，他的首次访韩演出。光舞台设备就有430吨，《Earth Song》时，一辆真实大小的坦克开上了舞台。', vis: '票根 1996. 10. 11 · 13' },
-      { cut: true, ko: '1998년에는 김대중 대통령의 취임식에도 참석했습니다.', zh: '1998年，他还出席了金大中总统的就职典礼。', vis: '1998：汝矣岛国会标记', year: 1998 },
-      { ko: '그리고 1999년 6월 25일, 그는 다시 잠실에서 자선 공연 무대에 섭니다. 이 날짜를, 잠시만 기억해 주세요.', zh: '1999年6月25日，他再次站上蚕室的慈善演唱会舞台。这个日期，请大家先记住。', vis: '票根 1999. 6. 25 发光', year: 1999 },
-    ] },
-  { key: 'tii', era: 'tii', act: 3, budget: 60, year: 2009, hud: true, enter: 'blackout', chapter: 'VII',
+  { key: 'tii', era: 'tii', act: 3, budget: 50, year: 2009, hud: true, enter: 'blackout', chapter: 'VII',
     title: L('디스 이즈 잇', '《This Is It》'), short: L('VII This Is It', 'VII This Is It'), track: 'human',
     beats: [
       { ko: '2009년 3월, 그는 런던에서 50회 공연을 발표합니다. 스스로 ‘마지막 커튼콜’이라고 부른 무대였습니다.', zh: '2009年3月，他宣布在伦敦举行50场演出，他自己称之为「最后的谢幕」。', vis: '「3막 · 빛 너머」→ 章节卡 VII 2009，50 场方格全亮', mus: 'card', media: 2 },
       { ko: '그리고 리허설이 한창이던 6월 25일, 그는 쉰 살의 나이로 세상을 떠납니다. 50번의 공연은 단 한 번도 열리지 못했습니다.', zh: '就在排练最紧张的6月25日，他以五十岁的年纪离开了人世。那50场演出，一场也没能举行。', vis: '音乐 0.6 秒切断，50 个方格熄灭，「2009. 6. 25」', mus: 'cut6', media: 4, note: '「2009. 6. 25」出现后留 4 秒全静' },
-      { ko: '6월 25일. 기억하시나요? 서울 잠실 공연이 1999년 6월 25일이었습니다. 정확히 10년 뒤였습니다.', zh: '6月25日。还记得吗？首尔蚕室的那场演出，是1999年6月25日——整整十年之后。', vis: '十年红线：1999 票根飞来，「10년 · 3,653일」', mus: 'off' },
       { ko: '그해 10월, 리허설 영상은 영화 〈This Is It〉으로 공개됩니다. 우리가 볼 수 있는 그의 마지막 무대는, 결국 ‘연습’이었습니다.', zh: '同年10月，排练影像以电影《This Is It》的形式公开。我们能看到的他最后的舞台，终究是一场「排练」。', vis: '工作灯下：「This Is It · 2009. 10」', mus: 'off' },
     ] },
   { key: 'legacy', era: 'legacy', act: 3, budget: 60, year: 2026, hud: true, enter: 'houselights', chapter: 'VIII',
@@ -2283,7 +2287,8 @@ const ERAS = {
   dangerous: { bg: 'radial-gradient(ellipse 80% 70% at 50% 35%, #2a1f0e 0%, #0d0a06 58%, #050403 100%)', grain: .09, light: { ambient: .74, warm: 1, haze: .3, dust: .5 }, fx: { gold: 1 },
                grade: { background: 'linear-gradient(180deg, rgba(255, 200, 100, .1), rgba(90, 10, 20, .22))', mixBlendMode: 'soft-light', opacity: 1 } },
   shadow:    { bg: 'linear-gradient(180deg, #1a1e24 0%, #121519 55%, #0b0d10 100%)', grain: .12, over: { cold: 1 }, desat: true, light: { ambient: .38, warm: 0, haze: 0, dust: 0 } },
-  seoul:     { bg: 'radial-gradient(ellipse 80% 70% at 62% 30%, #15295a 0%, #0a1634 52%, #040a1a 100%)', grain: .07, light: { ambient: .55, warm: .55, haze: .12, dust: .15 }, fx: { bokeh: 1 } },
+  bucharest: { bg: 'radial-gradient(ellipse 85% 70% at 40% 30%, #2b2010 0%, #0c0906 58%, #040302 100%)', grain: .09, light: { ambient: .76, warm: 1, haze: .34, dust: .5 }, fx: { gold: .6, crowd: 1 },
+               grade: { background: 'linear-gradient(180deg, rgba(255, 200, 100, .08), rgba(90, 10, 20, .2))', mixBlendMode: 'soft-light', opacity: 1 } },
   tii:       { bg: 'radial-gradient(ellipse 70% 70% at 72% 18%, #3d3d42 0%, #232326 52%, #141416 100%)', grain: .1, light: { ambient: .82, warm: .15, haze: .55, dust: 1 } },
   legacy:    { bg: 'radial-gradient(ellipse 85% 75% at 50% 62%, #7a4b1a 0%, #40280f 48%, #1c1007 100%)', grain: .07, over: { warm: 1 }, light: { ambient: .3, warm: 1.3, haze: .2, dust: .3 }, fx: { rise: 1 } },
   finale:    { bg: 'radial-gradient(ellipse 60% 45% at 50% 82%, #120d09 0%, #060504 60%, #030302 100%)', grain: .07, light: { ambient: .965, warm: 1, haze: .85, dust: 1 } },
@@ -3440,6 +3445,14 @@ const Video = (() => {
         const rect = Scenes.rect && Scenes.rect('tvScreen');
         Music.duck(true);
         playRange('tv', 'motown', { start: +cfg.start || 0, end: cfg.end != null && cfg.end !== '' ? +cfg.end : null, rect, onEnd: () => { if (token !== beatToken) return; stop('tv'); Music.duck(false); } });
+      } else if (v.key === 'bucharest') {
+        /* from the moment he springs up, for 24 s (or to the out point); the last frame stays in the frame */
+        const rect = Scenes.rect && Scenes.rect('bkFrame');
+        const st = cfg.start != null && cfg.start !== '' ? +cfg.start : null;
+        const end = cfg.end != null && cfg.end !== '' ? +cfg.end : (st != null ? st + 24 : null);
+        Music.duck(true);
+        playRange('main', 'bucharest', { start: st ?? 0, end, rect, framed: true, onEnd: () => { if (token !== beatToken) return; slot('main').pause(); Music.duck(false); emit(); } });
+        if (st == null) toast('布加勒斯特的起点还没记录：拖到他从舞台下弹出的那一刻，按 <b>C</b> 记下（只需一次）', 6000, { local: true });
       }
     };
     if (v.key === 'trailer') { playTrailer(token, { skipCountdown }); return; }
@@ -3557,6 +3570,12 @@ const Video = (() => {
   const CAP = ['1 起点', '1 终点', '2 起点', '2 终点', '3 起点', '3 终点', '4 起点', '4 终点'];
   function captureCue() {
     const s = activeSlot();
+    if (s && s.want && s.want.key === 'bucharest') {
+      const t = Math.round(s.time() * 10) / 10;
+      Settings.set('videos.bucharest.start', t);
+      toast(`已记录 布加勒斯特起点 = <b>${fmt(t, true)}</b>（从这里播放 24 秒）`);
+      emit(); return;
+    }
     if (!s || !s.want || s.want.key !== 'sc') { toast('按 C 记录提示点：需要 Smooth Criminal 正在播放（K 播放，Shift+←/→ 快退快进）'); return; }
     const t = Math.round(s.time() * 10) / 10;
     const cues = clone(Settings.get().videos.sc.cues);
@@ -4793,9 +4812,9 @@ const ROAD_NODES = [
   { sc: 'otw', n: 'II', x: 330, y: L('1979') },
   { sc: 'thriller', n: 'III', x: 455, y: L('1982') },
   { sc: 'bad', n: 'IV', x: 580, y: L('1987') },
-  { sc: 'dangerous', n: 'V', x: 830, y: L('1991') },
-  { sc: 'shadow', n: 'VI', x: 960, y: L('1993') },
-  { sc: 'seoul', n: '', x: 1085, y: L('서울', '首尔'), seoul: true },
+  { sc: 'dangerous', n: 'V', x: 800, y: L('1991') },
+  { sc: 'bucharest', n: '', x: 900, y: L('1992'), inter: true },
+  { sc: 'shadow', n: 'VI', x: 1010, y: L('1993') },
   { sc: 'tii', n: 'VII', x: 1360, y: L('2009') },
   { sc: 'legacy', n: 'VIII', x: 1560, y: L('오늘', '今天') },
 ];
@@ -4814,7 +4833,7 @@ function roadmap({ clickable = false } = {}) {
     el.append(h('div.rd-act', { style: { left: x + 'px' } }, T(L(`${a.label.ko} · ${a.name.ko}`, `${a.label.zh} · ${a.name.zh}`)), h('small', {}, T(a.years))));
   });
   ROAD_NODES.forEach(nd => {
-    const node = h('div.rd-node', { cls: nd.seoul ? 'seoul' : '', style: { left: nd.x + 'px' }, 'data-sc': nd.sc, text: nd.n });
+    const node = h('div.rd-node', { cls: nd.inter ? 'inter' : '', style: { left: nd.x + 'px' }, 'data-sc': nd.sc, text: nd.n });
     if (clickable) node.addEventListener('click', (e) => { e.stopPropagation(); Director.jumpScene(nd.sc); Overview.close(); });
     el.append(node, h('div.rd-y', { style: { left: nd.x + 'px' } }, T(nd.y)));
   });
@@ -5441,7 +5460,7 @@ Scenes.define('trailer', {
     const FR = [
       ['1958', L('게리에서 태어나다', '生于加里')], ['1969', L('모타운 데뷔', '摩城出道')], ['1979', L('Off the Wall', 'Off the Wall')], ['1982', L('Thriller', 'Thriller')],
       ['1983', L('문워크', '太空步')], ['1987', L('Bad', 'Bad')], ['1988', L('Smooth Criminal', 'Smooth Criminal')],
-      ['1991', L('Black or White', 'Black or White')], ['1993', L('슈퍼볼 · 그리고 그림자', '超级碗 · 以及阴影')], ['1996', L('서울 잠실', '首尔蚕室')], ['1999', L('6월 25일, 서울', '6 月 25 日，首尔')], ['2009', L('This Is It', 'This Is It')],
+      ['1991', L('Black or White', 'Black or White')], ['1992', L('부쿠레슈티', '布加勒斯特')], ['1993', L('슈퍼볼 · 그리고 그림자', '超级碗 · 以及阴影')], ['1995', L('HIStory', 'HIStory')], ['2009', L('This Is It', 'This Is It')],
     ];
     const strip = this.strip = A('div.fstrip', 960, 690, { show: '2', cls: 'up slow', d: .6 });
     const fw = 148, gap = 12, x0 = 28;
@@ -6496,93 +6515,106 @@ Scenes.define('shadow', {
   leave() { [this.man, this.rain].forEach(f => f.stop()); this.flashes.innerHTML = ''; },
 });
 
-/* ═══ 9 · SEOUL INTERLUDE ═══ */
-const SEOUL_GEO = {"w":1000,"h":822.5,"districts":"M832 425L841 426L854 413L882 401L928 385L956 367L978 367L985 364L981 374L997 423L995 448L1000 451L1000 470L996 471L990 466L982 471L974 470L959 474L952 471L929 505L928 519L919 530L915 540L910 541L908 556L847 522L856 491L845 484L824 476L830 464L834 446L834 430L832 425Z M722 532L736 536L747 536L798 524L824 476L845 484L856 491L847 522L908 556L907 560L899 570L896 581L899 591L909 596L915 597L921 594L925 598L941 602L948 606L940 636L937 640L925 644L919 672L912 678L901 678L894 687L874 681L875 692L886 700L879 704L870 704L861 699L861 706L854 712L854 706L850 696L829 660L830 657L822 642L814 633L793 620L740 603L729 592L721 544L722 532Z M697 519L722 532L721 544L729 592L740 603L793 620L806 627L822 642L830 657L829 660L854 706L854 712L843 721L841 732L832 728L830 723L816 720L809 729L797 731L789 717L773 703L764 689L763 681L749 683L738 689L736 683L730 682L727 686L711 689L709 701L690 701L670 676L661 651L643 654L611 569L606 545L603 538L590 523L621 494L633 490L672 509L674 504L697 519Z M590 523L603 538L606 545L611 569L643 654L661 651L670 676L690 701L709 701L711 689L727 686L730 682L736 683L738 689L749 683L763 681L764 689L773 703L789 717L792 723L788 731L789 738L786 739L783 747L779 749L773 760L773 770L763 776L759 784L740 781L733 783L734 788L740 792L739 797L733 800L731 812L732 815L721 818L719 821L700 818L686 822L681 817L675 816L673 808L657 792L648 790L646 784L653 774L652 760L648 753L650 738L645 733L642 723L645 716L637 710L624 732L611 739L600 742L588 742L574 720L570 706L557 706L553 707L554 721L546 723L535 733L532 726L534 711L520 689L518 677L521 618L526 607L517 600L515 595L514 571L520 566L532 566L536 569L557 557L571 548L590 523Z M518 677L520 689L534 711L532 726L535 733L521 738L516 749L505 756L500 765L493 765L477 771L476 781L474 785L465 786L462 789L450 789L431 795L424 795L417 800L414 796L415 787L408 778L397 771L397 763L378 744L376 738L358 735L357 723L354 716L356 712L351 708L342 690L348 687L351 676L346 673L346 664L324 669L322 666L331 652L337 652L354 646L364 639L381 637L389 622L398 628L406 628L410 631L422 631L436 625L452 634L469 627L468 635L472 646L470 657L491 681L518 677Z M514 571L515 595L517 600L526 607L521 618L518 677L491 681L470 657L472 646L468 635L469 627L452 634L436 625L422 631L410 631L406 628L398 628L389 622L381 637L364 639L354 646L337 652L331 652L353 618L370 614L384 569L388 568L385 559L400 560L423 554L443 547L460 561L477 569L514 571Z M298 456L325 474L338 480L406 498L434 526L443 547L423 554L400 560L385 559L388 568L384 569L370 614L353 618L331 652L324 650L314 640L308 617L308 584L300 572L274 556L276 531L292 521L295 514L299 516L303 507L302 499L292 476L290 476L288 468L298 456Z M322 666L324 669L346 664L346 673L351 676L348 687L342 690L351 708L356 712L354 716L357 723L358 735L376 738L378 744L392 757L379 768L373 776L370 784L366 788L357 788L350 795L344 807L330 806L329 800L320 790L320 779L319 774L312 771L313 763L309 750L305 752L298 750L297 742L290 739L290 729L296 720L275 689L259 653L272 648L289 660L297 668L310 672L320 670L322 666Z M143 582L154 582L161 592L171 600L181 595L180 590L191 590L192 583L210 575L217 579L223 577L228 587L233 587L235 591L241 590L249 592L256 591L260 581L271 564L274 556L300 572L308 584L308 617L314 640L324 650L331 652L320 670L310 672L297 668L277 649L272 648L262 651L268 643L266 640L258 642L258 637L246 626L239 633L230 638L222 650L216 652L212 659L208 662L196 661L194 664L193 685L178 680L169 682L160 675L154 679L142 678L137 680L131 673L130 655L132 650L140 644L138 637L118 627L114 619L115 613L121 614L129 611L132 603L135 601L139 590L138 584L143 582Z M222 382L221 393L223 397L242 408L298 456L288 468L290 476L287 476L277 463L261 466L253 463L238 452L232 473L236 484L237 517L181 527L166 497L168 493L163 481L157 481L155 474L151 470L148 481L137 484L119 485L109 482L106 477L92 478L83 485L81 493L71 499L69 488L72 482L64 481L64 475L57 473L52 467L36 468L25 460L15 460L0 439L9 439L11 435L28 420L28 414L23 404L31 405L37 402L42 395L41 390L43 385L59 373L68 374L69 357L74 356L81 341L86 339L82 332L82 327L77 310L80 302L84 302L85 293L88 292L97 294L133 333L148 341L206 379L222 382Z M137 484L148 481L151 470L155 474L157 481L163 481L168 493L166 497L181 527L237 517L236 484L232 473L238 452L253 463L261 466L277 463L287 476L292 476L302 499L303 507L299 516L295 514L292 521L276 531L271 564L260 581L256 591L249 592L241 590L235 591L233 587L228 587L223 577L217 579L210 575L192 583L191 590L180 590L181 595L171 600L161 592L154 582L143 582L141 575L143 567L139 558L145 548L144 538L152 527L149 518L145 517L136 502L137 484Z M330 375L327 380L334 386L370 406L384 410L390 416L387 423L386 430L411 441L421 437L459 434L463 436L470 430L474 437L470 440L472 452L476 457L463 470L460 481L446 498L431 502L427 518L406 498L338 480L325 474L298 456L242 408L223 397L221 393L222 379L236 376L241 380L246 374L265 367L268 358L267 354L273 346L276 337L280 333L327 378L330 375Z M443 282L449 286L451 292L449 304L452 310L459 311L458 320L462 336L458 352L466 358L451 369L482 408L489 420L470 430L463 436L459 434L421 437L411 441L386 430L387 423L390 416L384 410L370 406L327 380L353 348L362 349L361 356L376 354L380 344L385 344L390 341L390 334L392 327L403 316L420 310L424 291L430 291L435 282L443 282Z M494 208L488 214L465 220L458 229L448 231L447 241L441 252L445 269L442 279L443 282L435 282L430 291L424 291L420 310L403 316L392 327L390 334L390 341L385 344L380 344L376 354L361 356L362 349L353 348L327 378L280 333L287 324L292 324L288 332L292 340L302 340L307 338L316 340L322 336L320 328L327 320L324 296L328 294L325 267L331 249L335 248L340 240L338 233L344 227L344 220L338 208L349 198L347 189L353 172L341 166L343 162L356 171L374 168L392 155L405 153L411 149L419 135L436 128L437 133L445 140L453 139L458 147L461 157L467 160L471 174L477 176L487 189L487 196L494 208Z M814 243L804 246L800 251L792 254L775 246L767 244L732 258L724 259L718 263L710 262L691 245L676 224L661 211L667 205L669 194L682 170L693 183L695 167L692 152L691 138L685 123L684 114L679 97L686 50L683 43L692 36L709 38L718 35L728 21L736 21L747 15L757 15L763 22L768 33L789 37L792 47L783 60L781 67L788 84L790 86L791 94L787 106L792 119L791 126L768 138L784 140L787 146L782 155L788 168L796 170L802 168L820 171L829 184L830 199L827 213L814 224L813 230L809 237L814 243Z M683 43L686 50L679 97L684 114L685 123L691 138L692 152L695 167L693 183L682 170L669 194L667 205L661 211L654 203L650 195L644 192L640 180L620 162L610 158L599 158L594 154L592 148L599 104L606 95L595 78L590 66L582 65L583 43L581 37L583 20L590 9L596 9L600 1L608 0L615 5L621 6L629 2L636 26L639 29L648 28L662 18L665 23L671 27L679 22L683 43Z M582 50L582 65L590 66L595 78L606 95L599 104L592 148L594 154L599 158L610 158L620 162L640 180L644 192L650 195L654 203L676 224L681 232L674 238L667 249L650 268L634 278L634 268L625 267L615 272L608 264L588 256L582 250L580 242L581 234L562 228L554 218L548 215L546 209L541 209L525 195L529 184L522 174L526 167L523 156L513 140L514 135L526 127L534 113L545 110L548 88L545 72L542 66L557 53L570 49L582 50Z M502 211L508 205L518 201L525 195L541 209L546 209L548 215L554 218L562 228L581 234L580 242L582 250L588 256L608 264L615 272L625 267L634 268L634 278L650 268L667 249L674 238L681 232L691 245L710 262L718 263L724 259L732 258L733 285L730 278L726 278L726 285L718 289L710 290L703 302L699 301L686 306L682 302L676 317L667 317L659 320L655 332L649 336L631 359L617 372L614 369L606 370L601 360L597 359L583 364L579 360L576 345L568 339L564 328L541 332L530 328L519 318L518 308L526 307L533 302L528 284L531 274L530 261L521 255L516 237L512 232L513 218L506 219L502 211Z M732 258L767 244L775 246L792 254L800 251L804 246L814 243L828 243L842 252L843 270L841 279L845 283L844 292L834 306L845 321L844 324L833 326L826 338L823 352L804 354L808 361L807 371L803 379L803 385L780 397L750 390L749 372L746 362L732 340L728 317L735 302L736 297L732 258Z M617 372L631 359L649 336L655 332L659 320L667 317L676 317L682 302L686 306L699 301L703 302L710 290L718 289L726 285L726 278L730 278L736 297L735 302L728 317L732 340L746 362L749 372L750 390L734 426L701 418L676 395L663 387L652 387L640 395L633 396L618 391L617 372Z M750 390L780 397L803 385L811 393L804 426L832 425L834 430L834 446L830 464L798 524L782 526L763 534L736 536L722 532L697 519L738 428L734 426L750 390Z M618 391L633 396L640 395L652 387L663 387L676 395L701 418L731 424L738 428L697 519L674 504L672 509L633 490L621 494L612 501L597 490L584 488L582 481L585 462L590 461L602 446L604 438L609 434L616 433L618 423L625 417L626 411L618 411L618 391Z M582 474L582 481L584 488L597 490L612 501L581 532L576 542L571 548L536 569L532 566L520 566L514 571L477 569L460 561L443 547L434 526L427 518L431 502L446 498L460 481L463 470L476 457L472 452L480 444L506 447L507 441L515 446L523 447L527 445L533 452L539 452L551 465L558 457L568 458L572 455L573 468L579 475L582 474Z M618 391L618 411L626 411L625 417L618 423L616 433L609 434L604 438L602 446L590 461L585 462L582 474L579 475L573 468L572 455L568 458L558 457L551 465L539 452L533 452L527 445L523 447L515 446L507 441L506 447L480 444L472 452L470 440L474 437L470 430L489 420L482 408L488 402L497 398L535 402L566 397L600 397L611 391L618 391Z M494 208L502 211L506 219L513 218L512 232L516 237L521 255L530 261L531 274L528 284L533 302L526 307L518 308L519 318L530 328L541 332L564 328L568 339L576 345L579 360L583 364L597 359L601 360L606 370L614 369L617 372L618 391L611 391L600 397L566 397L535 402L497 398L488 402L482 408L451 369L466 358L458 352L462 336L458 320L459 311L452 310L449 304L451 292L449 286L442 279L445 269L441 252L447 241L448 231L458 229L465 220L488 214L494 208Z","river":"M980 365C976 366 964 368 958 370C953 371 954 370 947 374C940 377 928 384 915 389C903 395 880 402 871 406C861 410 861 411 857 413C852 416 848 419 845 422C841 424 840 424 837 431C834 439 832 455 827 466C823 478 816 490 811 498C806 507 802 513 798 517C794 522 793 522 786 525C779 528 763 532 756 534C749 535 748 534 744 534C740 534 738 534 733 533C728 532 723 531 714 527C705 523 691 515 680 510C668 505 654 500 647 497C639 495 639 495 636 495C633 494 632 494 629 495C626 495 622 497 619 498C615 500 617 497 609 505C601 513 581 536 571 545C562 554 557 555 552 558C547 562 545 562 542 563C538 564 537 565 531 566C526 567 515 568 509 569C502 569 500 570 493 569C487 568 477 567 470 564C464 562 458 557 454 554C450 551 450 552 446 546C441 540 432 525 425 518C419 510 413 506 408 502C402 499 405 500 394 496C382 492 352 484 340 480C329 476 330 476 326 474C321 471 318 469 312 465C307 461 306 461 293 451C280 441 247 414 234 403C222 392 224 389 216 383C209 377 202 376 188 367C175 359 149 342 138 335C128 328 132 330 126 325C120 320 110 308 104 303C98 298 92 296 90 294","stadium":[730.3,551.9],"assembly":[351.3,502.8]};
-/* a tank, in silhouette (HIStory tour, Earth Song) */
-function tankSVG() {
-  const wheels = Array.from({ length: 7 }, (_, k) => `<circle cx="${92 + k * 62}" cy="206" r="22"/>`).join('');
-  return `<svg viewBox="0 0 600 260" class="tank"><g fill="#070b16" stroke="rgba(170, 200, 255, .38)" stroke-width="2.4" stroke-linejoin="round">
-    <path d="M40 180 L560 180 C 590 180 596 232 560 236 L60 236 C 22 232 14 186 40 180 Z"/>
-    <g fill="#0b1224">${wheels}</g>
-    <path d="M70 120 L520 120 L560 178 L36 178 Z"/>
-    <path d="M200 64 L380 64 C 420 64 440 92 446 120 L170 120 C 172 92 182 64 200 64 Z"/>
-    <path d="M206 80 L-120 72 L-120 90 L206 98 Z"/>
-    <rect x="300" y="44" width="40" height="22" rx="4"/>
-  </g></svg>`;
-}
-Scenes.define('seoul', {
+/* ═══ 8 · BUCHAREST 1992 — the stillness came first on tour; who fainted, and what is only rumour ═══ */
+Scenes.define('bucharest', {
   build(el) {
-    const back = layer(-.2), mid = layer(.08), stg = layer(.3);
+    const back = layer(-.22), mid = layer(.08), stg = layer(.3);
     el.append(back, mid, stg);
-    const g = SEOUL_GEO;
-    const svg = g ? `<svg viewBox="0 0 ${g.w} ${g.h}"><path class="dist" d="${g.districts}"/><path class="river2" d="${g.river}"/><path class="river" pathLength="1" d="${g.river}"/></svg>` : '';
-    this.map = A('div.seoulmap', 1180, 560, { cls: 'rv', html: svg });
-    const sc = 1050 / (g ? g.w : 1000);
-    const P = (p) => [p[0] * sc, p[1] * sc];
-    const [sx, sy] = g ? P(g.stadium) : [767, 579];
-    const [ax, ay] = g ? P(g.assembly) : [369, 528];
-    this.stad = h('div.pin', { style: { left: sx + 'px', top: sy + 'px' } }, h('div.pin-dot'), h('div.pin-l', {}, T(L('잠실 올림픽 주경기장', '蚕室奥林匹克主体育场')), h('small', { text: 'JAMSIL' })));
-    this.asm = h('div.pin.blue', { style: { left: ax + 'px', top: ay + 'px' } }, h('div.pin-dot'), h('div.pin-l', { style: { left: '-28px', translate: '-100% 0', textAlign: 'right' } }, T(L('국회 · 1998. 2. 25', '国会 · 1998年2月25日')), h('small', {}, T(L('김대중 대통령 취임식', '金大中总统就职典礼')))));
-    this.stad.classList.add('rv'); this.asm.classList.add('rv', 'drop');
-    this.map.append(this.stad, this.asm);
-    back.append(this.map);
-    mid.append(A('div.se-and', 150, 214, { anchor: 'ay', show: '0-0', cls: 'left', d: .2 }, T(L('그리고,', '还有，'))),
-      A('div.se-v', 150, 600, { anchor: 'ay', show: '0-0', cls: 'blur slow', d: .4 }, T(L('서울', '首尔'))),
-      A('div.lab.se-y', 400, 960, { anchor: 'ay', show: '0-0', d: 1.4 }, '1996 — 1999'));
-    const ticket = (o) => h('div.ticket', {},
-      h('div.tk-main', {}, h('div.tk-k', { text: o.k }), h('div.tk-e', { text: o.e }), h('div.tk-v', {}, T(o.v)), h('div.tk-d', { text: o.d }), h('div.tk-seal', { html: o.seal })),
+    /* 0 · the stadium, and a man who springs up through the stage and stops */
+    back.append(A('div.field', 960, 760, { show: '0-0', cls: 'slow', html: fieldSVG() }));
+    this.st = stageFig(stg, { costume: 'military', pose: 'statue', style: 'costume', x: 560, y: 940, h: 620, show: '0-0', cls: 'fast', glowPx: 10, rim: '#ffe2a0', glow: 'rgba(255, 210, 120, .5)' });
+    this.st.box.classList.add('bk-pop');
+    this.hatch = A('div.bk-hatch', 560, 942);
+    stg.append(A('div.bk-lip', 960, 1015, { show: '0' }), this.hatch);
+    const tk = h('div.ticket', {},
+      h('div.tk-main', {}, h('div.tk-k', { text: 'MICHAEL JACKSON' }), h('div.tk-e', { text: 'DANGEROUS WORLD TOUR · BUCUREȘTI' }),
+        h('div.tk-v', {}, T(L('국립경기장 · 루마니아 첫 공연', '国家体育场 · 罗马尼亚首演'))), h('div.tk-d', { text: '1992. 10. 1' }), h('div.tk-seal', { html: "BUC<br>'92" })),
       h('div.tk-stub', {}, h('span', { text: 'ADMIT ONE' })));
-    this.tk1 = ticket({ k: 'MICHAEL JACKSON', e: 'HISTORY WORLD TOUR · SEOUL', v: L('잠실 올림픽 주경기장 · 첫 내한 공연', '蚕室奥林匹克主体育场 · 首次访韩演出'), d: '1996. 10. 11 · 13', seal: "SEOUL<br>'96" });
-    this.tk2 = ticket({ k: 'MJ & FRIENDS', e: 'BENEFIT CONCERT · SEOUL', v: L('잠실 올림픽 주경기장 · 자선 공연', '蚕室奥林匹克主体育场 · 慈善演出'), d: '1999. 6. 25', seal: "SEOUL<br>'99" });
-    this.t1 = A('div', 1360, 300, { cls: 'rv right slow', style: 'rotate:-3deg' }, this.tk1);
-    this.t2 = A('div', 1300, 470, { cls: 'rv right slow', style: 'rotate:2deg' }, this.tk2);
-    mid.append(this.t1, this.t2);
-    /* 1 · 430 tons, and a tank on the stage */
-    back.append(A('div.tankbox', 1260, 860, { show: '1-1', cls: 'right slow', d: .3, html: tankSVG() }));
-    this.eman = stageFig(stg, { costume: 'person', style: 'costume', x: 700, y: 990, h: 560, show: '1-1', d: .5, glowPx: 7, rim: '#d6e4ff', glow: 'rgba(170, 200, 255, .4)', c: { jacket: '#e7e2d8', pants: '#14161c' },
-      p: { turn: .3, neck: -6, nSh: 100, nEl: 10, nHand: Figure.HI('open'), fSh: 76, fEl: 12, fHand: Figure.HI('open'), nHip: 14, nKnee: 10, fHip: -10, fKnee: 4 } });
-    mid.append(A('div.se-430', 150, 300, { anchor: 'ay', show: '1-1', d: .8 }, '430'),
-      stack(160, 470, { anchor: 'ay', align: 'left', gap: 12 },
-        R('b-m', '1-1', 1.1, T(L('톤 — 무대 장비', '吨——舞台设备'))),
-        R('b-m', '1-1', 1.6, T(L('〈Earth Song〉엔 실물 크기 탱크', '《Earth Song》里，真实大小的坦克')), 'up', { color: 'var(--dim)' }),
-        R('', '1-1', 2.2, mvSwitch('earth'), 'up', { marginTop: '10px' })),
-      A('div.h-s.center.nowrap', 1300, 860, { show: '3', d: 1.4, style: 'color:var(--acc2)' }, T(L('이 날짜를, 기억해 주세요', '请记住这个日期'))));
-    /* interaction: tear the stub off the 1996 ticket */
-    tiltify(this.tk1, 8);
-    const stub = $('.tk-stub', this.tk1);
-    let torn = false;
-    draggable(stub, {
-      move: (x, y, dx, dy) => { if (torn) return; const d = clamp(dx, 0, 220); stub.style.transform = `translate(${d}px, ${Math.max(0, dy) * .3}px) rotate(${d * .08}deg)`; },
-      up: () => {
-        const m = /translate\(([\d.]+)px/.exec(stub.style.transform || ''); const d = m ? +m[1] : 0;
-        if (d > 90) { torn = true; stub.style.transition = 'transform .9s cubic-bezier(.5,0,.75,0), opacity .9s ease'; stub.style.transform = 'translate(260px, 520px) rotate(38deg)'; stub.style.opacity = 0; }
-        else { stub.style.transition = 'transform .5s var(--e-drop)'; stub.style.transform = ''; setTimeout(() => { stub.style.transition = ''; }, 520); }
-      },
-    });
-    this.resetStub = () => { torn = false; stub.style.transition = 'none'; stub.style.transform = ''; stub.style.opacity = ''; void stub.offsetWidth; stub.style.transition = ''; };
-    mid.append(itip(1600, 470, L('꼬리표를 오른쪽으로 끌어 보세요', '把票根往右拖，撕下来'), '1-1'));
+    tiltify(tk, 8);
+    mid.append(
+      A('div.lab.nowrap', 146, 150, { anchor: 'ay', show: '0-0', cls: 'left' }, T(L('1992. 10. 1 · 부쿠레슈티 국립경기장', '1992年10月1日 · 布加勒斯特国家体育场'))),
+      A('div', 1380, 330, { show: '0-0', cls: 'right slow', d: .3, style: 'rotate:-3deg' }, tk),
+      this.k90 = A('div.bk-90', 1380, 640, { show: '0-0', cls: 'zoom', d: .9 }, '90,000'),
+      A('div.b-m.center.nowrap', 1380, 760, { show: '0-0', d: 1.2 }, T(L('관객 · 매진', '观众 · 售罄'))),
+      A('div.h-s.center.nowrap', 1380, 880, { show: '0-0', d: 1.6, style: 'color:var(--acc2)' }, T(L('튀어 올라, 그대로 멈추다', '弹出，然后定住'))));
+    clickable(this.st.hitbox(260), () => { if (this.i === 0) this.st.seq([[{ neck: -7, head: 0 }, 1800], [{ head: 14 }, 900, 400], [{ head: 0 }, 900]]); });
+    mid.append(itip(860, 300, L('클릭… 그래도 그는 움직이지 않는다', '点他……他依然一动不动'), '0-0'));
+    /* 1 · the official concert film plays in this frame */
+    const FR = { x: 360, y: 130, w: 1200, h: 675 };
+    Scenes.setRect('bkFrame', FR);
+    mid.append(A('div.frame', FR.x + FR.w / 2, FR.y + FR.h / 2, { show: '1-1', cls: 'zoom', style: `width:${FR.w}px;height:${FR.h}px` },
+        h('div.fr-b'), h('div.fr-c.tl'), h('div.fr-c.tr'), h('div.fr-c.bl'), h('div.fr-c.br'),
+        h('div.fr-in', {}, h('div.fr-k', {}, T(L('1992 · 공식 공연 영상', '1992 · 官方演出影像'))), h('div.fr-t', { text: 'Live in Bucharest' }), h('div.b-m', { style: { color: 'var(--dim)' } }, T(L('〈Jam〉 직전, 오프닝', '《Jam》之前的开场'))))),
+      A('div.bk-frame-cap', 960, FR.y + FR.h + 70, { show: '1-1', d: .8 }, h('span.lab', { text: 'LIVE IN BUCHAREST · THE DANGEROUS TOUR' }), h('span.lab', {}, T(L('마이클 잭슨 공식 채널', '迈克尔·杰克逊官方频道')))));
+    /* 2–3 · the ledger: what was reported, and what is only rumour */
+    const row = (cls, show, d, city, when, crowd, val, src, stamp) => {
+      const r = h('div.lg-r', { cls: cls + ' rv up', 'data-show': show, style: { '--d': d + 's' } },
+        h('div.lg-c', {}, typeof city === 'string' ? city : T(city), h('small', {}, typeof when === 'string' ? when : T(when))), h('div.lg-n', { text: crowd }), h('div.lg-v', { cls: val.none ? 'none' : '' }, T(val)), h('div.lg-s', {}, T(src)));
+      if (stamp) r.append(h('div.bk-stamp', { style: { '--sd': (d + .5) + 's' } }, T(stamp)));
+      return r;
+    };
+    const none = (o) => Object.assign(o, { none: true });
+    this.ledger = h('div.ledger', {},
+      h('div.lg-h', {}, h('b', {}, T(L('실신 기록', '晕倒记录'))), h('span.lab', {}, T(L('보도된 것만', '只列见诸报道的')))),
+      row('', '2-3', .2, 'BUCUREȘTI', '1992. 10', '90,000', none(L('공식 집계 없음', '没有官方统计')), L('HBO 중계: “울다 실신하는 관객이 끝없이” — Variety', 'HBO 转播：「哭泣、晕倒的观众镜头接连不断」——Variety')),
+      row('', '2-3', .9, 'ROMA', '1988. 5', '35,000', L('수십 명', '数十人'), L('Deseret News · UPI, 1988', 'Deseret News · UPI，1988')),
+      row('', '2-3', 1.6, 'BANGKOK', '1993. 8', '—', L('수백 명', '数百人'), L('UPI, 1993 — 더위와 습도 속에서', 'UPI，1993——在高温和潮湿中')),
+      row('rumor', '3-3', .2, 'BUCUREȘTI', '“1992”', '—', L('23명 사망', '23 人死亡'), L('Snopes 팩트체크', 'Snopes 事实核查'), L('사실 아님', '不属实')),
+      row('rumor', '3-3', 1, 'BUCUREȘTI', '“1992”', '—', L('부상 1,500 · 입원 40', '受伤 1500 · 住院 40'), L('SNS 게시물, 출처 없음', '社交平台帖子，来源不明'), L('확인 불가', '无法核实')),
+      row('total', '3-3', 1.9, L('합계', '合计'), L('모든 공연', '所有演出'), '', none(L('아무도 세지 못했다', '没有人数得清')), L('투어 관객만 수백만 명', '光是巡演观众就有数百万')));
+    mid.append(this.ledW = A('div', 1180, 540, { show: '2-3', cls: 'zoom' }, this.ledger));
+    /* the photograph of that night, beside the ledger and the crowd */
+    mid.append(this.ph = photoPrint('dw_1992', { x: 300, y: 560, w: 300, h: 380, rot: -3, show: '2-4', d: .4 }));
+    /* 4 · the stands: the same film, without sound, on a loop */
+    const WR = { x: 720, y: 205, w: 960, h: 540 };
+    Scenes.setRect('bkWall', WR);
+    mid.append(A('div.frame', WR.x + WR.w / 2, WR.y + WR.h / 2, { show: '4', cls: 'zoom', style: `width:${WR.w}px;height:${WR.h}px` },
+        h('div.fr-b'), h('div.fr-c.tl'), h('div.fr-c.tr'), h('div.fr-c.bl'), h('div.fr-c.br'),
+        h('div.fr-in', {}, h('div.fr-k', {}, T(L('그날의 관객석', '那天的观众席'))), h('div.fr-t', { text: 'Bucharest · 1992' }))),
+      A('div.lab.nowrap', WR.x + WR.w / 2, WR.y + WR.h + 52, { show: '4', d: .6 }, T(L('공식 공연 영상 · 소리 없이 반복', '官方演出影像 · 静音循环'))),
+      this.last = A('div.h-s.center.nowrap', WR.x + WR.w / 2, 872, { show: '4', d: 1.6, style: 'color:var(--acc2)' }, T(L('그동안 그는, 아무것도 하지 않았다', '这段时间里，他什么都没做'))));
+  },
+  pop(on, ctx) {
+    clearTimeout(this._pop);
+    const box = this.st.box;
+    if (!on) { box.classList.remove('up'); return; }
+    if (!ctx.fwd) { box.classList.add('up'); return; }
+    box.classList.remove('up'); void box.offsetWidth;
+    this._pop = setTimeout(() => {
+      box.classList.add('up'); this.hatch.classList.add('flash'); SFX.boom(.4);
+      setTimeout(() => this.hatch.classList.remove('flash'), 260);
+    }, ctx.say('튀어', .2));
   },
   beat(i, ctx) {
     this.i = i;
-    this.eman.stop();
-    if (i !== 1) this.resetStub();
-    this.map.classList.toggle('dimmed', i === 1 || i === 3);
-    vis(this.map, 'on');
-    this.map.classList.toggle('on', true);
-    if (i === 0 && ctx.fwd) { this.map.classList.remove('on'); void this.map.offsetWidth; this.map.classList.add('on'); }
-    vis(this.stad, 'on');
-    vis(this.asm, i === 2 ? 'on' : 'off');
-    vis(this.t1, i === 1 || i === 3 ? 'on' : 'off');
-    this.t1.style.top = (i === 3 ? 390 : 300) + 'px';
-    this.tk1.classList.toggle('back', i === 3);
-    vis(this.t2, i === 3 ? 'on' : 'off');
-    this.tk2.classList.toggle('glow', i === 3);
-    if (i === 0) ctx.light({ lights: [{ id: 'm', x: 1180, y: 560, rx: 640, ry: 470, soft: .6, i: .85 }, { id: 's', x: 1180 - 525 + 767, y: 560 - 432 + 579, rx: 150, ry: 130, soft: .3 }, { id: 't', x: 330, y: 560, rx: 330, ry: 460, soft: .5 }] });
-    if (i === 1) ctx.light({ lights: [{ id: 'm', x: 900, y: 560, rx: 560, ry: 420, soft: .7, i: .35 }, { id: 'k', x: 1360, y: 300, rx: 470, ry: 230, soft: .3 }, { id: 'n', x: 420, y: 420, rx: 420, ry: 240, soft: .5 }, { id: 'e', x: 980, y: 800, rx: 640, ry: 300, soft: .35, col: '#b8ccff' }] });
-    if (i === 2) ctx.light({ lights: [{ id: 'm', x: 1180, y: 560, rx: 640, ry: 470, soft: .6, i: .85 }, { id: 'p', x: 1180 - 525 + 369, y: 560 - 432 + 528, rx: 260, ry: 140, soft: .35 }] });
-    if (i === 3) ctx.light({ lights: [{ id: 'm', x: 900, y: 560, rx: 560, ry: 420, soft: .7, i: .35 }, { id: 'k', x: 1300, y: 470, rx: 480, ry: 240, soft: .28 }, { id: 'n', x: 1300, y: 860, rx: 420, ry: 90, soft: .5, cone: false }] });
+    this.st.stop();
+    const beams = (k) => [
+      { id: 'b1', type: 'beam', x: 140, y: -80, ang: 62, spread: 8, len: 1350, i: .7 * k }, { id: 'b2', type: 'beam', x: 640, y: -100, ang: 82, spread: 7, len: 1300, i: .55 * k },
+      { id: 'b3', type: 'beam', x: 1280, y: -100, ang: 98, spread: 7, len: 1300, i: .55 * k }, { id: 'b4', type: 'beam', x: 1780, y: -80, ang: 118, spread: 8, len: 1350, i: .7 * k }];
+    this.pop(i === 0, ctx);
+    if (i === 0) {
+      this.st.pose('statue');
+      ctx.fx({ gold: .6, crowd: 1 });
+      ctx.light({ ambient: .84, lights: [...beams(.85), { id: 'a', x: 560, y: 600, rx: 340, ry: 440, soft: .2, delay: ctx.fwd ? ctx.say('튀어', .2) / 1000 : 0 },
+        { id: 't', x: 1380, y: 560, rx: 520, ry: 420, soft: .5, i: .85 }, textLight('k', this.k90, { i: .6, delay: ctx.fwd ? .9 : 0 })] });
+    }
+    if (i === 1) {
+      ctx.fx({ gold: .3, crowd: .6 });
+      ctx.light({ warm: .45, lights: [{ id: 'f', type: 'rect', x: 960, y: 467, w: 1280, h: 755, r: 6, soft: 60, i: .95 }, { id: 'c', x: 960, y: 900, rx: 640, ry: 90, soft: .5, i: .8, cone: false }] });
+    }
+    if (i === 2 || i === 3) {
+      ctx.fx({ gold: .3, crowd: .4 });
+      ctx.light({ ambient: .8, lights: [{ id: 'l', type: 'rect', x: 1180, y: 540, w: 1340, h: i === 2 ? 520 : 760, r: 10, soft: 70, i: .9 }, ...photoLight('ph', this.ph, { delay: ctx.fwd && i === 2 ? .4 : 0 })] });
+    }
+    if (i === 4) {
+      ctx.fx({ gold: .5, crowd: 1 });
+      const cfg = Settings.get().videos.bucharest || {}, a = cfg.start != null ? +cfg.start + 6 : 0;
+      const pip = Video.slot('pip'); pip.el.classList.add('wall');
+      Video.playRange('pip', 'bucharest', { start: a, end: a + 50, muted: true, loop: true, rect: Scenes.rect('bkWall') });
+      ctx.light({ ambient: .82, lights: [{ id: 'w', type: 'rect', x: 1200, y: 475, w: 1040, h: 620, r: 6, soft: 60, i: .95 }, ...photoLight('ph', this.ph), textLight('x', this.last, { i: .7, delay: ctx.fwd ? 1.6 : 0 })] });
+    } else { Video.stop('pip'); Video.slot('pip').el.classList.remove('wall'); }
   },
-  leave() { this.eman.stop(); },
+  leave() { clearTimeout(this._pop); this.st.stop(); Video.slot('pip').el.classList.remove('wall'); },
 });
 
 /* ── 16-scenes-act3 ── */
@@ -6618,26 +6650,16 @@ Scenes.define('tii', {
     mid.append(this.date,
       A('div.lab.center.nowrap', 960, 690, { show: '1-1', d: 1.4 }, T(L('쉰 살', '五十岁'))),
       A('div.b-m.center.nowrap', 960, 790, { show: '1-1', d: 2.2, style: 'color:var(--dim)' }, T(L('50회의 공연, 단 한 번도 열리지 못했다', '50 场演出，一场也未能举行'))));
-    /* 2 · ten years to the day */
-    const mini = h('div.ticket', { style: { scale: '.62' } },
-      h('div.tk-main', {}, h('div.tk-k', { text: 'MJ & FRIENDS' }), h('div.tk-e', { text: 'BENEFIT CONCERT · SEOUL' }), h('div.tk-v', {}, T(L('잠실 올림픽 주경기장', '蚕室奥林匹克主体育场'))), h('div.tk-d', { text: '1999. 6. 25' }), h('div.tk-seal', { html: "SEOUL<br>'99" })),
-      h('div.tk-stub', {}, h('span', { text: 'ADMIT ONE' })));
-    mini.classList.add('glow');
-    this.mini = A('div', 470, 520, { cls: 'rv left slow' }, mini);
-    this.red = A('div.redline', 960, 540, { cls: 'rv', html: `<svg viewBox="0 0 1920 1080"><path pathLength="1" d="M700 520 C 830 330 1060 330 1190 505"/></svg>` });
-    mid.append(this.mini, this.red,
-      this.tenYears = A('div.h-m.num.center.nowrap', 945, 300, { show: '2-2', d: 2.4, style: 'color:#ff5a5f;font-family:var(--f-num);font-size:84px;font-weight:600' }, T(L('10년 · 3,653일', '10 年 · 3653 天'))),
-      this.tenLater = A('div.b-m.center.nowrap', 945, 700, { show: '2-2', d: 2.9 }, T(L('정확히, 10년 뒤', '整整十年之后'))));
-    /* 3 · the last stage was a rehearsal: a sketch under the ghost light */
-    this.sk2 = stageFig(stg, { costume: 'tii', pose: 'person', style: 'line', line: 'rgba(241, 239, 233, .85)', lineBg: '#202023', x: 1330, y: 980, h: 700, show: '3', d: 1.4, glow: 'rgba(255, 236, 190, .22)', rim: null, glowPx: 8, shadow: 'pool', p: { neck: 4, turn: .3, nSh: 30, nEl: 70, nHand: Figure.HI('open'), fSh: -14, fEl: 30 } });
+    /* 2 · the last stage was a rehearsal: a sketch under the ghost light */
+    this.sk2 = stageFig(stg, { costume: 'tii', pose: 'person', style: 'line', line: 'rgba(241, 239, 233, .85)', lineBg: '#202023', x: 1330, y: 980, h: 700, show: '2', d: 1.4, glow: 'rgba(255, 236, 190, .22)', rim: null, glowPx: 8, shadow: 'pool', p: { neck: 4, turn: .3, nSh: 30, nEl: 70, nHand: Figure.HI('open'), fSh: -14, fEl: 30 } });
     mid.append(stack(150, 480, { anchor: 'ay', align: 'left', gap: 24 },
-        R('lab', '3', .9, T(L('2009. 10 · 영화 〈This Is It〉', '2009年10月 · 电影《This Is It》'))),
-        R('h-m', '3', 1.2, T(L('우리가 볼 수 있는 마지막 무대는,', '我们能看到的最后的舞台，'))),
-        R('h-l', '3', 1.8, T(L('리허설이었다', '是一场排练')), 'up', { color: 'var(--acc)' }),
-        R('', '3', 2.6, mvSwitch('thisisit', { label: 'TRAILER' }))),
-      A('div', 640, 830, { show: '3', d: 2.4, cls: 'drop', style: 'font-size:66px' }, h('span.tape', { text: 'THIS IS IT' })));
-    clickable(this.sk2.hitbox(280), () => { if (this.i === 3) this.sk2.seq([['reach', 520, 500], ['snap', 380, 200], [{ neck: 4, turn: .3, nSh: 30, nEl: 70, nHand: Figure.HI('open'), fSh: -14, fEl: 30, nHip: 2, nKnee: 4, fHip: -2, fKnee: 3, lean: 0 }, 700]]); });
-    mid.append(itip(1460, 230, L('클릭 · 리허설 한 동작', '点一下 · 排练一个动作'), '3'));
+        R('lab', '2', .9, T(L('2009. 10 · 영화 〈This Is It〉', '2009年10月 · 电影《This Is It》'))),
+        R('h-m', '2', 1.2, T(L('우리가 볼 수 있는 마지막 무대는,', '我们能看到的最后的舞台，'))),
+        R('h-l', '2', 1.8, T(L('리허설이었다', '是一场排练')), 'up', { color: 'var(--acc)' }),
+        R('', '2', 2.6, mvSwitch('thisisit', { label: 'TRAILER' }))),
+      A('div', 640, 830, { show: '2', d: 2.4, cls: 'drop', style: 'font-size:66px' }, h('span.tape', { text: 'THIS IS IT' })));
+    clickable(this.sk2.hitbox(280), () => { if (this.i === 2) this.sk2.seq([['reach', 520, 500], ['snap', 380, 200], [{ neck: 4, turn: .3, nSh: 30, nEl: 70, nHand: Figure.HI('open'), fSh: -14, fEl: 30, nHip: 2, nKnee: 4, fHip: -2, fKnee: 3, lean: 0 }, 700]]); });
+    mid.append(itip(1460, 230, L('클릭 · 리허설 한 동작', '点一下 · 排练一个动作'), '2'));
   },
   beat(i, ctx) {
     this.i = i;
@@ -6661,15 +6683,8 @@ Scenes.define('tii', {
       bulb.style.opacity = 0; vis(this.ghost, 'on');
       ctx.light({ ambient: .975, lights: [{ id: 'd', x: 960, y: 640, rx: 640, ry: 330, soft: .55, i: .85, cone: false }] }, { dur: ctx.fwd ? .25 : .4 });
     }
+    if (i >= 2) vis(this.date, 'gone'); else if (i < 1) vis(this.date, 'off');
     if (i === 2) {
-      vis(this.date, 'on'); Object.assign(this.date.style, { left: '1440px', top: '520px', fontSize: '130px' });
-      vis(this.mini, 'on'); this.red.classList.toggle('on', true);
-      if (ctx.fwd) { this.red.classList.remove('on'); void this.red.offsetWidth; this.red.classList.add('on'); }
-      ctx.light({ ambient: .95, lights: [{ id: 'd', x: 1440, y: 520, rx: 380, ry: 170, soft: .35 }, { id: 't', x: 470, y: 520, rx: 360, ry: 220, soft: .35, delay: .2 }, { id: 'r', x: 945, y: 470, rx: 560, ry: 300, soft: .6, i: .75, cone: false },
-        textLight('y', this.tenYears, { i: .7, delay: ctx.fwd ? 2.4 : 0 }), textLight('x', this.tenLater, { i: .8, delay: ctx.fwd ? 2.9 : 0 })] });
-    } else { this.red.classList.remove('on'); vis(this.mini, i > 2 ? 'gone' : 'off'); }
-    if (i >= 3) vis(this.date, 'gone'); else if (i < 1) vis(this.date, 'off');
-    if (i === 3) {
       vis(this.ghost, 'on');
       this.sk2.pose('person', { neck: 4, turn: .3, nSh: 30, nEl: 70, nHand: Figure.HI('open'), fSh: -14, fEl: 30 });
       const room = [ghostLight(1), { id: 'w', x: 640, y: 560, rx: 760, ry: 420, soft: .6, i: .8, cone: false }, { id: 'm', x: 1330, y: 620, rx: 300, ry: 430, soft: .4, i: .7 }];
@@ -7109,7 +7124,7 @@ const Director = (() => {
 
 /* ── 30-overview ── */
 /* ═══ OVERVIEW (G) ═══ */
-const ERA_SWATCH = { cold: '#ffd08a', cinema: '#9fc0ff', title: '#ffd9a0', gary: '#eaa92c', otw: '#dcc08a', thriller: '#e0233a', bad: '#6f93ff', dangerous: '#e0b55a', shadow: '#9aa6b2', seoul: '#8ec5ff', tii: '#f2c230', legacy: '#ffb54a', finale: '#fff1dc' };
+const ERA_SWATCH = { cold: '#ffd08a', cinema: '#9fc0ff', title: '#ffd9a0', gary: '#eaa92c', otw: '#dcc08a', thriller: '#e0233a', bad: '#6f93ff', dangerous: '#e0b55a', shadow: '#9aa6b2', bucharest: '#f0c060', tii: '#f2c230', legacy: '#ffb54a', finale: '#fff1dc' };
 const Overview = (() => {
   const el = $('#overview');
   let open = false, road = null;
@@ -7262,7 +7277,7 @@ const Panel = (() => {
           h('td', {}, h('div.row', {}, ...extras)),
           h('td', {}, h('div.row', {}, h('button.btn.sm', { type: 'button', text: '预览', on: { click: () => startLab(k) } }), h('button.btn.sm', { type: 'button', text: '预览中文版', on: { click: () => startLab(k, null, 'zh') } }))));
       }
-      return h('tr', {}, h('td', {}, h('b', { text: VIDEOS[k].name.zh }), h('div.muted', { text: { trailer: '第 1 场 ② · 整屏播放', sc: '第 6 场 ④⑤ · 提示点', bj: '第 5 场 ③ · 显像管电视（静音）', motown: '第 5 场 ⑤ · 可选' }[k] })),
+      return h('tr', {}, h('td', {}, h('b', { text: VIDEOS[k].name.zh }), h('div.muted', { text: { trailer: '第 1 场 ② · 整屏播放', sc: '第 6 场 ④⑤ · 提示点', bj: '第 5 场 ③ · 显像管电视（静音）', motown: '第 5 场 ⑤ · 可选', bucharest: '布加勒斯特 ② · 起点 = 他弹出的那一刻（播放时按 C 记录）' }[k] })),
         h('td', { style: { minWidth: '280px' } }, inp), h('td', {}, h('div.row', {}, ...extras)), h('td', {}, h('button.btn.sm', { type: 'button', text: '预览', on: { click: () => startLab(k) } })));
     };
     const cues = clone(s.videos.sc.cues);

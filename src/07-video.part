@@ -374,6 +374,14 @@ const Video = (() => {
         const rect = Scenes.rect && Scenes.rect('tvScreen');
         Music.duck(true);
         playRange('tv', 'motown', { start: +cfg.start || 0, end: cfg.end != null && cfg.end !== '' ? +cfg.end : null, rect, onEnd: () => { if (token !== beatToken) return; stop('tv'); Music.duck(false); } });
+      } else if (v.key === 'bucharest') {
+        /* from the moment he springs up, for 24 s (or to the out point); the last frame stays in the frame */
+        const rect = Scenes.rect && Scenes.rect('bkFrame');
+        const st = cfg.start != null && cfg.start !== '' ? +cfg.start : null;
+        const end = cfg.end != null && cfg.end !== '' ? +cfg.end : (st != null ? st + 24 : null);
+        Music.duck(true);
+        playRange('main', 'bucharest', { start: st ?? 0, end, rect, framed: true, onEnd: () => { if (token !== beatToken) return; slot('main').pause(); Music.duck(false); emit(); } });
+        if (st == null) toast('布加勒斯特的起点还没记录：拖到他从舞台下弹出的那一刻，按 <b>C</b> 记下（只需一次）', 6000, { local: true });
       }
     };
     if (v.key === 'trailer') { playTrailer(token, { skipCountdown }); return; }
@@ -491,6 +499,12 @@ const Video = (() => {
   const CAP = ['1 起点', '1 终点', '2 起点', '2 终点', '3 起点', '3 终点', '4 起点', '4 终点'];
   function captureCue() {
     const s = activeSlot();
+    if (s && s.want && s.want.key === 'bucharest') {
+      const t = Math.round(s.time() * 10) / 10;
+      Settings.set('videos.bucharest.start', t);
+      toast(`已记录 布加勒斯特起点 = <b>${fmt(t, true)}</b>（从这里播放 24 秒）`);
+      emit(); return;
+    }
     if (!s || !s.want || s.want.key !== 'sc') { toast('按 C 记录提示点：需要 Smooth Criminal 正在播放（K 播放，Shift+←/→ 快退快进）'); return; }
     const t = Math.round(s.time() * 10) / 10;
     const cues = clone(Settings.get().videos.sc.cues);
