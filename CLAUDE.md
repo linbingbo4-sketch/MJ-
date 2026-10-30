@@ -35,3 +35,11 @@ add it to the snapshot in `tests/parity.js` in the same commit.
   Never send the viewer to another site or tab, and never download copyrighted media into the repo.
 - Keep the iPhone safe: WebKit sizes every composited layer by device pixel ratio. Avoid new full-stage layers that
   animate continuously on the low tier; prefer static paints there.
+
+## Every new version: update the site and send its link
+The presenter views the talk at **https://linbingbo4-sketch.github.io/MJ-/** (GitHub Pages, served from the
+`gh-pages` branch, which tracks this branch). After every push of a new version, fast-forward it and give that link
+(not a claude.ai preview) in the reply:
+```
+git push origin HEAD:gh-pages
+```
