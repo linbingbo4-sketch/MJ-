@@ -14,6 +14,23 @@ $url = "http://localhost:$port/index.html"
 Write-Host "BEYOND THE SPOTLIGHT  ->  $url"
 Write-Host 'Keep this window open while presenting. Close it to stop.'
 Start-Process $url
+# once: copy the free-licensed Commons photos the page uses into media\photos\, so later talks work offline
+Start-Job -ArgumentList $root -ScriptBlock {
+  param($root)
+  $folder = Join-Path $root 'media\photos'; New-Item -ItemType Directory -Force -Path $folder | Out-Null
+  $html = [IO.File]::ReadAllText((Join-Path $root 'index.html'))
+  foreach ($m in [regex]::Matches($html, "file: '([^']+\.jpg)', commons: '([^']+)'")) {
+    $dest = Join-Path $folder $m.Groups[1].Value
+    if (Test-Path -LiteralPath $dest) { continue }
+    $src = 'https://commons.wikimedia.org/wiki/Special:FilePath/' + [Uri]::EscapeDataString($m.Groups[2].Value) + '?width=1200'
+    try {
+      [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+      Invoke-WebRequest -UseBasicParsing -Uri $src -OutFile "$dest.part" -TimeoutSec 30 -UserAgent 'BeyondTheSpotlight/1.0 (classroom talk; local photo cache)'
+      $b = [IO.File]::ReadAllBytes("$dest.part")
+      if ($b.Length -gt 3 -and $b[0] -eq 0xFF -and $b[1] -eq 0xD8) { Move-Item -Force "$dest.part" $dest } else { Remove-Item "$dest.part" }
+    } catch { Remove-Item -ErrorAction SilentlyContinue "$dest.part" }
+  }
+} | Out-Null
 while ($listener.IsListening) {
   $ctx = $listener.GetContext(); $req = $ctx.Request; $res = $ctx.Response
   try {

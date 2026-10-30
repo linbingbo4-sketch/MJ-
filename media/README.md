@@ -25,7 +25,7 @@
 
 六张迈克尔本人的照片，全部来自 Wikimedia Commons，标为公有领域或 CC 许可。页面按这个顺序找照片：
 
-1. 这个文件夹里的同名文件（离线、以及 claude.ai 预览页里都能显示）
+1. 这个文件夹里的同名文件。用 `Start (Mac).command` / `Start (Windows).bat` 启动时，缺的照片会自动从 Commons 下载到这里（只下载一次，之后离线也能显示）
 2. Commons 上的原图（GitHub Pages 和本机打开时自动加载）
 3. 都没有时照片不出现，画面保持插画版
 
