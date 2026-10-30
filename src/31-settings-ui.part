@@ -94,7 +94,7 @@ const Panel = (() => {
   const checks = {};
   function chk(id, name, run) { checks[id] = checks[id] || { id, name, st: 'idle', msg: '' }; checks[id].run = run; return checks[id]; }
   function defineChecks() {
-    chk('proto', '页面打开方式', async () => /^https?:$/.test(location.protocol) ? ['ok', location.origin] : ['bad', '当前是 file:// 打开。YouTube 嵌入需要 http(s)：部署到 GitHub Pages，或在文件夹里运行 python3 -m http.server 后打开 http://localhost:8000']);
+    chk('proto', '页面打开方式', async () => /^https?:$/.test(location.protocol) ? ['ok', location.origin] : ['bad', '当前是 file:// 打开。YouTube 嵌入需要 http(s)：双击文件夹里的 Start (Mac).command 或 Start (Windows).bat']);
     chk('store', '本机存储（进度、设置、排练记录）', async () => store.ok() ? ['ok', '可用'] : ['bad', '浏览器禁止了本地存储：刷新后进度会丢失']);
     chk('yt', 'YouTube 播放接口', async () => (await YTAPI.ready()) ? ['ok', '已加载'] : ['bad', YTAPI.reason || '无法加载']);
     Object.keys(VIDEOS).forEach(k => chk('v-' + k, '视频 · ' + VIDEOS[k].name.zh, async () => {

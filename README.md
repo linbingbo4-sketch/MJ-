@@ -15,8 +15,8 @@
 
 | 方式 | 做法 |
 | --- | --- |
-| GitHub Pages（推荐） | 仓库 Settings → Pages → Deploy from a branch，选这个分支和 `/ (root)`，保存后打开 Pages 给出的 https 地址 |
-| 本机 | 在仓库文件夹里运行 `python3 -m http.server 8000`，打开 http://localhost:8000 |
+| 本机（推荐） | 双击 `Start (Mac).command` 或 `Start (Windows).bat`：在本机开一个 http://localhost 服务并自动打开浏览器，演讲时别关那个窗口。Mac 第一次要右键 → 打开；Windows 没装 Python 时自动改用 PowerShell。视频文件支持拖动进度 |
+| GitHub Pages | 仓库 Settings → Pages → Deploy from a branch，选这个分支和 `/ (root)`，保存后打开 Pages 给出的 https 地址（手机上看用这个） |
 | 不要 | 直接双击 `index.html`：`file://` 下 YouTube 嵌入会报错（本地音乐不受影响） |
 | claude.ai 预览链接 | 只适合看排版：预览环境不允许嵌入 YouTube、也不能加载外部图片，视频页显示说明卡，照片只有放进 `media/photos/` 并一起发布时才出现 |
 
