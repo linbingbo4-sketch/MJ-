@@ -106,7 +106,9 @@ function makeSlot(name, host, opt = {}) {
       if (!ok) throw new Error(YTAPI.reason || 'YouTube 不可用');
       return new Promise((res, rej) => {
         let done = false;
+        /* privacy-enhanced host: no tracking cookies, so no personalised ads (an uploader's own ads can still run) */
         const p = new YT.Player(hold, {
+          host: 'https://www.youtube-nocookie.com',
           width: '100%', height: '100%',
           playerVars: { autoplay: 0, controls: 0, disablekb: 1, fs: 0, iv_load_policy: 3, modestbranding: 1, playsinline: 1, rel: 0, cc_load_policy: 0, origin: location.origin, enablejsapi: 1 },
           events: {
@@ -188,7 +190,8 @@ function makeSlot(name, host, opt = {}) {
         if (s.pending && !s.playing) { try { p.playVideo(); } catch (e) { /* ignore */ } }
         s.kickTimer = setTimeout(() => { if (s.pending && !s.playing && !o.muted) { s.forcedMute = true; try { p.mute(); p.playVideo(); } catch (e) { /* ignore */ } } }, 2200);
       }, 2200);
-      s.loadTimer = setTimeout(() => { if (s.pending) { s.error = s.error || '视频加载超时'; showFallback(); settle(false); Video.emit(); } }, 11000);
+      /* an ad can run before the video: give it time before calling the video lost (otherwise the next source replaces it after a few seconds) */
+      s.loadTimer = setTimeout(() => { if (s.pending) { s.error = s.error || '视频加载超时'; showFallback(); settle(false); Video.emit(); } }, o.wait || 35000);
     })).catch(err => { s.error = String(err && err.message || err); showFallback(); return false; });
   };
   s.play = () => { if (s.kind === 'file') return vid.play().catch(() => {}); try { s.player && s.player.playVideo(); } catch (e) { /* ignore */ } };
@@ -201,7 +204,7 @@ function makeSlot(name, host, opt = {}) {
     return new Promise(res => {
       s.pending = res;
       try { if (!(s.want && s.want.muted)) { s.player.unMute(); s.player.setVolume(s.vol); } s.player.playVideo(); } catch (e) { settle(false); return; }
-      s.loadTimer = setTimeout(() => { if (s.pending) { s.error = s.error || '播放超时'; settle(false); } }, 8000);
+      s.loadTimer = setTimeout(() => { if (s.pending) { s.error = s.error || '播放超时'; settle(false); } }, 30000);
     });
   };
   s.pause = () => { s.playing = false; if (s.kind === 'file') { vid.pause(); return; } try { s.player && s.player.pauseVideo(); } catch (e) { /* ignore */ } };

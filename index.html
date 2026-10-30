@@ -1051,7 +1051,6 @@ body.fs #hint .hint-demo, body.started #hint .hint-demo { pointer-events: none; 
 .bk-stamp .zh { font-family: var(--f-zh-h); }
 .rv.on .bk-stamp { animation: bkStamp .5s var(--e-drop) both; animation-delay: var(--sd, 0s); }
 @keyframes bkStamp { from { scale: 2.2; opacity: 0; } to { scale: 1; opacity: 1; } }
-#vs-pip.wall::before { content: 'LIVE IN BUCHAREST · 1992 · LOOP'; }
 .ticket { width: 700px; height: 290px; display: flex; filter: drop-shadow(0 30px 50px rgba(0,0,0,.55)); transition: transform 1s var(--e-stage), opacity 1s var(--e-stage), filter 1s ease; }
 .ticket .tk-main { flex: 1; background: #f1e6cc; color: #2a2116; border-radius: 10px 0 0 10px; padding: 26px 30px; position: relative; overflow: hidden;
   -webkit-mask: radial-gradient(circle at 100% 0, transparent 14px, #000 15px) top right / 100% 51% no-repeat, radial-gradient(circle at 100% 100%, transparent 14px, #000 15px) bottom right / 100% 51% no-repeat;
@@ -1556,7 +1555,7 @@ const WORKS = {
   ijcslu:      { t: "I Just Can't Stop Loving You", by: 'Michael Jackson, Siedah Garrett', y: 1987, ids: ['GAmVuYEeSSg', 'PHZ1Bii7Uwk', 'lNPVS2v4-PE'] },
   bad:         { t: 'Bad', by: 'Michael Jackson', y: 1987, ids: ['dsUXAEzaC3Q', '-DlMoJ2V6uk'] },
   twymmf:      { t: 'The Way You Make Me Feel', by: 'Michael Jackson', y: 1987, ids: ['HzZ_urpj4As', '2BMpq8Br8Jo'] },
-  mitm:        { t: 'Man in the Mirror', by: 'Michael Jackson', y: 1988, ids: ['PivWY9wn5ps', '8gqMRlN6mAA'] },
+  mitm:        { t: 'Man in the Mirror', by: 'Michael Jackson', y: 1988, ids: ['PivWY9wn5ps', 'oMPSTsdnMJg'] },
   dirtydiana:  { t: 'Dirty Diana', by: 'Michael Jackson', y: 1988, ids: ['yUi_S6YWjZw'] },
   smooth:      { t: 'Smooth Criminal', by: 'Michael Jackson', y: 1988, ids: ['h_D3VFfhvs4'] },
   bow:         { t: 'Black or White', by: 'Michael Jackson', y: 1991, ids: ['F2AitTPI5U0', 'pTFE8cirkdQ', 'YP3W-E0OamU'] },
@@ -1579,7 +1578,7 @@ const VIDEOS = {
 };
 
 const DEFAULTS = {
-  mver: 4,          /* media defaults version: settings saved before the trailer had a default link are brought up to date */
+  mver: 5,          /* media defaults version: settings saved before the trailer had a default link are brought up to date */
   lang: 'ko',
   rate: 3.5,
   trim: false,
@@ -1603,7 +1602,7 @@ const DEFAULTS = {
     ] },
     /* the CRT and the optional broadcast beat both show the night of the first moonwalk, not the music video */
     bj: { src: 'https://www.youtube.com/watch?v=iQrjmTrVx4Q', start: 0 },
-    motown: { src: 'https://www.youtube.com/watch?v=iQrjmTrVx4Q', start: 0, end: 15 },
+    motown: { src: 'https://www.youtube.com/watch?v=iQrjmTrVx4Q', start: 0, end: null },
     /* the full concert on Michael Jackson's official channel. start: the moment he springs up through the stage
        (null until marked: press C while it plays); end: null = start + 24 s */
     bucharest: { src: 'https://www.youtube.com/watch?v=Hxgo-Qu-ZZE', start: null, end: null },
@@ -1661,7 +1660,7 @@ const SCENES = [
       { ko: '1982년 11월, 〈Thriller〉. 전 세계 약 7천만 장, 역사상 가장 많이 팔린 앨범으로 꼽힙니다. 미국에서 공식 인증된 것만 3,400만 장입니다.', zh: '1982年11月，《Thriller》。全球约7000万张，被认为是史上最畅销的专辑；仅美国官方认证就有3400万张。', vis: '白金唱片矩阵 + 计数器 70,000,000' },
       { ko: '개국한 지 2년도 안 된 MTV는 흑인 아티스트의 뮤직비디오를 거의 틀지 않았습니다. 〈Billie Jean〉은 그 벽을 넘어 집중적으로 방영된 첫 사례들 가운데 하나가 됩니다.', zh: '开播还不到两年的 MTV 几乎不播黑人艺人的 MV。《Billie Jean》成为最早突破这道墙、被高频播放的作品之一。', vis: '显像管电视：换台雪花 →〈Billie Jean〉1983', year: 1983 },
       { ko: '그리고 처음에 말씀드린 그 밤. 1983년 3월 25일, 모타운 25주년 기념 공연이었습니다. 그날 그가 부른 〈Billie Jean〉은 공연 전체에서 유일하게 모타운 곡이 아니었고, 바로 그 무대에서 문워크가 처음 등장합니다.', zh: '还有开场说的那一晚——1983年3月25日，摩城唱片25周年纪念演出。那天他唱的《Billie Jean》是整场唯一一首非摩城歌曲，太空步也正是在这个舞台上首次登场。', vis: '场记板回扣「1983. 3. 25 — 모타운 25」+ 太空步滑移', year: 1983 },
-      { optional: 'motown', ko: '5월 16일 방송, 4,700만 명이 넘는 사람들이 이 장면을 봤습니다.', zh: '5月16日播出，超过4700万人看到了这一幕。', vis: '（可选）摩城 25 片段约 15 秒；没设置视频就自动跳过', media: 15, video: { key: 'motown', slot: 'tv' }, mus: 'video', year: 1983 },
+      { optional: 'motown', ko: '5월 16일 방송, 4,700만 명이 넘는 사람들이 이 장면을 봤습니다.', zh: '5月16日播出，超过4700万人看到了这一幕。', vis: '（可选）摩城 25 现场完整播放，翻页时停下；没设置视频就自动跳过', media: 15, video: { key: 'motown', slot: 'tv' }, mus: 'video', year: 1983 },
       { ko: '이듬해 그래미에서 그는 하룻밤에 트로피 여덟 개를 가져갑니다.', zh: '第二年的格莱美，他一夜捧走八座奖杯。', vis: '「그래미 8」', year: 1984 },
       { cut: true, cont: true, ko: '14분짜리 쇼트 필름 〈Thriller〉로 뮤직비디오를 영화의 영역까지 끌어올리면서요.', zh: '同时，14分钟的短片《Thriller》把 MV 提升到了电影的层次。', vis: '续：14 分钟短片胶片条', year: 1984 },
     ] },
@@ -1692,7 +1691,7 @@ const SCENES = [
       { silent: true, ko: '（영상 · 말하지 않음）', zh: '（播放视频，不说话）', vis: '官方演唱会影像 Live in Bucharest：从舞台下弹出 → 一动不动，观众哭喊、晕倒（约 24 秒，到点自动停）', media: 24, video: { key: 'bucharest', slot: 'main' }, mus: 'video', year: 1992, note: '第一次排练时：视频播放中拖到他弹出的那一刻，按 C 记下起点' },
       { ko: '그날 몇 명이 쓰러졌는지, 공식 집계는 없습니다. 보도된 기록은 이렇습니다. 1988년 로마에서는 수십 명, 1993년 방콕에서는 수백 명이 쓰러졌습니다.', zh: '那天到底有多少人晕倒，没有官方统计。见诸报道的记录是这样的：1988年罗马，几十人；1993年曼谷，数百人晕倒。', vis: '晕倒记录表：布加勒斯特（无官方统计）· 罗马 1988（数十人）· 曼谷 1993（数百人），每行附出处', mus: 'low', year: 1993 },
       { ko: '인터넷에 도는 ‘23명 사망’은 사실이 아닙니다. 그의 모든 공연을 합친 실신자 수는, 누구도 세지 못했습니다.', zh: '网上流传的「23人死亡」并不属实。把他所有演唱会加起来到底晕倒了多少人，没有人数得清。', vis: '「23명 사망」盖章「사실 아님」；合计一栏「집계 없음」', mus: 'low' },
-      { ko: '실려 나가는 사람들, 울부짖는 관객들. 그동안 무대 위의 그는, 아무것도 하지 않았습니다.', zh: '被抬出去的人，哭喊的观众。而这段时间里，台上的他，什么都没有做。', vis: '观众席影像墙（官方影像，静音循环）+ 布加勒斯特现场照片', mus: 'low', year: 1992 },
+      { ko: '실려 나가는 사람들, 울부짖는 관객들. 그동안 무대 위의 그는, 아무것도 하지 않았습니다.', zh: '被抬出去的人，哭喊的观众。而这段时间里，台上的他，什么都没有做。', vis: '十二张演唱会画面：被抬出护栏的观众、哭喊的观众席', mus: 'low', year: 1992 },
     ] },
   { key: 'shadow', era: 'shadow', act: 2, budget: 85, year: 1993, hud: true, enter: 'dissolve', chapter: 'VI',
     title: L('그림자', '阴影'), short: L('VI 그림자', 'VI 阴影'), track: 'moscow',
@@ -1800,6 +1799,7 @@ function migrate(saved) {
   const v = o.videos || {};
   if (v.bj && /Zi_XLOBDo_Y/.test(v.bj.src || '')) delete v.bj.src;      /* the old default (the music video) */
   if (v.motown && !v.motown.src) delete v.motown.src;
+  if (v.motown && v.motown.end === 15 && !v.motown.start) v.motown.end = null;   /* the old 15-second cut stopped the performance */
   o.mver = DEFAULTS.mver;
   return o;
 }
@@ -2640,12 +2640,14 @@ const Music = (() => {
   }
   const master = () => muted ? 0 : Settings.get().vol.master / 100;
 
-  /* the configured source first (normally the local file), then Apple's official clip, then the official uploads on YouTube */
+  /* the configured source first (normally the local file), then the official streams */
   function sourcesOf(key) {
     const cfg = Settings.get().tracks[key] || {}, src = (cfg.src || '').trim(), list = [];
     if (src) list.push(ytId(src) ? { kind: 'yt', id: ytId(src) } : { kind: 'file', src });
-    list.push({ kind: 'clip' });
-    (TRACKS[key].yt || []).forEach(id => { if (!list.some(s => s.id === id)) list.push({ kind: 'yt', id }); });
+    /* the whole song from its first second, looping: the official upload on YouTube; Apple's 30-second clip only when
+       YouTube cannot play. Phones start with the clip (iOS will not start or fade a YouTube player from script) */
+    const yt = (TRACKS[key].yt || []).filter(id => !list.some(s => s.id === id)).map(id => ({ kind: 'yt', id }));
+    if (LITE) list.push({ kind: 'clip' }, ...yt); else list.push(...yt, { kind: 'clip' });
     return list;
   }
 
@@ -2727,7 +2729,8 @@ const Music = (() => {
       d.setVol(d.gain * master());
       if (d.ready && d.readyId === id && slot.want && slot.want.id === id) { d.ready = false; return slot.resume().then(ok => ok || (d.error = slot.error || 'YouTube', false)); }
       d.ready = false;
-      return slot.load({ id, start: d.start, muted: false, loop: true, autoplay: true }).then(ok => { if (!ok) d.error = slot.error || YTAPI.reason || 'YouTube'; return ok; });
+      /* background music does not wait for an ad: after 9 s the next source takes over */
+      return slot.load({ id, start: d.start, muted: false, loop: true, autoplay: true, wait: 9000 }).then(ok => { if (!ok) d.error = slot.error || YTAPI.reason || 'YouTube'; return ok; });
     }
     function tryFrom(i) {
       if (i >= d.list.length) {
@@ -3177,7 +3180,9 @@ function makeSlot(name, host, opt = {}) {
       if (!ok) throw new Error(YTAPI.reason || 'YouTube 不可用');
       return new Promise((res, rej) => {
         let done = false;
+        /* privacy-enhanced host: no tracking cookies, so no personalised ads (an uploader's own ads can still run) */
         const p = new YT.Player(hold, {
+          host: 'https://www.youtube-nocookie.com',
           width: '100%', height: '100%',
           playerVars: { autoplay: 0, controls: 0, disablekb: 1, fs: 0, iv_load_policy: 3, modestbranding: 1, playsinline: 1, rel: 0, cc_load_policy: 0, origin: location.origin, enablejsapi: 1 },
           events: {
@@ -3259,7 +3264,8 @@ function makeSlot(name, host, opt = {}) {
         if (s.pending && !s.playing) { try { p.playVideo(); } catch (e) { /* ignore */ } }
         s.kickTimer = setTimeout(() => { if (s.pending && !s.playing && !o.muted) { s.forcedMute = true; try { p.mute(); p.playVideo(); } catch (e) { /* ignore */ } } }, 2200);
       }, 2200);
-      s.loadTimer = setTimeout(() => { if (s.pending) { s.error = s.error || '视频加载超时'; showFallback(); settle(false); Video.emit(); } }, 11000);
+      /* an ad can run before the video: give it time before calling the video lost (otherwise the next source replaces it after a few seconds) */
+      s.loadTimer = setTimeout(() => { if (s.pending) { s.error = s.error || '视频加载超时'; showFallback(); settle(false); Video.emit(); } }, o.wait || 35000);
     })).catch(err => { s.error = String(err && err.message || err); showFallback(); return false; });
   };
   s.play = () => { if (s.kind === 'file') return vid.play().catch(() => {}); try { s.player && s.player.playVideo(); } catch (e) { /* ignore */ } };
@@ -3272,7 +3278,7 @@ function makeSlot(name, host, opt = {}) {
     return new Promise(res => {
       s.pending = res;
       try { if (!(s.want && s.want.muted)) { s.player.unMute(); s.player.setVolume(s.vol); } s.player.playVideo(); } catch (e) { settle(false); return; }
-      s.loadTimer = setTimeout(() => { if (s.pending) { s.error = s.error || '播放超时'; settle(false); } }, 8000);
+      s.loadTimer = setTimeout(() => { if (s.pending) { s.error = s.error || '播放超时'; settle(false); } }, 30000);
     });
   };
   s.pause = () => { s.playing = false; if (s.kind === 'file') { vid.pause(); return; } try { s.player && s.player.pauseVideo(); } catch (e) { /* ignore */ } };
@@ -6564,15 +6570,20 @@ Scenes.define('bucharest', {
       row('total', '3-3', 1.9, L('합계', '合计'), L('모든 공연', '所有演出'), '', none(L('아무도 세지 못했다', '没有人数得清')), L('투어 관객만 수백만 명', '光是巡演观众就有数百万')));
     mid.append(this.ledW = A('div', 1180, 540, { show: '2-3', cls: 'zoom' }, this.ledger));
     /* the photograph of that night, beside the ledger and the crowd */
-    mid.append(this.ph = photoPrint('dw_1992', { x: 300, y: 560, w: 300, h: 380, rot: -3, show: '2-4', d: .4 }));
-    /* 4 · the stands: the same film, without sound, on a loop */
-    const WR = { x: 720, y: 205, w: 960, h: 540 };
-    Scenes.setRect('bkWall', WR);
-    mid.append(A('div.frame', WR.x + WR.w / 2, WR.y + WR.h / 2, { show: '4', cls: 'zoom', style: `width:${WR.w}px;height:${WR.h}px` },
-        h('div.fr-b'), h('div.fr-c.tl'), h('div.fr-c.tr'), h('div.fr-c.bl'), h('div.fr-c.br'),
-        h('div.fr-in', {}, h('div.fr-k', {}, T(L('그날의 관객석', '那天的观众席'))), h('div.fr-t', { text: 'Bucharest · 1992' }))),
-      A('div.lab.nowrap', WR.x + WR.w / 2, WR.y + WR.h + 52, { show: '4', d: .6 }, T(L('공식 공연 영상 · 소리 없이 반복', '官方演出影像 · 静音循环'))),
-      this.last = A('div.h-s.center.nowrap', WR.x + WR.w / 2, 872, { show: '4', d: 1.6, style: 'color:var(--acc2)' }, T(L('그동안 그는, 아무것도 하지 않았다', '这段时间里，他什么都没做'))));
+    mid.append(this.ph = photoPrint('dw_1992', { x: 300, y: 560, w: 300, h: 380, rot: -3, show: '2-3', d: .4 }));
+    /* 4 · the stands: stills from the concert film, people carried out over the barrier and the crowd */
+    const ST = ['carry-1', 'crowd-1', 'carry-4', 'crowd-3', 'carry-2', 'crowd-2', 'carry-6', 'crowd-4', 'carry-5', 'crowd-5', 'carry-7', 'carry-3'];
+    this.stills = ST.map((n, k) => {
+      const img = h('img', { alt: '', decoding: 'async', loading: 'lazy', draggable: 'false', src: `media/stills/${n}.jpg` });
+      const print = h('div.photo', { style: { width: '324px' } }, h('div.ph-img', { style: { width: '300px', height: '188px' } }, img),
+        h('div.ph-cr', { text: (n.startsWith('carry') ? '⛑ ' : '') + 'LIVE IN BUCHAREST · 1992 · 화면 캡처' }));
+      const el = A('div.photo-w', 360 + (k % 4) * 400, 322 + Math.floor(k / 4) * 242, { show: '4-4', cls: 'drop', d: .2 + k * .14, style: `rotate:${[-2.5, 1.5, -1, 2.5, 2, -2, 1, -1.5, -1, 2, -2.5, 1.5][k]}deg` }, print);
+      img.addEventListener('error', () => el.classList.add('nophoto'));
+      tiltify(print, 6);
+      return el;
+    });
+    mid.append(...this.stills,
+      this.last = A('div.h-s.center.nowrap', 900, 168, { show: '4-4', d: 2, style: 'color:var(--acc2)' }, T(L('그동안 그는, 아무것도 하지 않았다', '这段时间里，他什么都没做'))));
   },
   pop(on, ctx) {
     clearTimeout(this._pop);
@@ -6608,13 +6619,10 @@ Scenes.define('bucharest', {
     }
     if (i === 4) {
       ctx.fx({ gold: .5, crowd: 1 });
-      const cfg = Settings.get().videos.bucharest || {}, a = cfg.start != null ? +cfg.start + 6 : 0;
-      const pip = Video.slot('pip'); pip.el.classList.add('wall');
-      Video.playRange('pip', 'bucharest', { start: a, end: a + 50, muted: true, loop: true, rect: Scenes.rect('bkWall') });
-      ctx.light({ ambient: .82, lights: [{ id: 'w', type: 'rect', x: 1200, y: 475, w: 1040, h: 620, r: 6, soft: 60, i: .95 }, ...photoLight('ph', this.ph), textLight('x', this.last, { i: .7, delay: ctx.fwd ? 1.6 : 0 })] });
-    } else { Video.stop('pip'); Video.slot('pip').el.classList.remove('wall'); }
+      ctx.light({ ambient: .78, lights: [{ id: 'w', type: 'rect', x: 960, y: 565, w: 1680, h: 760, r: 10, soft: 70, i: .95 }, textLight('x', this.last, { i: .7, delay: ctx.fwd ? 2 : 0 })] });
+    }
   },
-  leave() { clearTimeout(this._pop); this.st.stop(); Video.slot('pip').el.classList.remove('wall'); },
+  leave() { clearTimeout(this._pop); this.st.stop(); },
 });
 
 /* ── 16-scenes-act3 ── */

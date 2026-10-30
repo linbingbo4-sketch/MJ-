@@ -92,7 +92,6 @@
 .bk-stamp .zh { font-family: var(--f-zh-h); }
 .rv.on .bk-stamp { animation: bkStamp .5s var(--e-drop) both; animation-delay: var(--sd, 0s); }
 @keyframes bkStamp { from { scale: 2.2; opacity: 0; } to { scale: 1; opacity: 1; } }
-#vs-pip.wall::before { content: 'LIVE IN BUCHAREST · 1992 · LOOP'; }
 .ticket { width: 700px; height: 290px; display: flex; filter: drop-shadow(0 30px 50px rgba(0,0,0,.55)); transition: transform 1s var(--e-stage), opacity 1s var(--e-stage), filter 1s ease; }
 .ticket .tk-main { flex: 1; background: #f1e6cc; color: #2a2116; border-radius: 10px 0 0 10px; padding: 26px 30px; position: relative; overflow: hidden;
   -webkit-mask: radial-gradient(circle at 100% 0, transparent 14px, #000 15px) top right / 100% 51% no-repeat, radial-gradient(circle at 100% 100%, transparent 14px, #000 15px) bottom right / 100% 51% no-repeat;
@@ -416,15 +415,20 @@ Scenes.define('bucharest', {
       row('total', '3-3', 1.9, L('합계', '合计'), L('모든 공연', '所有演出'), '', none(L('아무도 세지 못했다', '没有人数得清')), L('투어 관객만 수백만 명', '光是巡演观众就有数百万')));
     mid.append(this.ledW = A('div', 1180, 540, { show: '2-3', cls: 'zoom' }, this.ledger));
     /* the photograph of that night, beside the ledger and the crowd */
-    mid.append(this.ph = photoPrint('dw_1992', { x: 300, y: 560, w: 300, h: 380, rot: -3, show: '2-4', d: .4 }));
-    /* 4 · the stands: the same film, without sound, on a loop */
-    const WR = { x: 720, y: 205, w: 960, h: 540 };
-    Scenes.setRect('bkWall', WR);
-    mid.append(A('div.frame', WR.x + WR.w / 2, WR.y + WR.h / 2, { show: '4', cls: 'zoom', style: `width:${WR.w}px;height:${WR.h}px` },
-        h('div.fr-b'), h('div.fr-c.tl'), h('div.fr-c.tr'), h('div.fr-c.bl'), h('div.fr-c.br'),
-        h('div.fr-in', {}, h('div.fr-k', {}, T(L('그날의 관객석', '那天的观众席'))), h('div.fr-t', { text: 'Bucharest · 1992' }))),
-      A('div.lab.nowrap', WR.x + WR.w / 2, WR.y + WR.h + 52, { show: '4', d: .6 }, T(L('공식 공연 영상 · 소리 없이 반복', '官方演出影像 · 静音循环'))),
-      this.last = A('div.h-s.center.nowrap', WR.x + WR.w / 2, 872, { show: '4', d: 1.6, style: 'color:var(--acc2)' }, T(L('그동안 그는, 아무것도 하지 않았다', '这段时间里，他什么都没做'))));
+    mid.append(this.ph = photoPrint('dw_1992', { x: 300, y: 560, w: 300, h: 380, rot: -3, show: '2-3', d: .4 }));
+    /* 4 · the stands: stills from the concert film, people carried out over the barrier and the crowd */
+    const ST = ['carry-1', 'crowd-1', 'carry-4', 'crowd-3', 'carry-2', 'crowd-2', 'carry-6', 'crowd-4', 'carry-5', 'crowd-5', 'carry-7', 'carry-3'];
+    this.stills = ST.map((n, k) => {
+      const img = h('img', { alt: '', decoding: 'async', loading: 'lazy', draggable: 'false', src: `media/stills/${n}.jpg` });
+      const print = h('div.photo', { style: { width: '324px' } }, h('div.ph-img', { style: { width: '300px', height: '188px' } }, img),
+        h('div.ph-cr', { text: (n.startsWith('carry') ? '⛑ ' : '') + 'LIVE IN BUCHAREST · 1992 · 화면 캡처' }));
+      const el = A('div.photo-w', 360 + (k % 4) * 400, 322 + Math.floor(k / 4) * 242, { show: '4-4', cls: 'drop', d: .2 + k * .14, style: `rotate:${[-2.5, 1.5, -1, 2.5, 2, -2, 1, -1.5, -1, 2, -2.5, 1.5][k]}deg` }, print);
+      img.addEventListener('error', () => el.classList.add('nophoto'));
+      tiltify(print, 6);
+      return el;
+    });
+    mid.append(...this.stills,
+      this.last = A('div.h-s.center.nowrap', 900, 168, { show: '4-4', d: 2, style: 'color:var(--acc2)' }, T(L('그동안 그는, 아무것도 하지 않았다', '这段时间里，他什么都没做'))));
   },
   pop(on, ctx) {
     clearTimeout(this._pop);
@@ -460,12 +464,9 @@ Scenes.define('bucharest', {
     }
     if (i === 4) {
       ctx.fx({ gold: .5, crowd: 1 });
-      const cfg = Settings.get().videos.bucharest || {}, a = cfg.start != null ? +cfg.start + 6 : 0;
-      const pip = Video.slot('pip'); pip.el.classList.add('wall');
-      Video.playRange('pip', 'bucharest', { start: a, end: a + 50, muted: true, loop: true, rect: Scenes.rect('bkWall') });
-      ctx.light({ ambient: .82, lights: [{ id: 'w', type: 'rect', x: 1200, y: 475, w: 1040, h: 620, r: 6, soft: 60, i: .95 }, ...photoLight('ph', this.ph), textLight('x', this.last, { i: .7, delay: ctx.fwd ? 1.6 : 0 })] });
-    } else { Video.stop('pip'); Video.slot('pip').el.classList.remove('wall'); }
+      ctx.light({ ambient: .78, lights: [{ id: 'w', type: 'rect', x: 960, y: 565, w: 1680, h: 760, r: 10, soft: 70, i: .95 }, textLight('x', this.last, { i: .7, delay: ctx.fwd ? 2 : 0 })] });
+    }
   },
-  leave() { clearTimeout(this._pop); this.st.stop(); Video.slot('pip').el.classList.remove('wall'); },
+  leave() { clearTimeout(this._pop); this.st.stop(); },
 });
 </script>

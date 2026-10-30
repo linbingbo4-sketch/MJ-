@@ -189,12 +189,14 @@ const Music = (() => {
   }
   const master = () => muted ? 0 : Settings.get().vol.master / 100;
 
-  /* the configured source first (normally the local file), then Apple's official clip, then the official uploads on YouTube */
+  /* the configured source first (normally the local file), then the official streams */
   function sourcesOf(key) {
     const cfg = Settings.get().tracks[key] || {}, src = (cfg.src || '').trim(), list = [];
     if (src) list.push(ytId(src) ? { kind: 'yt', id: ytId(src) } : { kind: 'file', src });
-    list.push({ kind: 'clip' });
-    (TRACKS[key].yt || []).forEach(id => { if (!list.some(s => s.id === id)) list.push({ kind: 'yt', id }); });
+    /* the whole song from its first second, looping: the official upload on YouTube; Apple's 30-second clip only when
+       YouTube cannot play. Phones start with the clip (iOS will not start or fade a YouTube player from script) */
+    const yt = (TRACKS[key].yt || []).filter(id => !list.some(s => s.id === id)).map(id => ({ kind: 'yt', id }));
+    if (LITE) list.push({ kind: 'clip' }, ...yt); else list.push(...yt, { kind: 'clip' });
     return list;
   }
 
@@ -276,7 +278,8 @@ const Music = (() => {
       d.setVol(d.gain * master());
       if (d.ready && d.readyId === id && slot.want && slot.want.id === id) { d.ready = false; return slot.resume().then(ok => ok || (d.error = slot.error || 'YouTube', false)); }
       d.ready = false;
-      return slot.load({ id, start: d.start, muted: false, loop: true, autoplay: true }).then(ok => { if (!ok) d.error = slot.error || YTAPI.reason || 'YouTube'; return ok; });
+      /* background music does not wait for an ad: after 9 s the next source takes over */
+      return slot.load({ id, start: d.start, muted: false, loop: true, autoplay: true, wait: 9000 }).then(ok => { if (!ok) d.error = slot.error || YTAPI.reason || 'YouTube'; return ok; });
     }
     function tryFrom(i) {
       if (i >= d.list.length) {

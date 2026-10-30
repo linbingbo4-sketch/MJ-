@@ -46,7 +46,7 @@ const WORKS = {
   ijcslu:      { t: "I Just Can't Stop Loving You", by: 'Michael Jackson, Siedah Garrett', y: 1987, ids: ['GAmVuYEeSSg', 'PHZ1Bii7Uwk', 'lNPVS2v4-PE'] },
   bad:         { t: 'Bad', by: 'Michael Jackson', y: 1987, ids: ['dsUXAEzaC3Q', '-DlMoJ2V6uk'] },
   twymmf:      { t: 'The Way You Make Me Feel', by: 'Michael Jackson', y: 1987, ids: ['HzZ_urpj4As', '2BMpq8Br8Jo'] },
-  mitm:        { t: 'Man in the Mirror', by: 'Michael Jackson', y: 1988, ids: ['PivWY9wn5ps', '8gqMRlN6mAA'] },
+  mitm:        { t: 'Man in the Mirror', by: 'Michael Jackson', y: 1988, ids: ['PivWY9wn5ps', 'oMPSTsdnMJg'] },
   dirtydiana:  { t: 'Dirty Diana', by: 'Michael Jackson', y: 1988, ids: ['yUi_S6YWjZw'] },
   smooth:      { t: 'Smooth Criminal', by: 'Michael Jackson', y: 1988, ids: ['h_D3VFfhvs4'] },
   bow:         { t: 'Black or White', by: 'Michael Jackson', y: 1991, ids: ['F2AitTPI5U0', 'pTFE8cirkdQ', 'YP3W-E0OamU'] },
@@ -69,7 +69,7 @@ const VIDEOS = {
 };
 
 const DEFAULTS = {
-  mver: 4,          /* media defaults version: settings saved before the trailer had a default link are brought up to date */
+  mver: 5,          /* media defaults version: settings saved before the trailer had a default link are brought up to date */
   lang: 'ko',
   rate: 3.5,
   trim: false,
@@ -93,7 +93,7 @@ const DEFAULTS = {
     ] },
     /* the CRT and the optional broadcast beat both show the night of the first moonwalk, not the music video */
     bj: { src: 'https://www.youtube.com/watch?v=iQrjmTrVx4Q', start: 0 },
-    motown: { src: 'https://www.youtube.com/watch?v=iQrjmTrVx4Q', start: 0, end: 15 },
+    motown: { src: 'https://www.youtube.com/watch?v=iQrjmTrVx4Q', start: 0, end: null },
     /* the full concert on Michael Jackson's official channel. start: the moment he springs up through the stage
        (null until marked: press C while it plays); end: null = start + 24 s */
     bucharest: { src: 'https://www.youtube.com/watch?v=Hxgo-Qu-ZZE', start: null, end: null },
@@ -151,7 +151,7 @@ const SCENES = [
       { ko: '1982년 11월, 〈Thriller〉. 전 세계 약 7천만 장, 역사상 가장 많이 팔린 앨범으로 꼽힙니다. 미국에서 공식 인증된 것만 3,400만 장입니다.', zh: '1982年11月，《Thriller》。全球约7000万张，被认为是史上最畅销的专辑；仅美国官方认证就有3400万张。', vis: '白金唱片矩阵 + 计数器 70,000,000' },
       { ko: '개국한 지 2년도 안 된 MTV는 흑인 아티스트의 뮤직비디오를 거의 틀지 않았습니다. 〈Billie Jean〉은 그 벽을 넘어 집중적으로 방영된 첫 사례들 가운데 하나가 됩니다.', zh: '开播还不到两年的 MTV 几乎不播黑人艺人的 MV。《Billie Jean》成为最早突破这道墙、被高频播放的作品之一。', vis: '显像管电视：换台雪花 →〈Billie Jean〉1983', year: 1983 },
       { ko: '그리고 처음에 말씀드린 그 밤. 1983년 3월 25일, 모타운 25주년 기념 공연이었습니다. 그날 그가 부른 〈Billie Jean〉은 공연 전체에서 유일하게 모타운 곡이 아니었고, 바로 그 무대에서 문워크가 처음 등장합니다.', zh: '还有开场说的那一晚——1983年3月25日，摩城唱片25周年纪念演出。那天他唱的《Billie Jean》是整场唯一一首非摩城歌曲，太空步也正是在这个舞台上首次登场。', vis: '场记板回扣「1983. 3. 25 — 모타운 25」+ 太空步滑移', year: 1983 },
-      { optional: 'motown', ko: '5월 16일 방송, 4,700만 명이 넘는 사람들이 이 장면을 봤습니다.', zh: '5月16日播出，超过4700万人看到了这一幕。', vis: '（可选）摩城 25 片段约 15 秒；没设置视频就自动跳过', media: 15, video: { key: 'motown', slot: 'tv' }, mus: 'video', year: 1983 },
+      { optional: 'motown', ko: '5월 16일 방송, 4,700만 명이 넘는 사람들이 이 장면을 봤습니다.', zh: '5月16日播出，超过4700万人看到了这一幕。', vis: '（可选）摩城 25 现场完整播放，翻页时停下；没设置视频就自动跳过', media: 15, video: { key: 'motown', slot: 'tv' }, mus: 'video', year: 1983 },
       { ko: '이듬해 그래미에서 그는 하룻밤에 트로피 여덟 개를 가져갑니다.', zh: '第二年的格莱美，他一夜捧走八座奖杯。', vis: '「그래미 8」', year: 1984 },
       { cut: true, cont: true, ko: '14분짜리 쇼트 필름 〈Thriller〉로 뮤직비디오를 영화의 영역까지 끌어올리면서요.', zh: '同时，14分钟的短片《Thriller》把 MV 提升到了电影的层次。', vis: '续：14 分钟短片胶片条', year: 1984 },
     ] },
@@ -182,7 +182,7 @@ const SCENES = [
       { silent: true, ko: '（영상 · 말하지 않음）', zh: '（播放视频，不说话）', vis: '官方演唱会影像 Live in Bucharest：从舞台下弹出 → 一动不动，观众哭喊、晕倒（约 24 秒，到点自动停）', media: 24, video: { key: 'bucharest', slot: 'main' }, mus: 'video', year: 1992, note: '第一次排练时：视频播放中拖到他弹出的那一刻，按 C 记下起点' },
       { ko: '그날 몇 명이 쓰러졌는지, 공식 집계는 없습니다. 보도된 기록은 이렇습니다. 1988년 로마에서는 수십 명, 1993년 방콕에서는 수백 명이 쓰러졌습니다.', zh: '那天到底有多少人晕倒，没有官方统计。见诸报道的记录是这样的：1988年罗马，几十人；1993年曼谷，数百人晕倒。', vis: '晕倒记录表：布加勒斯特（无官方统计）· 罗马 1988（数十人）· 曼谷 1993（数百人），每行附出处', mus: 'low', year: 1993 },
       { ko: '인터넷에 도는 ‘23명 사망’은 사실이 아닙니다. 그의 모든 공연을 합친 실신자 수는, 누구도 세지 못했습니다.', zh: '网上流传的「23人死亡」并不属实。把他所有演唱会加起来到底晕倒了多少人，没有人数得清。', vis: '「23명 사망」盖章「사실 아님」；合计一栏「집계 없음」', mus: 'low' },
-      { ko: '실려 나가는 사람들, 울부짖는 관객들. 그동안 무대 위의 그는, 아무것도 하지 않았습니다.', zh: '被抬出去的人，哭喊的观众。而这段时间里，台上的他，什么都没有做。', vis: '观众席影像墙（官方影像，静音循环）+ 布加勒斯特现场照片', mus: 'low', year: 1992 },
+      { ko: '실려 나가는 사람들, 울부짖는 관객들. 그동안 무대 위의 그는, 아무것도 하지 않았습니다.', zh: '被抬出去的人，哭喊的观众。而这段时间里，台上的他，什么都没有做。', vis: '十二张演唱会画面：被抬出护栏的观众、哭喊的观众席', mus: 'low', year: 1992 },
     ] },
   { key: 'shadow', era: 'shadow', act: 2, budget: 85, year: 1993, hud: true, enter: 'dissolve', chapter: 'VI',
     title: L('그림자', '阴影'), short: L('VI 그림자', 'VI 阴影'), track: 'moscow',

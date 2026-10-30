@@ -25,6 +25,7 @@ function migrate(saved) {
   const v = o.videos || {};
   if (v.bj && /Zi_XLOBDo_Y/.test(v.bj.src || '')) delete v.bj.src;      /* the old default (the music video) */
   if (v.motown && !v.motown.src) delete v.motown.src;
+  if (v.motown && v.motown.end === 15 && !v.motown.start) v.motown.end = null;   /* the old 15-second cut stopped the performance */
   o.mver = DEFAULTS.mver;
   return o;
 }

@@ -28,7 +28,8 @@ It must print `✓ desktop and phone show the same features on every beat`. When
 add it to the snapshot in `tests/parity.js` in the same commit.
 
 ## Other constraints
-- Photos: freely licensed only (Wikimedia Commons, credit printed on the print).
+- Photos: freely licensed only (Wikimedia Commons, credit printed on the print). The one exception is `media/stills/`:
+  frames from the Bucharest 1992 concert film that the presenter supplied for that scene (credited on each print).
 - Videos and music play **inside the page**: a local file first (`media/mv/<work>.mp4`, `media/video/<key>.mp4`,
   `media/music/…` — supplied by the presenter, git-ignored, never committed), then official streams: for the era music
   Apple's 30-second preview (looked up in the browser, streamed, looped), then the embedded official YouTube player.
