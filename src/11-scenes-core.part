@@ -60,7 +60,21 @@ const Scenes = (() => {
       if (n && !built.has(n.key)) setTimeout(() => ensure(n.key), 400);
     }
     const el = els[sc.key];
+    const PAPER = '.slv, .photo, .ticket, .card, .cc';
+    const wasOn = new Set($$('[data-show].on', el));
     shows(el, i);
+    /* sleeves, prints and tickets that fall onto the stage make a sound as they land */
+    if ((opt.dir ?? 1) > 0 && !opt.instant) {
+      let n = 0;
+      $$('[data-show].on', el).filter(x => !wasOn.has(x) && (x.matches(PAPER) || x.querySelector(PAPER)) && !x.closest('.nophoto') && !x.classList.contains('nophoto'))
+        .map(x => ({ x, d: parseFloat(getComputedStyle(x).getPropertyValue('--d')) || 0 }))
+        .sort((a, b) => a.d - b.d)
+        .forEach(({ x, d }) => {
+          if (n++ >= 8) return;
+          const land = x.classList.contains('slow') ? .9 : .5, pan = clamp(((parseFloat(x.style.left) || 960) / 960 - 1) * .6, -.7, .7);
+          timers.push(setTimeout(() => SFX.paper({ pan, gain: .26 + Math.random() * .1 }), (d + land) * 1000 + 300));
+        });
+    }
     const d = defs[sc.key];
     const ctx = {
       i, sc, el, dir: opt.dir ?? 1, instant: !!opt.instant, first: !!opt.first,

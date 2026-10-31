@@ -1,5 +1,5 @@
 <script>
 /* ═══ go ═══ */
-window.BTS = { BEATS, SCENES, Director, Settings, Session, Runs, Light, Video, Music, SFX, MV, Captions, YTAPI, Scenes, Era, FX, HUD, Overview, Panel, Figure, h, Torch, Pointer, Loop };
+window.BTS = { BEATS, SCENES, Accents, Director, Settings, Session, Runs, Light, Video, Music, SFX, MV, Captions, YTAPI, Scenes, Era, FX, HUD, Overview, Panel, Figure, h, Torch, Pointer, Loop };
 App.boot();
 </script>

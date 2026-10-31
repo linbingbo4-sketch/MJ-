@@ -502,6 +502,16 @@ const Video = (() => {
   const CAP = ['1 起点', '1 终点', '2 起点', '2 终点', '3 起点', '3 终点', '4 起点', '4 终点'];
   function captureCue() {
     const s = activeSlot();
+    /* Motown 25 (the CRT, the optional clip, or its MV window): C marks where the moonwalk starts */
+    if (s && s.want && (s.want.key === 'motown' || s.want.key === 'bj' || s.want.key === 'mv')) {
+      const t = Math.round(s.time() * 10) / 10;
+      if (s.want.key === 'mv') {
+        const m = clone(Settings.get().mvStart || {}); m[s.want.work + ':' + (s.want.id || 'file')] = t; Settings.set('mvStart', m);
+        if (s.want.work === 'motown25') { Settings.set('videos.motown.start', t); Settings.set('videos.bj.start', t); }
+        toast(`已记录 这部 MV 的起点 = <b>${fmt(t, true)}</b>（以后从这里开始）`);
+      } else { Settings.set('videos.motown.start', t); Settings.set('videos.bj.start', t); toast(`已记录 太空步的起点 = <b>${fmt(t, true)}</b>（摩城 25 的电视、片段和 MV 都从这里开始）`); }
+      emit(); return;
+    }
     if (s && s.want && s.want.key === 'bucharest') {
       const t = Math.round(s.time() * 10) / 10;
       Settings.set('videos.bucharest.start', t);

@@ -71,8 +71,44 @@
 .bk-lip { width: 1920px; height: 150px; background: linear-gradient(180deg, #2a1f0e 0, #0b0805 26px, #050403 100%); border-top: 3px solid rgba(240, 192, 96, .7); box-shadow: 0 -10px 40px rgba(240, 192, 96, .18); }
 .bk-hatch { width: 300px; height: 14px; background: linear-gradient(90deg, transparent, rgba(255, 217, 138, .95), transparent); filter: blur(2px); opacity: 0; transition: opacity .2s ease; }
 .bk-hatch.flash { opacity: 1; }
-.figbox.bk-pop > * { translate: 0 420px; transition: translate .34s cubic-bezier(.2, 1.5, .45, 1); }
-.figbox.bk-pop.up > * { translate: 0 0; }
+/* the man himself, cut out of a frame of the concert film, shown as a silhouette with a burning rim */
+.bk-fig { width: 332px; height: 780px; translate: -50% -100%; overflow: hidden; cursor: pointer; }
+.bk-fig img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: 50% 100%; filter: brightness(0) drop-shadow(0 0 2px #ffd27a) drop-shadow(0 0 16px rgba(255, 150, 40, .85)); }
+#stage.q-low .bk-fig img { filter: brightness(0) drop-shadow(0 0 3px #ffc560); }
+.bk-fig img.bk-skin { filter: none; opacity: 0; transition: opacity 1.6s ease; }
+.bk-fig.lit img.bk-skin { opacity: .35; }
+.bk-fig > i { position: absolute; inset: 0; translate: 0 780px; transition: translate .32s cubic-bezier(.2, 1.6, .45, 1); }
+.bk-fig.up > i { translate: 0 0; }
+.bk-fig.still > i { transition: none; }
+/* pyro: black curtain, flame jets along the stage lip, the blast, the camera punch */
+.bk-curtain { width: 1920px; height: 1080px; background: #000; opacity: 0; transition: opacity .5s ease; pointer-events: none; }
+.bk-curtain.on { opacity: 1; transition: opacity .25s ease; }
+.bk-jet { width: 260px; height: 860px; translate: -50% -100%; transform-origin: 50% 100%; opacity: 0; pointer-events: none;
+  background: radial-gradient(ellipse 40% 58% at 50% 100%, #fff4c2 0%, #ffc444 12%, #ff7a1a 30%, rgba(214, 50, 6, .8) 48%, rgba(110, 16, 0, .4) 64%, transparent 76%); border-radius: 50% 50% 40% 40% / 75% 75% 25% 25%; }
+#stage:not(.q-low) .bk-jet { filter: blur(4px); mix-blend-mode: screen; }
+.bk-jet::before, .bk-jet::after { content: ''; position: absolute; border-radius: 50%; }
+.bk-jet::before { left: 30%; right: 30%; top: 30%; bottom: 4%; background: radial-gradient(ellipse at 50% 80%, rgba(255, 252, 230, .95), rgba(255, 200, 80, .5) 45%, transparent 70%); }
+.bk-jet::after { left: 8%; right: 8%; top: 0; height: 45%; background: radial-gradient(ellipse at 50% 70%, rgba(255, 130, 30, .8), rgba(170, 40, 0, .35) 50%, transparent 72%); }
+.bk-jet.go { animation: bkJet 1.3s cubic-bezier(.2, .8, .3, 1) both; }
+.bk-jet.go::before { animation: bkFlick .09s steps(2) infinite alternate; }
+.bk-jet.go::after { animation: bkLick .16s steps(3) infinite alternate; }
+@keyframes bkLick { 0% { translate: -18px 0; scale: 1 1; } 50% { translate: 14px -40px; scale: .8 1.2; } 100% { translate: -6px -80px; scale: 1.1 .9; } }
+@keyframes bkJet { 0% { scale: .5 0; opacity: 0; } 10% { scale: 1 1.02; opacity: 1; } 35% { scale: 1.08 .94; } 55% { scale: .92 1.06; opacity: .95; } 100% { scale: .6 .35; opacity: 0; } }
+@keyframes bkFlick { from { translate: -6px 10px; } to { translate: 6px -14px; } }
+.bk-ball { width: 1100px; height: 1100px; translate: -50% -50%; border-radius: 50%; opacity: 0; pointer-events: none;
+  background: radial-gradient(circle, #fff 0 7%, #fff2c0 14%, #ffb347 26%, rgba(255, 90, 20, .75) 40%, rgba(140, 30, 0, .4) 54%, transparent 68%); }
+#stage:not(.q-low) .bk-ball { mix-blend-mode: screen; }
+.bk-ball.go { animation: bkBall 1.25s cubic-bezier(.1, .7, .3, 1) both; }
+@keyframes bkBall { 0% { scale: .15; opacity: 1; } 30% { opacity: 1; } 100% { scale: 1.7; opacity: 0; } }
+.bk-ring { width: 360px; height: 360px; translate: -50% -50%; border-radius: 50%; border: 8px solid rgba(255, 230, 170, .85); opacity: 0; pointer-events: none; }
+.bk-ring.go { animation: bkRing .9s cubic-bezier(.1, .7, .3, 1) both; }
+@keyframes bkRing { 0% { scale: .2; opacity: 1; } 100% { scale: 5.5; opacity: 0; border-width: 1px; } }
+.bk-spark { width: 8px; height: 8px; border-radius: 50%; background: #ffe7a0; box-shadow: 0 0 10px #ffb347; opacity: 0; pointer-events: none; }
+.bk-spark.go { animation: bkSpark var(--t, 1.4s) cubic-bezier(.15, .7, .4, 1) both; }
+@keyframes bkSpark { 0% { translate: 0 0; opacity: 1; } 70% { opacity: 1; } 100% { translate: var(--dx) var(--dy); opacity: 0; } }
+.scene.bk-punch > .layer { animation: bkPunch .85s cubic-bezier(.12, .9, .2, 1) both; }
+@keyframes bkPunch { 0% { scale: 1.42; rotate: -2.2deg; } 55% { scale: .985; rotate: .4deg; } 100% { scale: 1; rotate: 0deg; } }
+#stage.bk-shake #scenes { animation: acShake .3s steps(2) 3; }
 .bk-90 { font: 600 190px/1 var(--f-num); letter-spacing: .01em; color: #fff3d6; text-shadow: 0 0 40px rgba(240, 192, 96, .45); white-space: nowrap; }
 .bk-frame-cap { display: flex; gap: 22px; align-items: baseline; white-space: nowrap; }
 .ledger { width: 1320px; font: 400 28px/1.3 var(--f-ko); color: var(--ink); }
@@ -125,34 +161,11 @@ function fieldSVG() {
   for (let k = 0; k < 9; k++) { const t = Math.pow(k / 8, 1.8), y = lerp(560, 1080, t); g += `<line x1="0" y1="${y.toFixed(1)}" x2="1920" y2="${y.toFixed(1)}"/>`; }
   return `<svg viewBox="0 0 1920 1080" preserveAspectRatio="none" style="width:1920px;height:1080px"><defs><linearGradient id="fdG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e0b55a" stop-opacity="0"/><stop offset=".5" stop-color="#e0b55a" stop-opacity=".16"/><stop offset="1" stop-color="#e0b55a" stop-opacity=".3"/></linearGradient><clipPath id="fdC"><rect x="0" y="560" width="1920" height="520"/></clipPath></defs><g clip-path="url(#fdC)" stroke="url(#fdG)" stroke-width="2">${g}</g></svg>`;
 }
-function stopwatchSVG() {
-  const cx = 350, cy = 420, R = 300;
-  let t = '';
-  for (let k = 0; k < 60; k++) { const a = k * 6 * Math.PI / 180, l = k % 5 ? 16 : 34, w = k % 5 ? 2 : 4; t += `<line x1="${cx + Math.sin(a) * (R - 18)}" y1="${cy - Math.cos(a) * (R - 18)}" x2="${cx + Math.sin(a) * (R - 18 - l)}" y2="${cy - Math.cos(a) * (R - 18 - l)}" stroke-width="${w}"/>`; }
-  let n = '';
-  for (let k = 5; k <= 60; k += 5) { const a = k * 6 * Math.PI / 180; n += `<text x="${cx + Math.sin(a) * (R - 82)}" y="${cy - Math.cos(a) * (R - 82) + 12}" text-anchor="middle">${k}</text>`; }
-  let m = '';
-  for (let k = 0; k < 4; k++) { const a = k * 90 * Math.PI / 180; m += `<line x1="${cx + Math.sin(a) * 52}" y1="${cy - 110 - Math.cos(a) * 52}" x2="${cx + Math.sin(a) * 64}" y2="${cy - 110 - Math.cos(a) * 64}" stroke-width="3"/><text x="${cx + Math.sin(a) * 36}" y="${cy - 110 - Math.cos(a) * 36 + 7}" text-anchor="middle" style="font-size:18px">${k}</text>`; }
-  return `<svg viewBox="0 0 700 760" fill="none" stroke="#f6ead0">
-    <rect x="320" y="40" width="60" height="44" rx="8" fill="#2a2216" stroke-width="3"/><rect x="300" y="18" width="100" height="26" rx="8" fill="#3a2e1c" stroke-width="3"/>
-    <circle cx="${cx}" cy="${cy}" r="${R + 22}" fill="#1a140b" stroke="#c9a24a" stroke-width="10"/>
-    <circle cx="${cx}" cy="${cy}" r="${R}" fill="#f4ecd8" stroke="none"/>
-    <g stroke="#2a2216">${t}</g>
-    <g fill="#2a2216" stroke="none" style="font: 600 36px var(--f-num)">${n}</g>
-    <circle cx="${cx}" cy="${cy - 110}" r="68" fill="#ebe1c8" stroke="#2a2216" stroke-width="2"/>
-    <g stroke="#2a2216" fill="#2a2216" style="font: 600 18px var(--f-num)">${m}</g>
-    <line class="sw-min" x1="${cx}" y1="${cy - 110}" x2="${cx}" y2="${cy - 166}" stroke="#8e1424" stroke-width="5" stroke-linecap="round"/>
-    <g class="sw-sec"><line x1="${cx}" y1="${cy + 50}" x2="${cx}" y2="${cy - R + 30}" stroke="#8e1424" stroke-width="5" stroke-linecap="round"/><circle cx="${cx}" cy="${cy}" r="14" fill="#8e1424" stroke="none"/></g>
-    <circle cx="${cx}" cy="${cy}" r="5" fill="#f4ecd8" stroke="none"/>
-  </svg>`;
-}
 Scenes.define('dangerous', {
   build(el, sc) {
     const back = layer(-.22), mid = layer(.08), stg = layer(.3);
     el.append(back, mid, stg);
     this.op = opener(mid, sc, { act: 2, card: { num: 'V', title: L('데인저러스', '《Dangerous》'), en: 'Dangerous', years: L('1991 — 1993') } });
-    /* photograph: the Dangerous tour, Bucharest 1992 (with the audience number) */
-    mid.append(this.ph3 = photoPrint('dw_1992', { x: 330, y: 560, w: 300, h: 380, rot: 3, show: '3-3', d: 1.2 }));
     $('.cc', this.op.card).classList.add('endup');
     /* 0 · black or white: one figure, inverted across a line */
     this.morph = h('div.morph.left', {}, h('span.m1', { text: 'BLACK' }), h('span.m2', { text: 'WHITE' }));
@@ -170,44 +183,6 @@ Scenes.define('dangerous', {
       stageFig(stg, { costume: 'bow', x: 1420, y: 910, h: 640, glow: null, rim: null, shadow: 'none', p: P }),
     ];
     this.bw[0].el.style.clipPath = 'inset(0 50% 0 0)'; this.bw[1].el.style.clipPath = 'inset(0 0 0 50%)';
-    /* 1–2 · the stadium, and a man who does not move */
-    back.append(A('div.field', 960, 760, { show: '1-3', cls: 'slow', html: fieldSVG() }));
-    this.st = stageFig(stg, { costume: 'military', pose: 'statue', style: 'costume', x: 760, y: 900, h: 600, show: '1-3', glowPx: 10, rim: '#ffe2a0', glow: 'rgba(255, 210, 120, .5)' });
-    this.watch = h('div.watch', { html: stopwatchSVG() });
-    this.read = h('div.sw-read', { text: '0:00.0' });
-    mid.append(
-      this.sbK = A('div.lab.nowrap', 146, 150, { anchor: 'ay', show: '1-2', cls: 'left' }, T(L('1993. 1 · 슈퍼볼 하프타임 쇼', '1993年1月 · 超级碗中场秀'))),
-      mvAt('superbowl', 146, 214, { show: '1-3', d: .8, label: 'LIVE' }),
-      A('div.watch-w', 1460, 470, { show: '1-2', cls: 'zoom' }, this.watch),
-      A('div', 1460, 850, { show: '1-2', d: .4 }, this.read),
-      A('div.h-s.nowrap', 146, 960, { anchor: 'ay', show: '2-2', d: .9 }, T(L('2분 가까이, 아무것도 하지 않고', '将近两分钟，什么都不做'))),
-    );
-    /* 3 · the scoreboard */
-    this.count = h('div.led', { text: '0' });
-    mid.append(A('div.board', 1240, 300, { show: '3', cls: 'down' }, h('div.bd-k', {}, T(L('미국 시청자', '美国观众'))), this.count),
-      stack(1240, 640, { gap: 18 },
-        R('b-m center nowrap', '3', 1, T(L('하프타임 시청률이 전반전을 넘다 — 슈퍼볼 최초', '中场秀收视超过上半场——超级碗史上首次'))),
-        R('b-m center nowrap', '3', 1.8, T(L('이후, 최고의 스타만 서는 무대', '此后，只属于顶级巨星的舞台')), 'up', { color: 'var(--acc2)' })));
-    this.sw = { t0: 0, off: 0, run: null, stopFF: null };
-    clickable(this.st.hitbox(260), () => { if (this.i === 1 || this.i === 2) this.st.seq([[{ neck: -7, head: 0 }, 1800], [{ head: 14 }, 900, 400], [{ head: 0 }, 900]]); });
-    mid.append(itip(900, 300, L('클릭… 그래도 그는 움직이지 않는다', '点他……他依然一动不动'), '1-2'));
-  },
-  swStart(offset = 0) {
-    const sw = this.sw; this.swStop();
-    sw.t0 = now(); sw.off = offset;
-    const sec = $('.sw-sec', this.watch), mn = $('.sw-min', this.watch);
-    sw.run = Loop.add(() => {
-      const t = sw.off + (now() - sw.t0) / 1000;
-      sec.setAttribute('transform', `rotate(${(t % 60) * 6} 350 420)`);
-      mn.setAttribute('transform', `rotate(${(t / 60) * 90} 350 310)`);
-      this.read.textContent = fmt(t, true);
-    });
-  },
-  swStop() { if (this.sw.run) { this.sw.run(); this.sw.run = null; } if (this.sw.stopFF) { this.sw.stopFF(); this.sw.stopFF = null; } },
-  swSet(t) {
-    $('.sw-sec', this.watch).setAttribute('transform', `rotate(${(t % 60) * 6} 350 420)`);
-    $('.sw-min', this.watch).setAttribute('transform', `rotate(${(t / 60) * 90} 350 310)`);
-    this.read.textContent = fmt(t, true);
   },
   morphRun(on) {
     if (this._m) { this._m(); this._m = null; }
@@ -226,12 +201,7 @@ Scenes.define('dangerous', {
   },
   beat(i, ctx) {
     this.i = i;
-    [this.st, ...this.bw].forEach(f => f.stop());
-    /* the Super Bowl kicker sits in the dark corner: give it a soft light of its own */
-    const SB = textLight('sb', this.sbK, { i: .7 });
-    const beams = (k) => [
-      { id: 'b1', type: 'beam', x: 140, y: -80, ang: 62, spread: 8, len: 1350, i: .7 * k }, { id: 'b2', type: 'beam', x: 640, y: -100, ang: 82, spread: 7, len: 1300, i: .55 * k },
-      { id: 'b3', type: 'beam', x: 1280, y: -100, ang: 98, spread: 7, len: 1300, i: .55 * k }, { id: 'b4', type: 'beam', x: 1780, y: -80, ang: 118, spread: 8, len: 1350, i: .7 * k }];
+    this.bw.forEach(f => f.stop());
     const m0 = [this.mwrap, this.mkick, this.mcap, this.mtag, this.mmv, this.split, ...this.bw.map(f => f.box)];
     if (i === 0) {
       const t = this.op.run(ctx);
@@ -240,29 +210,8 @@ Scenes.define('dangerous', {
       ctx.light({ lights: [{ id: 'a', x: 700, y: 520, rx: 760, ry: 460, soft: .45 }, { id: 's', type: 'rect', x: 1420, y: 600, w: 800, h: 700, r: 4, soft: 60, i: .95 }] });
       ctx.fx({});
     } else { this.op.hide(); m0.forEach(e => vis(e, 'gone')); this.morphRun(false); }
-    if (i >= 1) this.st.pose('statue');
-    if (i === 1) {
-      ctx.fx({ gold: .5 });
-      if (ctx.fwd) this.swStart(0); else { this.swStop(); this.swSet(3.5); }
-      ctx.light({ ambient: .86, lights: [...beams(.8), { id: 'a', x: 760, y: 560, rx: 340, ry: 440, soft: .18 }, { id: 'w', x: 1460, y: 560, rx: 330, ry: 400, soft: .5, i: .9, cone: false }, SB] });
-    }
-    if (i === 2) {
-      ctx.fx({ gold: .6, crowd: 1 });
-      const cur = this.sw.run ? this.sw.off + (now() - this.sw.t0) / 1000 : 3.5;
-      if (ctx.fwd) {
-        this.swStop();
-        this.sw.stopFF = tween(1700, (e) => this.swSet(lerp(cur, 112, e)), ease.inOutSine, () => { this.sw.stopFF = null; this.swStart(112); });
-      } else { this.swStop(); this.swSet(112); }
-      ctx.light({ ambient: .84, lights: [...beams(.9), { id: 'a', x: 760, y: 560, rx: 380, ry: 480, soft: .25 }, { id: 'w', x: 1460, y: 560, rx: 330, ry: 400, soft: .5, i: .9, cone: false }, { id: 'h', x: 420, y: 960, rx: 420, ry: 70, soft: .9, i: .85, cone: false, halo: false }, SB] });
-    }
-    if (i === 0 || i === 3) this.swStop();
-    if (i === 3) {
-      ctx.fx({ gold: 1, crowd: 1 });
-      countUp(this.count, 133400000, { dur: 2600, instant: !ctx.fwd });
-      ctx.light({ ambient: .72, lights: [...beams(1.1), { id: 'a', x: 1240, y: 420, rx: 640, ry: 360, soft: .45 }, { id: 'f', x: 760, y: 640, rx: 300, ry: 380, soft: .3, i: .7 }, ...photoLight('ph', this.ph3, { delay: ctx.fwd ? 1.2 : 0 })] });
-    }
   },
-  leave() { this.swStop(); this.morphRun(false); [this.st, ...this.bw].forEach(f => f.stop()); },
+  leave() { this.morphRun(false); this.bw.forEach(f => f.stop()); },
 });
 
 /* ═══ 8 · VI SHADOW ═══ */
@@ -373,10 +322,18 @@ Scenes.define('bucharest', {
     el.append(back, mid, stg);
     /* 0 · the stadium, and a man who springs up through the stage and stops */
     back.append(A('div.field', 960, 760, { show: '0-0', cls: 'slow', html: fieldSVG() }));
-    this.st = stageFig(stg, { costume: 'military', pose: 'statue', style: 'costume', x: 560, y: 940, h: 620, show: '0-0', cls: 'fast', glowPx: 10, rim: '#ffe2a0', glow: 'rgba(255, 210, 120, .5)' });
-    this.st.box.classList.add('bk-pop');
-    this.hatch = A('div.bk-hatch', 560, 942);
-    stg.append(A('div.bk-lip', 960, 1015, { show: '0' }), this.hatch);
+    /* pyro behind him: six flame jets along the lip, then the blast */
+    this.jets = [250, 560, 860, 1100, 1380, 1690].map(x => A('div.bk-jet', x, 946, { anchor: '' }));
+    this.ball = A('div.bk-ball', 640, 560, { anchor: '' });
+    this.ring = A('div.bk-ring', 640, 600, { anchor: '' });
+    this.sparks = Array.from({ length: LITE ? 14 : 30 }, () => A('div.bk-spark', 640, 600, { anchor: '' }));
+    back.append(...this.jets, this.ball, this.ring, ...this.sparks);
+    const img = (cls) => h('img', { cls, src: 'media/stills/bk-figure.webp', alt: '', draggable: 'false', decoding: 'async' });
+    this.fig = A('div.bk-fig', 640, 948, { anchor: '' }, h('i', {}, img(''), img('bk-skin')));
+    this.hatch = A('div.bk-hatch', 640, 942);
+    stg.append(A('div', 0, 0, { anchor: '', show: '0-0', cls: 'fast' }, this.fig), A('div.bk-lip', 960, 1015, { show: '0-0' }), this.hatch);
+    this.curtain = A('div.bk-curtain', 0, 0, { anchor: '' });
+    el.append(this.curtain);
     const tk = h('div.ticket', {},
       h('div.tk-main', {}, h('div.tk-k', { text: 'MICHAEL JACKSON' }), h('div.tk-e', { text: 'DANGEROUS WORLD TOUR · BUCUREȘTI' }),
         h('div.tk-v', {}, T(L('국립경기장 · 루마니아 첫 공연', '国家体育场 · 罗马尼亚首演'))), h('div.tk-d', { text: '1992. 10. 1' }), h('div.tk-seal', { html: "BUC<br>'92" })),
@@ -388,8 +345,10 @@ Scenes.define('bucharest', {
       this.k90 = A('div.bk-90', 1380, 640, { show: '0-0', cls: 'zoom', d: .9 }, '90,000'),
       A('div.b-m.center.nowrap', 1380, 760, { show: '0-0', d: 1.2 }, T(L('관객 · 매진', '观众 · 售罄'))),
       A('div.h-s.center.nowrap', 1380, 880, { show: '0-0', d: 1.6, style: 'color:var(--acc2)' }, T(L('튀어 올라, 그대로 멈추다', '弹出，然后定住'))));
-    clickable(this.st.hitbox(260), () => { if (this.i === 0) this.st.seq([[{ neck: -7, head: 0 }, 1800], [{ head: 14 }, 900, 400], [{ head: 0 }, 900]]); });
-    mid.append(itip(860, 300, L('클릭… 그래도 그는 움직이지 않는다', '点他……他依然一动不动'), '0-0'));
+    /* click: for a moment the silhouette lets the sequins through — and still he does not move */
+    clickable(this.fig, () => { if (this.i === 0) { this.fig.classList.toggle('lit'); SFX.chime({ gain: .16, notes: [1760, 2637] }); } });
+    mid.append(itip(900, 300, L('클릭… 그래도 그는 움직이지 않는다', '点他……他依然一动不动'), '0-0'));
+    this.rest = [...$$('[data-show="0-0"]', mid), ...$$('[data-show="0-0"]', back).filter(e => e.classList.contains('field'))];
     /* 1 · the official concert film plays in this frame */
     const FR = { x: 360, y: 130, w: 1200, h: 675 };
     Scenes.setRect('bkFrame', FR);
@@ -430,30 +389,54 @@ Scenes.define('bucharest', {
     mid.append(...this.stills,
       this.last = A('div.h-s.center.nowrap', 900, 168, { show: '4-4', d: 2, style: 'color:var(--acc2)' }, T(L('그동안 그는, 아무것도 하지 않았다', '这段时间里，他什么都没做'))));
   },
-  pop(on, ctx) {
-    clearTimeout(this._pop);
-    const box = this.st.box;
-    if (!on) { box.classList.remove('up'); return; }
-    if (!ctx.fwd) { box.classList.add('up'); return; }
-    box.classList.remove('up'); void box.offsetWidth;
-    this._pop = setTimeout(() => {
-      box.classList.add('up'); this.hatch.classList.add('flash'); SFX.boom(.4);
-      setTimeout(() => this.hatch.classList.remove('flash'), 260);
-    }, ctx.say('튀어', .2));
+  /* the opening: the stage goes black, flame jets fire upward, a blast, the camera punches in and he is standing there */
+  pyro(ctx) {
+    (this._pt || []).forEach(clearTimeout); this._pt = [];
+    const at = (ms, f) => this._pt.push(setTimeout(f, ms));
+    const el = Scenes.el('bucharest'), stage = $('#stage'), F = this.fig;
+    [...this.jets, this.ball, this.ring, ...this.sparks].forEach(e => e.classList.remove('go'));
+    el.classList.remove('bk-punch'); stage.classList.remove('bk-shake');
+    if (!ctx.fwd) { this.curtain.classList.remove('on'); F.classList.add('still', 'up'); this.rest.forEach(e => vis(e, 'on')); return; }
+    F.classList.add('still'); F.classList.remove('up', 'lit'); void F.offsetWidth; F.classList.remove('still');
+    this.rest.forEach(e => vis(e, 'off'));
+    this.curtain.classList.add('on');
+    /* the jets, outside in, in pairs */
+    [[0, 5], [1, 4], [2, 3]].forEach(([a, b], k) => at(300 + k * 170, () => {
+      this.curtain.classList.remove('on');
+      [a, b].forEach(n => { const j = this.jets[n]; j.classList.remove('go'); void j.offsetWidth; j.classList.add('go'); });
+      SFX.flame({ pan: -.55 + k * .25, gain: .42 }); SFX.flame({ pan: .55 - k * .25, gain: .32 });
+    }));
+    /* the blast, and the punch: he springs up through the lip */
+    at(1250, () => {
+      this.ball.classList.add('go'); this.ring.classList.add('go');
+      this.sparks.forEach(s => { const a = Math.random() * Math.PI * 2, r = 260 + Math.random() * 520; s.style.setProperty('--dx', Math.cos(a) * r + 'px'); s.style.setProperty('--dy', (Math.sin(a) * r * .7 + 160) + 'px'); s.style.setProperty('--t', (1 + Math.random() * .9) + 's'); s.classList.add('go'); });
+      const fl = h('div.ac-flash'); $('#accent').append(fl); setTimeout(() => fl.remove(), 500);
+      SFX.blast(.7);
+      el.classList.add('bk-punch'); stage.classList.add('bk-shake');
+      F.classList.add('up'); this.hatch.classList.add('flash');
+    });
+    at(1510, () => this.hatch.classList.remove('flash'));
+    at(2250, () => stage.classList.remove('bk-shake'));
+    /* then the lights find him, and the night's facts come in */
+    at(2300, () => { this.rest.forEach(e => vis(e, 'on')); ctx.light(this.light0(), { dur: 1.2 }); });
+    at(3600, () => el.classList.remove('bk-punch'));
+  },
+  light0(k = 1) {
+    const beams = [
+      { id: 'b1', type: 'beam', x: 140, y: -80, ang: 62, spread: 8, len: 1350, i: .7 * k }, { id: 'b2', type: 'beam', x: 640, y: -100, ang: 82, spread: 7, len: 1300, i: .55 * k },
+      { id: 'b3', type: 'beam', x: 1280, y: -100, ang: 98, spread: 7, len: 1300, i: .55 * k }, { id: 'b4', type: 'beam', x: 1780, y: -80, ang: 118, spread: 8, len: 1350, i: .7 * k }];
+    return { ambient: .84, lights: [...beams, { id: 'a', x: 640, y: 600, rx: 360, ry: 460, soft: .2 }, { id: 't', x: 1380, y: 560, rx: 520, ry: 420, soft: .5, i: .85 }, textLight('k', this.k90, { i: .6 })] };
   },
   beat(i, ctx) {
     this.i = i;
-    this.st.stop();
     const beams = (k) => [
       { id: 'b1', type: 'beam', x: 140, y: -80, ang: 62, spread: 8, len: 1350, i: .7 * k }, { id: 'b2', type: 'beam', x: 640, y: -100, ang: 82, spread: 7, len: 1300, i: .55 * k },
       { id: 'b3', type: 'beam', x: 1280, y: -100, ang: 98, spread: 7, len: 1300, i: .55 * k }, { id: 'b4', type: 'beam', x: 1780, y: -80, ang: 118, spread: 8, len: 1350, i: .7 * k }];
-    this.pop(i === 0, ctx);
     if (i === 0) {
-      this.st.pose('statue');
       ctx.fx({ gold: .6, crowd: 1 });
-      ctx.light({ ambient: .84, lights: [...beams(.85), { id: 'a', x: 560, y: 600, rx: 340, ry: 440, soft: .2, delay: ctx.fwd ? ctx.say('튀어', .2) / 1000 : 0 },
-        { id: 't', x: 1380, y: 560, rx: 520, ry: 420, soft: .5, i: .85 }, textLight('k', this.k90, { i: .6, delay: ctx.fwd ? .9 : 0 })] });
-    }
+      if (ctx.fwd) ctx.light({ ambient: .12, lights: [] }, { dur: .2 }); else ctx.light(this.light0());
+      this.pyro(ctx);
+    } else { (this._pt || []).forEach(clearTimeout); this.curtain.classList.remove('on'); Scenes.el('bucharest').classList.remove('bk-punch'); $('#stage').classList.remove('bk-shake'); }
     if (i === 1) {
       ctx.fx({ gold: .3, crowd: .6 });
       ctx.light({ warm: .45, lights: [{ id: 'f', type: 'rect', x: 960, y: 467, w: 1280, h: 755, r: 6, soft: 60, i: .95 }, { id: 'c', x: 960, y: 900, rx: 640, ry: 90, soft: .5, i: .8, cone: false }] });
@@ -467,6 +450,6 @@ Scenes.define('bucharest', {
       ctx.light({ ambient: .78, lights: [{ id: 'w', type: 'rect', x: 960, y: 565, w: 1680, h: 760, r: 10, soft: 70, i: .95 }, textLight('x', this.last, { i: .7, delay: ctx.fwd ? 2 : 0 })] });
     }
   },
-  leave() { clearTimeout(this._pop); this.st.stop(); },
+  leave() { (this._pt || []).forEach(clearTimeout); this.curtain.classList.remove('on'); $('#stage').classList.remove('bk-shake'); },
 });
 </script>

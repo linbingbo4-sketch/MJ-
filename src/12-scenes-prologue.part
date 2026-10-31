@@ -296,7 +296,7 @@ Scenes.define('trailer', {
     const FR = [
       ['1958', L('게리에서 태어나다', '生于加里')], ['1969', L('모타운 데뷔', '摩城出道')], ['1979', L('Off the Wall', 'Off the Wall')], ['1982', L('Thriller', 'Thriller')],
       ['1983', L('문워크', '太空步')], ['1987', L('Bad', 'Bad')], ['1988', L('Smooth Criminal', 'Smooth Criminal')],
-      ['1991', L('Black or White', 'Black or White')], ['1992', L('부쿠레슈티', '布加勒斯特')], ['1993', L('슈퍼볼 · 그리고 그림자', '超级碗 · 以及阴影')], ['1995', L('HIStory', 'HIStory')], ['2009', L('This Is It', 'This Is It')],
+      ['1991', L('Black or White', 'Black or White')], ['1992', L('부쿠레슈티', '布加勒斯特')], ['1993', L('그림자', '阴影')], ['1995', L('HIStory', 'HIStory')], ['2009', L('This Is It', 'This Is It')],
     ];
     const strip = this.strip = A('div.fstrip', 960, 690, { show: '2', cls: 'up slow', d: .6 });
     const fw = 148, gap = 12, x0 = 28;

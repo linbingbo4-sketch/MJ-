@@ -28,6 +28,8 @@ const snap = () => {
   f.flip3d = (() => { const c = document.querySelector('.rv.flip3d:not(.on)'); return c ? getComputedStyle(c).transform !== 'none' : null; })();
   f.tappable = sc ? [...sc.querySelectorAll('.int, .drag, .mvs')].filter(e => vis(e) && getComputedStyle(e).pointerEvents !== 'none').length : 0;
   f.photos = shown('.scene.active .photo-w:not(.nophoto), .scene.active .hero:not(.nophoto)');
+  f.cutouts = shown('.scene.active .bk-fig');
+  f.accents = document.querySelector('#stage > #accent') && window.BTS.Accents ? window.BTS.Accents.kinds.length : 0;
   f.photoToned = (() => { const i = document.querySelector('.scene.active .hero img'); return i ? getComputedStyle(i).filter !== 'none' : null; })();
   f.figures = shown('.scene.active .fig');
   f.texts = sc ? [...sc.querySelectorAll('*')].filter(e => [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()) && !e.closest('svg') && vis(e)).length : 0;

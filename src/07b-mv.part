@@ -128,6 +128,14 @@ const MV = (() => {
   const switches = (work) => $$(`.mvs[data-work="${work}"]`);
   function mark(work, on) { switches(work).forEach(b => b.classList.toggle('on', on)); }
 
+  /* where a work's video starts: a point marked with C while it played (Motown 25: the moonwalk), else the beginning */
+  function mvStart(work, src) {
+    const m = (Settings.get().mvStart || {})[work + ':' + (src.id || 'file')];
+    if (m != null) return m;
+    const mo = Settings.get().videos.motown || {};
+    if (work === 'motown25' && src.id && ytId(mo.src || '') === src.id && mo.start) return +mo.start;
+    return 0;
+  }
   async function open(work, el) {
     if (VIEW !== 'stage') return;
     const w = WORKS[work]; if (!w) return;
@@ -151,7 +159,7 @@ const MV = (() => {
     for (const src of sources) {
       if (my !== token) return;
       if (src.id && YTAPI.state === 'failed') continue;
-      const ok = await s.load({ key: 'mv', work, ...src, quiet: true, stream: LITE, start: 0, autoplay: true, onEnd: () => { if (my === token) close(); } });
+      const ok = await s.load({ key: 'mv', work, ...src, quiet: true, stream: LITE, start: mvStart(work, src), autoplay: true, onEnd: () => { if (my === token) close(); } });
       if (my !== token) return;
       if (ok) { Video.emit(); return; }
     }

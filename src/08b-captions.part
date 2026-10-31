@@ -39,7 +39,8 @@ const Captions = (() => {
   }
   function clear() { timers.forEach(clearTimeout); timers = []; }
   function hide() { clear(); el.classList.remove('on'); shown = -1; }
-  function put(p) {
+  function put(p, fwd = false) {
+    if (fwd) Accents.sentence(p.ko, shown);
     if (!el.classList.contains('on')) { ck.textContent = p.ko; cz.textContent = p.zh; el.classList.add('on'); return; }
     el.classList.add('swap');
     timers.push(setTimeout(() => { ck.textContent = p.ko; cz.textContent = p.zh; el.classList.remove('swap'); }, 220));
@@ -47,15 +48,16 @@ const Captions = (() => {
   function show(beat, { lead = 0 } = {}) {
     clear();
     const b = BEATS[beat];
+    if (VIEW === 'stage' && b && !b.silent && !Settings.get().subs && lead > 0) pairs(b).forEach(p => Accents.sentence(p.ko, beat));   /* no subtitles: the sentences still count */
     if (VIEW !== 'stage' || !Settings.get().subs || !b || b.silent) { hide(); return; }
     const P = pairs(b); if (!P.length) { hide(); return; }
     shown = beat; cur = P; at = 0;
     /* by hand (the default): the first sentence now, the clicker moves on sentence by sentence */
-    if (!Auto.on) { timers.push(setTimeout(() => { if (shown === beat) put(P[0]); }, lead * 1000)); return; }
+    if (!Auto.on) { timers.push(setTimeout(() => { if (shown === beat) put(P[0], lead > 0); }, lead * 1000)); return; }
     const rate = Scenes.rate();
     let t = lead;
     P.forEach((p, i) => {
-      timers.push(setTimeout(() => { if (shown === beat) { at = i; put(p); } }, t * 1000));
+      timers.push(setTimeout(() => { if (shown === beat) { at = i; put(p, lead > 0); } }, t * 1000));
       t += Math.max(1.6, syllables(p.ko) / rate + .35);
     });
   }
@@ -64,7 +66,7 @@ const Captions = (() => {
     if (Auto.on || shown < 0 || shown !== Director.beat || !Settings.get().subs || !cur.length) return false;
     const n = at + d;
     if (n < 0 || n >= cur.length) return false;
-    clear(); at = n; put(cur[n]); return true;
+    clear(); at = n; put(cur[n], d > 0); return true;
   }
   const state = () => ({ beat: shown, at, of: cur.length });
   function init() {
